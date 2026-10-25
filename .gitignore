@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+.env
+.vscode/
+node_modules/
+dist/
+build/
+*.egg-info/
+.DS_Store
+Thumbs.db
+temp_upstream.zip
