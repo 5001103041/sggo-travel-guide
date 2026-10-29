@@ -1,0 +1,866 @@
+% =====================================================================
+% TRƯỜNG ĐẠI HỌC SƯ PHẠM TP. HỒ CHÍ MINH - KHOA CÔNG NGHỆ THÔNG TIN
+% HỌC PHẦN: NHẬP MÔN CÔNG NGHỆ PHẦN MỀM
+% CHƯƠNG 1. KHẢO SÁT BÀI TOÁN (BẢN HOÀN CHỈNH - CHUẨN QUY TẮC 100%)
+% ĐỀ TÀI: WEBSITE HỖ TRỢ TÌM CHỖ VUI CHƠI CHO NHÓM "THIẾU CHÍNH KIẾN" - SGGO
+% KHUNG YÊU CẦU ĐỀ BÀI: 8 MUST / 2 SHOULD / 1 COULD
+% Biên dịch chuẩn bằng XeLaTeX: xelatex main.tex
+% =====================================================================
+\documentclass[13pt,a4paper]{extreport}
+
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\usepackage{polyglossia}
+\setmainlanguage{vietnamese}
+
+% Khổ giấy và lề trang: A4; lề trái 3cm, phải 2cm, trên 2cm, dưới 2cm
+\usepackage[left=3.0cm,right=2.0cm,top=2.0cm,bottom=2.0cm]{geometry}
+
+% Giãn dòng 1.5 lines
+\usepackage{setspace}
+\onehalfspacing
+
+% Thụt đầu dòng 1.0cm cho TẤT CẢ các đoạn văn xuôi (kể cả đoạn đầu sau tiêu đề)
+\usepackage{indentfirst}
+\setlength{\parindent}{1.0cm}
+% Khoảng cách giữa các đoạn: Before 0pt - After 6pt
+\setlength{\parskip}{6pt}
+
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{array,booktabs,longtable,tabularx,multirow}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{etoolbox}
+
+% Quy tắc phân cấp nội dung:
+% Trường hợp A (itemize): Mức 1 chấm tròn (0.63cm), Mức 2 gạch ngang (1.25cm), Mức 3 dấu cộng (1.85cm)
+\setlist[itemize,1]{label=\textbullet, leftmargin=0.63cm, nosep}
+\setlist[itemize,2]{label=--, leftmargin=1.25cm, nosep}
+\setlist[itemize,3]{label=+, leftmargin=1.85cm, nosep}
+
+% Trường hợp B (enumerate): Mức 1 (1., 2., 3.), Mức 2 (a., b., c.), Mức 3 (--)
+\setlist[enumerate,1]{label=\arabic*., leftmargin=1.0cm, nosep}
+\setlist[enumerate,2]{label=\alph*., leftmargin=1.25cm, nosep}
+\setlist[enumerate,3]{label=--, leftmargin=1.85cm, nosep}
+
+\usepackage{titlesec}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,fit,backgrounds}
+\usepackage{float}
+\usepackage[hidelinks]{hyperref}
+\pagestyle{plain}
+
+% Bật đánh số tự động đến cấp 4 (\subsubsection)
+\setcounter{secnumdepth}{3}
+
+% Cấu hình Caption chuẩn: 12pt, nhãn "Bảng/Hình..." in đậm, tên không đậm/không nghiêng, phân cách bằng dấu chấm
+\DeclareCaptionFont{twelvept}{\fontsize{12pt}{14.4pt}\selectfont}
+\captionsetup{font=twelvept, labelfont=bf, textfont=normalfont, labelsep=period}
+\captionsetup[table]{position=top, skip=6pt, justification=raggedright, singlelinecheck=false}
+\captionsetup[figure]{position=bottom, skip=6pt, justification=centering}
+% Đảm bảo caption của longtable cũng căn trái toàn trang như table thường
+\setlength{\LTcapwidth}{\textwidth}
+
+% Định dạng dữ liệu trong bảng: Times New Roman, 11pt, giãn dòng 1.15, tắt parskip trong bảng
+\AtBeginEnvironment{tabular}{\fontsize{11pt}{13.2pt}\selectfont\setstretch{1.15}\setlength{\parskip}{0pt}}
+\AtBeginEnvironment{tabularx}{\fontsize{11pt}{13.2pt}\selectfont\setstretch{1.15}\setlength{\parskip}{0pt}}
+\AtBeginEnvironment{longtable}{\fontsize{11pt}{13.2pt}\selectfont\setstretch{1.15}\setlength{\parskip}{0pt}}
+
+% Định dạng phân cấp tiêu đề (Có dấu chấm sau số thứ tự theo đúng Bảng 2: "CHƯƠNG 1.", "1.1.", "1.1.1.", "1.1.1.1.")
+% Heading 1 (Chương): IN HOA, đậm, 15pt, căn giữa
+\titleformat{\chapter}[block]
+  {\fontsize{15pt}{18pt}\selectfont\bfseries\centering}
+  {\MakeUppercase{\chaptertitlename}\ \thechapter.}
+  {0.5em}
+  {\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{-10pt}{18pt}
+
+% Heading 2 (Mục cấp 1): Đậm, 14pt, đánh số 2 chữ số kèm dấu chấm, căn trái
+\titleformat{\section}
+  {\fontsize{14pt}{17pt}\selectfont\bfseries\raggedright}
+  {\thesection.}
+  {0.5em}{}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+
+% Heading 3 (Mục cấp 2): Đậm, 14pt, đánh số 3 chữ số kèm dấu chấm, căn trái
+\titleformat{\subsection}
+  {\fontsize{14pt}{17pt}\selectfont\bfseries\raggedright}
+  {\thesubsection.}
+  {0.5em}{}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+
+% Heading 4 (Mục cấp 3): Đậm, 14pt, đánh số 4 chữ số kèm dấu chấm, căn trái
+\titleformat{\subsubsection}
+  {\fontsize{14pt}{17pt}\selectfont\bfseries\raggedright}
+  {\thesubsubsection.}
+  {0.5em}{}
+\titlespacing*{\subsubsection}{0pt}{12pt}{6pt}
+
+% Định dạng bảng biểu
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\hd}[1]{\centering\arraybackslash\textbf{#1}}
+\renewcommand{\arraystretch}{1.2}
+
+% Định nghĩa màu chuẩn Black & White Theme theo đúng Mục 4 của Quy tắc:
+% Nền trắng (#FFFFFF), Viền & chữ đen (#000000) dày 1px-1.5px (semithick), Vùng nhấn xám nhạt (#F1F5F9 / #E2E8F0)
+\definecolor{bgwhite}{HTML}{FFFFFF}
+\definecolor{borderblack}{HTML}{000000}
+\definecolor{hlgray1}{HTML}{F1F5F9}
+\definecolor{hlgray2}{HTML}{E2E8F0}
+
+\tikzset{
+  flowbox/.style={draw=borderblack,semithick,rounded corners=2pt,fill=bgwhite,text=borderblack,align=center,minimum height=7.5mm,text width=4.8cm,font=\small,inner sep=3pt},
+  flowdec/.style={draw=borderblack,semithick,diamond,aspect=2.2,fill=hlgray1,text=borderblack,align=center,font=\footnotesize,inner sep=2pt,text width=2.8cm},
+  flowterm/.style={draw=borderblack,semithick,rounded corners=7pt,fill=hlgray2,text=borderblack,minimum height=7mm,font=\small\bfseries,align=center,inner sep=3pt},
+  flowbad/.style={draw=borderblack,semithick,rounded corners=2pt,fill=hlgray1,text=borderblack,align=center,font=\small,text width=3.4cm,inner sep=3pt},
+  flowarr/.style={-{Stealth[length=2.5mm]},semithick,draw=borderblack},
+  bfdroot/.style={draw=borderblack,semithick,fill=hlgray2,text=borderblack,align=center,font=\small\bfseries,inner sep=5pt,rounded corners=2pt,text width=4.8cm},
+  bfdmain/.style={draw=borderblack,semithick,fill=hlgray1,text=borderblack,align=center,font=\footnotesize\bfseries,inner sep=2.5pt,rounded corners=2pt,text width=3.8cm,minimum height=8mm},
+  bfdsub/.style={draw=borderblack,semithick,fill=bgwhite,text=borderblack,align=left,font=\scriptsize,text width=4.0cm,inner sep=2.5pt,rounded corners=1pt,minimum height=6.5mm}
+}
+
+\begin{document}
+
+% Phần nội dung chính: Đánh số thứ tự thông thường 1, 2, 3... căn giữa ở chân trang
+\pagenumbering{arabic}
+
+\chapter{Khảo sát bài toán}
+
+\section{Mô tả yêu cầu bài toán}
+
+Hệ thống SGGo! (với khẩu hiệu ``Đi đâu, ăn gì? Để SGGo! lo'') là ứng dụng website hỗ trợ người dùng tại khu vực TP.HCM tìm kiếm địa điểm ăn uống, giải trí theo ngữ cảnh, ngân sách, khoảng cách, đồng thời tự động xây dựng một lịch trình gợi ý liên hoàn cho các nhóm bạn trẻ thường xuyên rơi vào trạng thái ``thiếu chính kiến'' (không ai chịu đưa ra quyết định cuối cùng).
+
+Mục tiêu học phần Nhập môn Công nghệ Phần mềm của Nhóm 6 tập trung vào việc khảo sát bối cảnh thực tế, phân tích bài toán gợi ý, mô hình hóa luồng nghiệp vụ và xây dựng quy trình phát triển phần mềm có thể kiểm thử toàn diện; không đặt nặng việc xây dựng mô hình AI phức tạp hay tích hợp dữ liệu giao thông thời gian thực ở cấp độ sản phẩm thương mại. Khung yêu cầu chức năng của đề tài gồm đúng 08 yêu cầu MUST, 02 yêu cầu SHOULD và 01 yêu cầu COULD.
+
+\subsection{Bối cảnh và thực trạng bài toán}
+Trong đời sống hiện đại tại TP.HCM, nhu cầu gặp gỡ, ăn uống và vui chơi cuối tuần của học sinh, sinh viên và người đi làm trẻ là vô cùng lớn. Tuy nhiên, quy trình lên kế hoạch đi chơi truyền thống chủ yếu diễn ra thủ công thông qua nhóm trò chuyện trực tuyến (Messenger, Zalo), bộc lộ nhiều điểm hạn chế nghiêm trọng (được chứng thực qua dữ liệu khảo sát thực tế):
+\begin{itemize}
+    \item Khó thống nhất và chậm chốt kế hoạch: Có đến 91,3\% người tham gia thường xuyên rơi vào cảnh hỏi ``Đi đâu/Ăn gì?'' và nhận lại câu trả lời vô thưởng vô phạt ``Gì cũng được / Sao cũng được''; 78,3\% xác nhận nhóm mất quá nhiều thời gian để thống nhất; 52,2\% mất từ một ngày trở lên chỉ để chốt xong một buổi hẹn.
+    \item Tỷ lệ ``bể kèo'' cao: 73,9\% người được khảo sát từng trải qua cảm giác hủy buổi đi chơi vào phút chót chỉ vì không ai chịu đứng ra làm người chốt hạ.
+    \item Bất cập về khoảng cách và tuyến đường: 78,3\% cho biết địa điểm chọn được thường quá xa hoặc ngược đường về của một số thành viên, gây mệt mỏi khi di chuyển.
+    \item Phân mảnh và quá tải thông tin: 78,3\% cảm thấy phiền toái khi phải mở và chuyển đổi liên tục giữa nhiều ứng dụng (Google Maps, TikTok, Facebook, ShopeeFood); 82,6\% không biết trước mức giá thực tế và khoảng cách giữa các điểm đang cân nhắc; 47,8\% hoang mang trước các video review quảng cáo không trung thực.
+    \item Lịch trình chắp vá, thủ công: Thứ tự các điểm đến (ăn trước hay chơi trước) và thời gian di chuyển thường chỉ do một người ước lượng cảm tính, dễ dẫn đến cảnh chạy lòng vòng, kẹt xe vào giờ cao điểm.
+\end{itemize}
+
+\subsection{Mục tiêu của hệ thống mới}
+Hệ thống SGGo! hướng tới việc xây dựng một nền tảng Web tinh gọn với 02 tác nhân chính (Người dùng / Khách truy cập và Quản trị viên -- Admin), mang lại các giải pháp thiết thực:
+\begin{enumerate}
+    \item Rút ngắn thời gian chốt lịch trình dưới 1 phút: Cho phép nhóm bạn trả lời trắc nghiệm nhanh 3 bước (Mục đích -- Đồng hành -- Ngân sách) để nhận ngay Top 3 địa điểm tối ưu.
+    \item Lập lộ trình thông minh không ngược đường: Nhập một lần các điều kiện (điểm xuất phát, thời gian rảnh, ngữ cảnh, ngân sách) để hệ thống tự động sinh lịch trình 2--3 điểm liên hoàn theo rule/scoring được tài liệu hóa, tối ưu chiều di chuyển và cảnh báo khung giờ cao điểm.
+    \item Cơ chế ``Xáo trộn'' linh hoạt: Cho phép đổi phương án khác tức thì nhưng vẫn bảo toàn nguyên vẹn các ràng buộc ngân sách và thời gian đã chọn.
+    \item Quản lý dữ liệu địa điểm tập trung: Cung cấp phân hệ Admin quản lý danh mục địa điểm, chuẩn hóa tọa độ, mức giá, tag ngữ cảnh và kiểm soát để các địa điểm đóng cửa/bị ẩn không bao giờ xuất hiện trong gợi ý.
+\end{enumerate}
+
+\section{Khảo sát bài toán}
+
+\subsection{Xác định Stakeholder của hệ thống}
+Theo đặc tả của đề tài, hệ thống tập trung phục vụ 02 nhóm stakeholder/tác nhân (Actor) chính trực tiếp tương tác với phần mềm được tổng hợp tại Bảng~\ref{tab:stakeholder} dưới đây:
+
+\begin{table}[H]
+\centering
+\caption{Tổng hợp Stakeholder của Hệ thống SGGo!}
+\label{tab:stakeholder}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{|>{\raggedright\arraybackslash}c|L{3.2cm}|L{4.6cm}|L{4.8cm}|L{1.4cm}|}
+\hline
+\hd{STT} & \hd{Stakeholder / Tác nhân} & \hd{Vai trò chính trong hệ thống} & \hd{Nhu cầu chính (từ khảo sát)} & \hd{Mức độ} \\
+\hline
+1 & Người dùng / Khách truy cập (thành viên nhóm bạn) &
+Truy cập web không cần đăng nhập; nhập nhu cầu (điểm xuất phát, giờ rảnh, ngân sách, ngữ cảnh); nhận gợi ý Top 3 quán hoặc lịch trình liên hoàn; sử dụng nút Xáo trộn để đổi phương án; tra cứu kho dữ liệu địa điểm. &
+Chốt kế hoạch đi chơi nhanh chóng (phút); không phải mở nhiều ứng dụng; biết trước khoảng giá và cự ly; lịch trình hợp lý, không bị đi ngược đường. & Rất cao \\
+\hline
+2 & Quản trị viên (Admin) &
+Đăng nhập tài khoản quản trị; quản lý danh mục địa điểm (thêm, sửa, xóa, ẩn); quản lý tag và bộ lọc ngữ cảnh; import dữ liệu hàng loạt từ tệp CSV/Excel. &
+Dữ liệu địa điểm chính xác, chuẩn hóa tọa độ và phân loại; các quán đóng cửa hoặc bị ẩn không bị gợi ý vào lịch trình của người dùng. & Cao \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Phân bổ trọng tâm khảo sát}
+\begin{itemize}
+    \item Người dùng / Khách truy cập là stakeholder trọng tâm của quá trình khảo sát thực tế nhằm thấu hiểu thói quen, tâm lý e ngại đưa ra quyết định và các tiêu chí đánh đổi (khoảng cách và mức giá).
+    \item Quản trị viên (Admin) được phân tích yêu cầu từ góc độ quản lý dữ liệu, kiểm soát tính đúng đắn của kho địa điểm và đảm bảo tính kiểm thử được của thuật toán theo yêu cầu môn học.
+\end{itemize}
+
+\subsection{Phương pháp và kết quả khảo sát thu thập yêu cầu}
+
+Nhóm 6 đã triển khai kết hợp 02 phương pháp khảo sát bổ trợ theo đúng hướng dẫn của học phần được trình bày tại Bảng~\ref{tab:methods} dưới đây:
+
+\begin{table}[H]
+\centering
+\caption{Các phương pháp khảo sát thu thập yêu cầu đã thực hiện}
+\label{tab:methods}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{|L{3.8cm}|L{4.5cm}|L{6.3cm}|}
+\hline
+\hd{Phương pháp} & \hd{Đối tượng và quy mô} & \hd{Mục đích thu thập} \\
+\hline
+Phỏng vấn mô phỏng (Role-play) &
+02 đối tượng đóng vai đại diện cho sinh viên và người trẻ đi làm tại TP.HCM (kịch bản 9 câu hỏi chuyên sâu). &
+Hiểu rõ quy trình lên lịch trình hiện tại, phân biệt ràng buộc cứng và tiêu chí mềm, ghi nhận hành vi khi từ chối gợi ý và nhu cầu về lịch trình nhiều điểm. \\
+\hline
+Bảng hỏi trực tuyến (Google Forms) &
+23 phản hồi hợp lệ từ người trẻ sinh sống, học tập tại TP.HCM (thu thập từ 01/10/2026 đến 03/10/2026). &
+Lượng hóa thói quen, mức độ nghiêm trọng của khó khăn (thang Likert), xác định các khoảng ngân sách phổ biến và đo lường nhu cầu chức năng mới. \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Phương pháp 1 -- Phỏng vấn mô phỏng (Role-play)}
+Nhóm 6 đã triển khai hoạt động phỏng vấn đóng vai theo kịch bản với 02 đối tượng:
+\begin{itemize}
+    \item Đối tượng phỏng vấn 1 (Sinh viên đại học): Thường đi chơi theo nhóm bạn thân; hay tìm quán qua TikTok và Google Maps; thời gian thảo luận thông thường mất 15--20 phút nhưng khi bất đồng ý kiến có thể kéo dài cả tiếng. Đã từng nhiều lần hủy hẹn vì người muốn đi ăn, người muốn xem phim, người muốn đi cà phê. Khẳng định ngân sách là giới hạn quan trọng nhất (ràng buộc cứng). Mong muốn công cụ có thể tổng hợp tiêu chí và đưa ra vài phương án cụ thể, có nút đổi gợi ý nếu không thích, và các điểm đến phải nằm trên tuyến đường thuận tiện.
+    \item Đối tượng phỏng vấn 2 (Người trẻ đi làm): Thường tụ tập cuối tuần theo nhóm 4--6 người; mất gần 1 tiếng nếu phải lên lịch trình đi nhiều nơi. Từng hoãn đi chơi do các thành viên ở xa ngại di chuyển nhiều. Tiêu chí lựa chọn ưu tiên trải nghiệm, không gian đẹp nhưng phải cân đối khoảng cách hợp lý. Mong muốn hệ thống gợi ý lịch trình có thứ tự logic (ăn uống trước rồi mới đi cà phê hoặc vui chơi), hiển thị thời gian dự kiến ở mỗi nơi và tổng chi phí.
+\end{itemize}
+
+\subsubsection{Phương pháp 2 -- Khảo sát diện rộng qua Bảng hỏi trực tuyến (Google Forms)}
+Bảng hỏi thu về 23 phản hồi hợp lệ. Nhóm 6 tiến hành tổng hợp và phân tích các chỉ số định lượng theo 6 nội dung dưới đây:
+
+\begin{enumerate}
+    \item Đặc điểm mẫu khảo sát:
+    \begin{itemize}
+        \item Độ tuổi: 18--22 tuổi chiếm 87,0\% (20/23); 23--26 tuổi chiếm 13,0\% (3/23).
+        \item Khu vực xuất phát phổ biến nhất: Khu vực trung tâm (Quận 1, 3, 5, 10) chiếm 52,2\% (12/23); Phía Đông (TP. Thủ Đức, Bình Thạnh) chiếm 26,1\% (6/23); Phía Nam (Quận 4, 7, 8) chiếm 17,4\% (4/23); Phía Tây/Tây Bắc chiếm 4,3\% (1/23).
+        \item Quy mô nhóm thông thường: Nhóm 4--6 người chiếm đa số với 56,5\% (13/23); nhóm 2--3 người chiếm 30,4\% (7/23); nhóm trên 6 người chiếm 13,1\%.
+        \item Hoạt động nhóm yêu thích: Ăn uống chiếm 91,3\% (21/23); Cà phê/ngồi trò chuyện chiếm 65,2\% (15/23); Karaoke chiếm 52,2\% (12/23); Xem phim chiếm 47,8\% (11/23); Dạo phố/chụp ảnh chiếm 39,1\% (9/23); Trò chơi/Boardgame chiếm 30,4\% (7/23).
+    \end{itemize}
+
+    \item Thời gian chốt kế hoạch của nhóm bạn trẻ: Thống kê thời gian từ lúc có ý tưởng đến khi cả nhóm chốt được địa điểm và thời gian cụ thể được tổng hợp tại Bảng~\ref{tab:time} dưới đây:
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{Thời gian trung bình từ lúc có ý tưởng đến khi chốt được kế hoạch}
+\label{tab:time}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{|L{7.0cm}|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|}
+\hline
+\hd{Khoảng thời gian} & \hd{Số lượng (người)} & \hd{Tỷ lệ (\%)} \\
+\hline
+Dưới 1 giờ & 7 & 30,4\% \\
+1--3 giờ & 2 & 8,7\% \\
+Nửa ngày & 2 & 8,7\% \\
+1--2 ngày & 5 & 21,7\% \\
+Hơn 2 ngày & 7 & 30,4\% \\
+\hline
+\hd{Tổng nhóm kéo dài (từ nửa ngày trở lên)} & \hd{14} & \hd{60,9\%} \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{enumerate}[resume]
+    \item Thống kê mức độ đồng ý về các khó khăn thực tế (Thang đo Likert 5 mức): Kết quả đánh giá về các vướng mắc thường gặp khi lên kế hoạch đi chơi theo nhóm được thể hiện tại Bảng~\ref{tab:pb} dưới đây:
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{Mức độ đồng ý với các phát biểu về vấn đề và khó khăn}
+\label{tab:pb}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{|>{\raggedright\arraybackslash}c|L{5.5cm}|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|}
+\hline
+\hd{Mã} & \hd{Phát biểu khảo sát} & \hd{HTKĐ} & \hd{KĐ} & \hd{TL} & \hd{ĐY} & \hd{HTĐY} & \hd{ĐY + HTĐY} \\
+\hline
+PB01 & Hỏi ``Đi đâu/Ăn gì?'' nhận lại ``Gì cũng được'' & 1 & 1 & 0 & 10 & 11 & 21 (91,3\%) \\
+PB02 & Mất quá nhiều thời gian để thống nhất địa điểm & 1 & 1 & 3 & 12 & 6 & 18 (78,3\%) \\
+PB03 & Từng có trải nghiệm ``bể kèo'' vì không ai quyết định & 2 & 1 & 3 & 11 & 6 & 17 (73,9\%) \\
+PB04 & Quá tải khi mở nhiều app (Maps, TikTok, Facebook) & 2 & 0 & 3 & 9 & 9 & 18 (78,3\%) \\
+PB05 & Không biết trước mức giá và cự ly các điểm & 2 & 0 & 2 & 13 & 6 & 19 (82,6\%) \\
+\hline
+\end{tabular}
+\\[2pt]
+\footnotesize \emph{Ghi chú:} HTKĐ: Hoàn toàn không đồng ý; KĐ: Không đồng ý; TL: Trung lập; ĐY: Đồng ý; HTĐY: Hoàn toàn đồng ý.
+\end{table}
+
+\begin{enumerate}[resume]
+    \item Thống kê nguyên nhân chính gây cản trở chốt địa điểm: Thống kê các lý do hàng đầu khiến nhóm bạn không thể chốt được kế hoạch được trình bày tại Bảng~\ref{tab:cause} dưới đây:
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{Thống kê nguyên nhân khiến nhóm bạn gặp khó khăn khi chọn chỗ đi chơi}
+\label{tab:cause}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{|>{\raggedright\arraybackslash}c|L{9.5cm}|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|}
+\hline
+\hd{STT} & \hd{Nguyên nhân được xác định từ khảo sát} & \hd{Số người chọn} & \hd{Tỷ lệ (\%)} \\
+\hline
+1 & Địa điểm chọn được thì quá xa hoặc ngược đường của một số thành viên & 18 & 78,3\% \\
+2 & Mỗi người một ý, sở thích ăn uống/giải trí đối nghịch nhau & 13 & 56,5\% \\
+3 & Quá nhiều thông tin review ảo/quảng cáo, không biết tin vào đâu & 11 & 47,8\% \\
+4 & Không ai muốn đứng ra làm người chốt hạ (``thiếu chính kiến'') & 8 & 34,8\% \\
+5 & Không tìm được nơi phù hợp với tâm trạng/ngữ cảnh của buổi hẹn & 5 & 21,7\% \\
+6 & Khó cân đối ngân sách giữa các thành viên & 2 & 8,7\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{enumerate}[resume]
+    \item Thống kê mức chi tiêu và mức độ quan trọng của các tiêu chí lựa chọn:
+    \begin{itemize}
+        \item Phân khúc chi tiêu trung bình/người cho một buổi đi chơi (1 bữa ăn + 1 cafe/vui chơi): Dưới 100.000\,đ có 5 người (21,7\%); từ 100.000--200.000\,đ có 9 người (39,1\%); từ 200.000--350.000\,đ có 7 người (30,4\%); trên 350.000\,đ có 2 người (8,7\%).
+        \item Mức độ quan trọng của các tiêu chí (tỷ lệ đánh giá Quan trọng và Cực kì quan trọng):
+        \begin{itemize}
+            \item CR03 (Quỹ thời gian rảnh): 91,3\% (21/23).
+            \item CR01 (Ngân sách dự kiến phù hợp): 87,0\% (20/23).
+            \item CR02 (Khoảng cách \& tuyến đường thuận tiện): 87,0\% (20/23).
+            \item CR04 (Ngữ cảnh \& Mood buổi gặp): 87,0\% (20/23).
+            \item CR05 (Tính logic của lịch trình -- ăn trước chơi sau): 78,3\% (18/23).
+        \end{itemize}
+    \end{itemize}
+
+    \item Thống kê mức độ cần thiết của các tính năng dự kiến trên website SGGo!: Khảo sát sự ủng hộ của người dùng đối với các tính năng dự kiến phát triển trên website được tổng hợp tại Bảng~\ref{tab:fe} dưới đây:
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{Mức độ cần thiết của các tính năng mới trên hệ thống}
+\label{tab:fe}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{|>{\raggedright\arraybackslash}c|L{6.2cm}|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|}
+\hline
+\hd{Mã} & \hd{Tính năng dự kiến} & \hd{Trung lập} & \hd{Cần thiết} & \hd{Rất cần thiết} & \hd{Tỷ lệ ủng hộ} \\
+\hline
+FE05 & Xem trực quan trên bản đồ kèm cự ly ước tính & 1 & 14 & 8 & 22 (95,7\%) \\
+FE04 & Dòng giải thích ngắn gọn lý do vì sao gợi ý điểm này & 2 & 14 & 7 & 21 (91,3\%) \\
+FE01 & Tự động tạo lịch trình kết hợp 2--3 điểm hợp lý & 3 & 14 & 6 & 20 (87,0\%) \\
+FE02 & Bộ lọc theo ngữ cảnh / Mood cụ thể & 4 & 14 & 5 & 19 (82,6\%) \\
+FE03 & Nút Xáo trộn để đổi phương án giữ nguyên tiêu chí & 4 & 12 & 7 & 19 (82,6\%) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Phương pháp 3 -- Khảo sát chứng từ và biểu mẫu nghiệp vụ}
+Trong thực tế chọn chỗ đi chơi của các nhóm bạn trẻ hiện nay chưa có biểu mẫu hành chính cố định. Nhóm 6 đã tiến hành khảo sát các cấu trúc dữ liệu trao đổi trong nhóm chat và chuẩn hóa thành 02 biểu mẫu nghiệp vụ phục vụ cho thiết kế phần mềm tại Bảng~\ref{tab:form_input} và Bảng~\ref{tab:form_place} dưới đây:
+
+\begin{table}[H]
+\centering
+\caption{Biểu mẫu Phiếu nhu cầu đi chơi của nhóm (Đầu vào)}
+\label{tab:form_input}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{|L{3.2cm}|L{6.0cm}|L{5.2cm}|}
+\hline
+\hd{Trường thông tin} & \hd{Mô tả nghiệp vụ} & \hd{Căn cứ từ khảo sát} \\
+\hline
+Vị trí xuất phát & Quận hoặc địa danh xuất phát chung (chọn từ danh sách hoặc bản đồ demo) & Nguyên nhân ``quá xa/ngược đường'': 78,3\% \\
+\hline
+Quỹ thời gian rảnh & Khung giờ bắt đầu và kết thúc (ví dụ: 16:00 -- 21:30) & CR03: 91,3\% đánh giá quan trọng trở lên \\
+\hline
+Mức ngân sách & Mức chi dự kiến/người (Bình dân dưới 50k, Vừa vặn 50--150k, Chỉn chu trên 150k) & CR01: 87,0\%; mức chi phổ biến nhất 100k--200k (39,1\%) \\
+\hline
+Ngữ cảnh / Mood & Không gian buổi hẹn (Hội bạn thân, Người yêu, Gia đình, Đi 1 mình) & CR04: 87,0\% \\
+\hline
+Sở thích / Danh mục & Ăn uống no nê, Cà phê tâm sự, Trò chơi, Giải trí & Hoạt động thường làm của nhóm (Ăn uống 91,3\%, Cafe 65,2\%) \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Biểu mẫu Hồ sơ thông tin địa điểm (Dữ liệu Admin quản lý)}
+\label{tab:form_place}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{|L{4.0cm}|L{10.4cm}|}
+\hline
+\hd{Trường thông tin} & \hd{Mô tả nghiệp vụ} \\
+\hline
+Mã địa điểm (id) & Định danh duy nhất cho từng cơ sở (VD: SG-001) \\
+\hline
+Tên địa điểm (name) & Tên quán ăn, quán cà phê hoặc tụ điểm giải trí \\
+\hline
+Danh mục chính (category) & Phân loại hoạt động: Ăn uống (an\_uong) hoặc Đi chơi (di\_choi) \\
+\hline
+Ngữ cảnh phù hợp (context) & Thích hợp cho: Bạn bè, Người yêu, Gia đình, Đi một mình \\
+\hline
+Địa chỉ \& Quận (district) & Số nhà, tên đường và Quận/Huyện tại TP.HCM \\
+\hline
+Tọa độ GPS (lat, lng) & Vĩ độ và kinh độ phục vụ tính toán khoảng cách và tuyến đường \\
+\hline
+Mức giá quy chuẩn (price\_level) & Mức 1 (dưới 50k), Mức 2 (50--150k), Mức 3 (trên 150k) \\
+\hline
+Đánh giá (rating) & Điểm số đánh giá chất lượng (từ 4.0 đến 4.9 sao) \\
+\hline
+Khung giờ mở cửa (open\_time) & Giờ bắt đầu và kết thúc đón khách (VD: 08:00 -- 22:30) \\
+\hline
+Tag giải thích (tag) & Nhãn tóm tắt điểm đặc trưng phục vụ giải thích gợi ý \\
+\hline
+Trạng thái (status) & Hoạt động / Tạm ẩn / Đóng cửa (quán bị ẩn không được đưa vào lịch trình) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Đánh giá và cơ sở phân loại phạm vi}
+\begin{itemize}
+    \item Hạn chế lớn nhất được người dùng chỉ ra là Địa điểm quá xa hoặc ngược đường (78,3\%) và Khó thống nhất ý kiến do thiếu chính kiến (91,3\%). Do đó, chức năng cốt lõi bắt buộc (MUST) của hệ thống là tự động tính toán lộ trình không ngược đường và đưa ra kết quả nhanh dưới 1 phút.
+    \item Hai tính năng đạt tỷ lệ ủng hộ cao nhất là Xem lộ trình trực quan kèm cự ly (FE05 -- 95,7\%) và Giải thích lý do gợi ý (FE04 -- 91,3\%) được ưu tiên tích hợp ngay trên màn hình kết quả.
+    \item Tính năng Xáo trộn (FE03 -- 82,6\%) là yêu cầu bắt buộc (MUST) để giải tỏa bế tắc khi nhóm có thành viên không thích địa điểm đầu tiên.
+\end{itemize}
+
+\subsection{Mô tả quy trình nghiệp vụ hiện tại (As-Is)}
+Từ kết quả quan sát và phỏng vấn, quy trình chọn chỗ đi chơi hiện tại của các nhóm bạn được mô hình hóa theo các bước dưới đây và thể hiện chi tiết tại Hình~\ref{fig:asis}:
+\begin{enumerate}
+    \item Một thành viên khởi xướng ý định đi chơi trong nhóm chat.
+    \item Từng thành viên tự tìm kiếm địa điểm trên TikTok, Google Maps theo cảm tính và gửi link vào nhóm chat.
+    \item Cả nhóm thảo luận hoặc lập bình chọn; các yếu tố về ngân sách, cự ly và giờ rảnh không được chuẩn hóa ngay từ đầu.
+    \item Nếu thống nhất được: Một thành viên đại diện tự mở ứng dụng bản đồ kiểm tra đường đi, tự nhẩm tính thời gian và chốt điểm đến.
+    \item Nếu không thống nhất được: Tranh luận kéo dài nhiều giờ hoặc nhiều ngày; các thành viên mất hứng thú dẫn đến tình trạng ``bể kèo'' (hủy buổi đi chơi).
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=7mm]
+\node[flowterm] (s) {Bắt đầu: Có ý định đi chơi nhóm};
+\node[flowbox, below=of s] (a) {Một thành viên đề xuất đi chơi trong nhóm chat};
+\node[flowbox, below=of a] (b) {Các thành viên tự tìm trên TikTok/Maps, gửi link rải rác};
+\node[flowbox, below=of b] (c) {Thảo luận, bình chọn (ngân sách, vị trí ít được nói rõ)};
+\node[flowdec, below=of c] (d) {Đã thống nhất?};
+\node[flowbox, below=of d] (e) {Một người tự tra cứu đường đi, giá cả và sắp xếp};
+\node[flowterm, below=of e] (end1) {Chốt lịch và lên đường};
+\node[flowbad, right=12mm of d] (bad) {Bất đồng ý kiến, kéo dài nhiều ngày -- HỦY KÈO (BỂ KÈO)};
+
+\draw[flowarr] (s) -- (a);
+\draw[flowarr] (a) -- (b);
+\draw[flowarr] (b) -- (c);
+\draw[flowarr] (c) -- (d);
+\draw[flowarr] (d) -- node[left,font=\footnotesize] {Có} (e);
+\draw[flowarr] (e) -- (end1);
+\draw[flowarr] (d) -- node[above,font=\footnotesize] {Không} (bad);
+\end{tikzpicture}
+\caption{Biểu đồ quy trình nghiệp vụ chọn chỗ đi chơi hiện tại của nhóm bạn (As-Is)}
+\label{fig:asis}
+\end{figure}
+
+\subsection{Phân tích các nguyên nhân khiến nhóm không chốt được kế hoạch}
+Đối chiếu với thực tế khảo sát, Nhóm 6 đã phân tích và xác định 05 nguyên nhân cốt lõi dẫn đến sự bế tắc trong quy trình hiện tại:
+\begin{enumerate}
+    \item Tuyến đường di chuyển bị ngược hướng hoặc quá xa (78,3\%): Các thành viên trong nhóm thường ở rải rác các quận khác nhau. Khi một người đề xuất quán theo sở thích cá nhân mà không tính đến cự ly tổng thể, các thành viên ở xa sẽ cảm thấy bất tiện, ngại đi lại và từ chối tham gia.
+    \item Sở thích đối nghịch và thiếu công cụ dung hòa (56,5\%): Người thích ăn món nước, người thích ăn nướng, người chỉ muốn đi cà phê chụp ảnh. Do không có công cụ gợi ý lịch trình liên hoàn (kết hợp hợp lý giữa ăn uống và cà phê thư giãn), nhóm khó tìm được tiếng nói chung.
+    \item Nhiễu loạn thông tin và review quảng cáo (47,8\%): Mạng xã hội tràn ngập video quảng cáo phóng đại, khi đến nơi thực tế chất lượng món ăn hoặc mức giá không đúng như kỳ vọng, gây tâm lý hoài nghi khi chọn quán mới.
+    \item Tâm lý ``ngại chốt hạ'' -- Hội chứng thiếu chính kiến (34,8\%): Các thành viên có tâm lý dĩ hòa vi quý, sợ chọn phải quán dở sẽ bị bạn bè phàn nàn, dẫn đến việc đùn đẩy trách nhiệm và câu trả lời luôn là ``sao cũng được''.
+    \item Khó khăn trong việc kiểm soát ngân sách và thời gian (82,6\%): Không biết trước tổng chi phí ước tính cho cả buổi và thời gian di chuyển thực tế trên đường, dễ phát sinh chi phí ngoài dự kiến hoặc rơi vào khung giờ kẹt xe.
+\end{enumerate}
+
+\section{Xác định thông tin cơ bản cho nghiệp vụ của bài toán}
+
+Dựa trên yêu cầu của đề tài và kết quả phân tích nghiệp vụ, toàn bộ hệ thống SGGo! được phân rã thành 06 nhóm nghiệp vụ cơ bản, bao quát đầy đủ quyền hạn và tương tác giữa 02 tác nhân: Người dùng / Khách truy cập và Quản trị viên (Admin) được tổng hợp tại Bảng~\ref{tab:ipo} dưới đây:
+
+\setlength{\tabcolsep}{3.5pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}c|L{2.2cm}|L{1.6cm}|L{3.1cm}|L{3.8cm}|L{2.4cm}|}
+\caption{Phân tích Đầu vào (Input) -- Xử lý (Process) -- Đầu ra (Output) cho các nghiệp vụ}\label{tab:ipo}\\
+\hline
+\hd{STT} & \hd{Nghiệp vụ con} & \hd{Tác nhân} & \hd{Đầu vào (Input)} & \hd{Xử lý (Process)} & \hd{Đầu ra (Output)} \\
+\hline
+\endfirsthead
+\multicolumn{6}{l}{\itshape Bảng~\thetable{} (tiếp theo)}\\
+\hline
+\hd{STT} & \hd{Nghiệp vụ con} & \hd{Tác nhân} & \hd{Đầu vào (Input)} & \hd{Xử lý (Process)} & \hd{Đầu ra (Output)} \\
+\hline
+\endhead
+\hline
+\endfoot
+\hline
+\endlastfoot
+
+1 & Gợi ý nhanh qua Quiz 3 bước & Người dùng &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Bước 1: Mục đích (Ăn uống / Đi chơi).
+    \item Bước 2: Đồng hành (Bạn bè, Người yêu...).
+    \item Bước 3: Mức giá (1, 2, 3).
+\end{itemize} &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Lọc địa điểm khớp đồng thời 3 tiêu chí.
+    \item Nếu kết quả ít hơn 3, kích hoạt Fallback nới lỏng theo ngữ cảnh.
+    \item Lấy Top 3 địa điểm tối ưu.
+\end{itemize} &
+Thẻ hiển thị Top 3 quán chuẩn gu kèm tag giải thích, địa chỉ, mức giá, nút làm lại. \\
+\hline
+2 & Lập lịch trình thông minh AI & Người dùng &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Điểm xuất phát (Quận/địa chỉ).
+    \item Khung giờ rảnh (VD: 16:00--21:30).
+    \item Ngữ cảnh buổi đi.
+    \item Ngân sách buổi đi.
+\end{itemize} &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Lọc 15 địa điểm khả dụng phù hợp ngữ cảnh.
+    \item AI phân tích tọa độ, sắp xếp lộ trình không bị ngược đường giữa các quận.
+    \item Ước lượng cự ly di chuyển và phát hiện khung giờ cao điểm (17:00--19:00).
+    \item Kích hoạt Fallback offline nếu mất kết nối AI.
+\end{itemize} &
+Lịch trình Timeline chi tiết 2--3 điểm: thời gian, hành động, thông tin di chuyển và cảnh báo kẹt xe. \\
+\hline
+3 & Xáo trộn phương án gợi ý & Người dùng &
+Yêu cầu đổi phương án (click nút Xáo trộn). &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Giữ nguyên các ràng buộc đã chọn (ngân sách, thời gian, ngữ cảnh).
+    \item Hoán đổi danh sách ứng viên hoặc kích hoạt sinh lại phương án mới.
+\end{itemize} &
+Lịch trình hoặc bộ gợi ý mới hoàn toàn nhưng vẫn bảo toàn các tiêu chí ban đầu. \\
+\hline
+4 & Tra cứu \& Lọc kho địa điểm & Người dùng &
+Tiêu chí lọc: Loại hình, Ngữ cảnh, Quận/Huyện, Khoảng giá, Điểm đánh giá. &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Truy vấn danh sách địa điểm theo các tham số gửi lên.
+    \item Chỉ lấy các quán có trạng thái hoạt động (bỏ qua quán ẩn).
+\end{itemize} &
+Danh sách địa điểm trực quan dạng lưới (Grid) với đầy đủ thông số chi tiết. \\
+\hline
+5 & Quản lý danh mục địa điểm & Admin &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Thông tin địa điểm: Tên, loại, địa chỉ, quận, tọa độ GPS, giá, giờ mở, tag.
+    \item Thao tác: Thêm, sửa, xóa, ẩn địa điểm.
+\end{itemize} &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Kiểm tra tính hợp lệ dữ liệu (tọa độ trong TP.HCM, giá từ 1--3).
+    \item Kiểm tra tính duy nhất của Mã địa điểm.
+    \item Cập nhật trạng thái CSDL.
+\end{itemize} &
+Dữ liệu địa điểm được cập nhật; quán bị ẩn sẽ không bao giờ xuất hiện trong gợi ý của người dùng. \\
+\hline
+6 & Import dữ liệu hàng loạt & Admin &
+Tệp danh sách địa điểm (.csv, .xlsx). &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Đọc tệp và kiểm tra định dạng.
+    \item Xác thực từng dòng dữ liệu: phát hiện trường bắt buộc bị thiếu, sai kiểu hoặc trùng lặp.
+    \item Ghi log dòng lỗi.
+\end{itemize} &
+Thông báo số bản ghi import thành công và danh sách chi tiết các dòng bị lỗi. \\
+\end{longtable}
+
+\section{Xây dựng biểu đồ mô tả nghiệp vụ và phân cấp chức năng}
+
+\subsection{Biểu đồ mô tả quy trình nghiệp vụ cải tiến (To-Be)}
+Quy trình nghiệp vụ cải tiến (To-Be) của SGGo! khắc phục triệt để các nhược điểm của quy trình As-Is bằng cách số hóa tập trung, phân định rõ ràng giữa Người dùng và Hệ thống SGGo! như thể hiện tại Hình~\ref{fig:tobe_swimlane} dưới đây:
+
+\begin{enumerate}
+    \item Luồng Khám phá nhanh (Flow trắc nghiệm 3 bước): Người dùng bấm chọn 3 bước trực quan (Mục đích -- Đồng hành -- Ngân sách). Hệ thống lọc tự động trong bộ nhớ tạm; nếu kết quả ít hơn 3 quán, hệ thống tự động nới lỏng điều kiện (Fallback theo ngữ cảnh) để luôn đảm bảo có kết quả hiển thị cho người dùng trong vòng dưới 1 giây.
+    \item Luồng Lập lịch trình thông minh (AI Itinerary): Người dùng nhập điểm xuất phát, thời gian rảnh và ngữ cảnh (G6-FR03). Hệ thống lọc danh sách ứng viên (G6-FR02), tạo lịch trình theo rule/scoring (G6-FR04), kiểm tra tổng ngân sách và thời gian (G6-FR05), tối ưu cung đường không ngược hướng và cảnh báo giờ cao điểm (G6-FR07, G6-FR11).
+    \item Xử lý linh hoạt khi nhóm chưa ưng ý: Người dùng bấm nút Xáo trộn (G6-FR06) để nhận phương án thay thế ngay lập tức mà vẫn giữ nguyên các tiêu chí cốt lõi ban đầu.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.85,transform shape,
+  ub/.style={flowbox,text width=4.5cm,fill=bgwhite,draw=borderblack,font=\small},
+  sb/.style={flowbox,text width=4.9cm,fill=bgwhite,draw=borderblack,font=\small}
+]
+
+% ====== LÀN NGƯỜI DÙNG (Chuẩn Trắng & Xám nhạt #F1F5F9) ======
+\draw[fill=hlgray1,draw=borderblack,semithick,rounded corners=4pt] (-0.5,1.5) rectangle (6.75,-13.0);
+\node[font=\bfseries,text=borderblack] at (3.1,1.0) {NGƯỜI DÙNG / KHÁCH TRUY CẬP};
+
+% ====== LÀN HỆ THỐNG (Chuẩn Trắng & Xám nhạt #E2E8F0) ======
+\draw[fill=hlgray2,draw=borderblack,semithick,rounded corners=4pt] (7.0,1.5) rectangle (14.5,-13.0);
+\node[font=\bfseries,text=borderblack] at (10.75,1.0) {HỆ THỐNG SGGO!};
+
+% --- Node làn Người dùng ---
+\node[flowterm] (u1) at (3.0, 0.0) {Truy cập Website SGGo!};
+\node[ub] (u2) at (3.0, -1.8) {Chọn: Khám phá nhanh / Lập lộ trình AI};
+\node[ub] (u3) at (3.0, -3.6) {Nhập: Điểm xuất phát, giờ rảnh, ngân sách (FR03)};
+\node[ub] (u4) at (3.0, -8.2) {Xem lịch trình theo thứ tự \& cự ly (FR07)};
+\node[flowdec] (u5) at (3.0, -10.0) {Cả nhóm đồng ý?};
+\node[flowterm] (uend) at (3.0, -11.8) {Chốt lịch \& Lên đường};
+
+% --- Node làn Hệ thống ---
+\node[sb] (s1) at (10.75, -3.6) {Lọc 15 địa điểm khả dụng (FR02)};
+\node[sb] (s2) at (10.75, -5.7) {Sinh lịch trình rule/scoring (FR04)};
+\node[flowdec] (s3) at (10.75, -8.25) {Ngân sách \& giờ đạt?};
+\node[sb] (s4) at (10.75, -10.8) {Đóng gói Timeline + cảnh báo (FR07, FR11)};
+
+% --- Mũi tên nội làn Người dùng ---
+\draw[flowarr] (u1) -- (u2);
+\draw[flowarr] (u2) -- (u3);
+\draw[flowarr] (u4) -- (u5);
+\draw[flowarr] (u5) -- node[left,font=\scriptsize\bfseries]{Có} (uend);
+
+% --- Mũi tên liên làn (ngang) ---
+\draw[flowarr] (u3) -- node[above,font=\scriptsize\bfseries]{Gửi yêu cầu} (s1);
+\draw[flowarr] (s4) -- node[below,font=\scriptsize\bfseries]{Kết quả} (u4);
+
+% --- Mũi tên nội làn Hệ thống ---
+\draw[flowarr] (s1) -- (s2);
+\draw[flowarr] (s2) -- (s3);
+\draw[flowarr] (s3) -- node[left,font=\scriptsize\bfseries]{Đạt} (s4);
+
+% --- Feedback 1: s3 "Không đạt" quay lại s2 ---
+\draw[flowarr] (s3.east) -- ++(0.955,0) |- (s2.east);
+\node[font=\scriptsize\bfseries,anchor=west] at (12.25,-6.8) {Không đạt};
+
+% --- Feedback 2: u5 "Chưa đồng ý" -> Xáo trộn -> quay lại s2 ---
+\draw[flowarr] (u5.west) -- (-0.2,-10.0) |- (s2.west);
+\node[font=\scriptsize\bfseries,align=center,anchor=east] at (4.5,-5.25) {Chưa, bấm\\Xáo trộn (FR06)};
+
+\end{tikzpicture}
+\caption{Biểu đồ quy trình nghiệp vụ cải tiến (To-Be) của Hệ thống SGGo!}
+\label{fig:tobe_swimlane}
+\end{figure}
+
+\subsection{Biểu đồ phân cấp chức năng (BFD -- Functional Decomposition Diagram)}
+Biểu đồ phân cấp chức năng phân rã hệ thống thành 04 phân hệ chính, bao quát đầy đủ 08 yêu cầu MUST, 02 yêu cầu SHOULD và 01 yêu cầu COULD theo đúng đề bài Nhóm 6 được thể hiện tại Hình~\ref{fig:bfd} dưới đây:
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.95,transform shape]
+
+% ====== NÚT GỐC ======
+\node[bfdroot] (root) at (7.6, 0) {HỆ THỐNG WEBSITE SGGO!};
+
+% ====== 4 PHÂN HỆ CHÍNH ======
+\node[bfdmain] (m1) at (1.3, -1.6) {1. Tìm kiếm \& Nhu cầu};
+\node[bfdmain] (m2) at (5.5, -1.6) {2. Xử lý lịch trình};
+\node[bfdmain] (m3) at (9.7, -1.6) {3. Trực quan hóa};
+\node[bfdmain,text width=3.8cm] (m4) at (13.8,-1.6) {4. Quản trị hệ thống};
+
+% ====== MŨI TÊN GỐC -> 4 PHÂN HỆ ======
+\draw[flowarr] (root.south) -- ++(0,-0.15) -| (m1.north);
+\draw[flowarr] (root.south) -- ++(0,-0.15) -| (m2.north);
+\draw[flowarr] (root.south) -- ++(0,-0.15) -| (m3.north);
+\draw[flowarr] (root.south) -- ++(0,-0.15) -| (m4.north);
+
+% ====== SUB-NODE 4 CỘT ======
+% Cột 1
+\node[bfdsub, text width=3.0cm] (f11) at (1.4,-2.9) {G6-FR02: Lọc đa tiêu chí};
+\node[bfdsub, text width=3.0cm] (f12) at (1.4,-3.8) {G6-FR03: Nhập nhu cầu nhóm};
+\node[bfdsub, text width=3.0cm] (f13) at (1.4,-4.7) {Quiz trắc nghiệm 3 bước};
+% Cột 2
+\node[bfdsub, text width=3.0cm] (f21) at (5.55,-2.9) {G6-FR04: Sinh lịch trình rule};
+\node[bfdsub, text width=3.0cm] (f22) at (5.55,-3.8) {G6-FR05: Kiểm tra ngân sách};
+\node[bfdsub, text width=3.0cm] (f23) at (5.55,-4.7) {G6-FR06: Xáo trộn phương án};
+% Cột 3
+\node[bfdsub, text width=3.0cm] (f31) at (9.7,-2.9) {G6-FR07: Hiển thị \& cự ly};
+\node[bfdsub, text width=3.0cm] (f32) at (9.7,-3.8) {G6-FR10: Giải thích gợi ý};
+\node[bfdsub, text width=3.0cm] (f33) at (9.7,-4.7) {G6-FR11: AI \& Giờ cao điểm};
+% Cột 4
+\node[bfdsub, text width=3.0cm] (f41) at (13.9,-2.9) {G6-FR01: Quản lý hồ sơ quán};
+\node[bfdsub, text width=3.0cm] (f42) at (13.9,-3.8) {G6-FR08: Thêm/Sửa/Ẩn quán};
+\node[bfdsub, text width=3.0cm] (f43) at (13.9,-4.7) {G6-FR09: Import từ CSV};
+
+% ====== TRUNK TRÁI + TICK NGANG cho từng cột ======
+% Cột 1
+\draw[semithick,draw=borderblack] (m1.south) -- (1.3,-2.3) -- (-0.7,-2.3) -- (-0.7,-4.7);
+\draw[flowarr] (-0.7,-2.9) -- (f11.west);
+\draw[flowarr] (-0.7,-3.8) -- (f12.west);
+\draw[flowarr] (-0.7,-4.7) -- (f13.west);
+
+% Cột 2
+\draw[semithick,draw=borderblack] (m2.south) -- (5.5,-2.3) -- (3.5,-2.3) -- (3.5,-4.7);
+\draw[flowarr] (3.5,-2.9) -- (f21.west);
+\draw[flowarr] (3.5,-3.8) -- (f22.west);
+\draw[flowarr] (3.5,-4.7) -- (f23.west);
+
+% Cột 3
+\draw[semithick,draw=borderblack] (m3.south) -- (9.7,-2.3) -- (7.7,-2.3) -- (7.7,-4.7);
+\draw[flowarr] (7.7,-2.9) -- (f31.west);
+\draw[flowarr] (7.7,-3.8) -- (f32.west);
+\draw[flowarr] (7.7,-4.7) -- (f33.west);
+
+% Cột 4
+\draw[semithick,draw=borderblack] (m4.south) -- (13.8,-2.3) -- (11.9,-2.3) -- (11.9,-4.7);
+\draw[flowarr] (11.9,-2.9) -- (f41.west);
+\draw[flowarr] (11.9,-3.8) -- (f42.west);
+\draw[flowarr] (11.9,-4.7) -- (f43.west);
+
+\end{tikzpicture}
+\caption{Biểu đồ phân cấp chức năng của Hệ thống SGGo!}
+\label{fig:bfd}
+\end{figure}
+
+\subsection{Mô tả các chức năng trong biểu đồ và đánh giá tính khả thi}
+
+Hệ thống SGGo! tuân thủ nghiêm ngặt khung yêu cầu chức năng (Functional requirement) của đề tài Nhóm 6 gồm đúng \textbf{8 yêu cầu MUST, 2 yêu cầu SHOULD và 1 yêu cầu COULD} được tổng hợp tại Bảng~\ref{tab:mo_ta_chuc_nang} dưới đây:
+
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|L{1.3cm}|L{2.3cm}|L{4.7cm}|L{1.8cm}|L{4.3cm}|}
+\caption{Mô tả chức năng và đánh giá tính khả thi theo chuẩn khung yêu cầu đề tài}\label{tab:mo_ta_chuc_nang}\\
+\hline
+\hd{Mã YC} & \hd{Tên chức năng} & \hd{Mô tả chi tiết theo đề tài} & \hd{Ưu tiên} & \hd{Đánh giá tính khả thi} \\
+\hline
+\endfirsthead
+\multicolumn{5}{l}{\itshape Bảng~\thetable{} (tiếp theo)}\\
+\hline
+\hd{Mã YC} & \hd{Tên chức năng} & \hd{Mô tả chi tiết theo đề tài} & \hd{Ưu tiên} & \hd{Đánh giá tính khả thi} \\
+\hline
+\endhead
+\hline
+\endfoot
+\hline
+\endlastfoot
+
+G6-FR01 & Quản lý địa điểm cơ bản & Admin quản lý thông tin địa điểm: tên, loại, khu vực/tọa độ, giá tham khảo, giờ mở cửa, tag, trạng thái. & MUST & Khả thi rất cao. CSDL chuẩn hóa trên FastAPI, đã có 100 địa điểm mock. \\
+\hline
+G6-FR02 & Tìm kiếm và lọc đa tiêu chí & Người dùng tìm kiếm/lọc quán theo mục đích, ngữ cảnh, ngân sách, khoảng cách, mức giá/đánh giá. & MUST & Khả thi rất cao. Đã cài đặt endpoint GET /api/places và flow trắc nghiệm 3 bước. \\
+\hline
+G6-FR03 & Nhập nhu cầu lịch trình & Người dùng nhập vị trí xuất phát (chọn từ danh sách/tọa độ demo), thời gian rảnh, ngân sách và sở thích. & MUST & Khả thi cao. Form nhập liệu trực quan, kiểm tra tính hợp lệ dữ liệu đầu vào. \\
+\hline
+G6-FR04 & Sinh lịch trình nhiều điểm & Hệ thống tạo lịch trình gồm 2--3 điểm đến liên tiếp theo rule/scoring được tài liệu hóa rõ ràng. & MUST & Khả thi cao. Thuật toán lọc ứng viên theo context kết hợp sắp xếp logic ăn uống -- vui chơi. \\
+\hline
+G6-FR05 & Kiểm tra ngân sách và thời gian & Lịch trình phải kiểm tra tổng chi phí ước tính và khoảng thời gian cho phép; báo lỗi nếu không thỏa. & MUST & Khả thi cao. Phép cộng dồn và so sánh điều kiện biên; gợi ý nới lỏng khi không có kết quả. \\
+\hline
+G6-FR06 & Xáo trộn phương án gợi ý & Chức năng ``xáo trộn / gợi ý lại'' sinh phương án khác nhưng vẫn tôn trọng các ràng buộc chính ban đầu. & MUST & Khả thi rất cao. Hoán đổi tập quán ứng viên hoặc tái tạo lộ trình mới với cùng tham số. \\
+\hline
+G6-FR07 & Hiển thị thứ tự \& bản đồ/cự ly & Hiển thị lịch trình theo thứ tự và biểu diễn vị trí/bản đồ; ước lượng khoảng cách/thời gian di chuyển mức demo. & MUST & Khả thi cao. Giao diện Timeline trực quan, ước tính thời gian xe máy theo tọa độ GPS. \\
+\hline
+G6-FR08 & Quản trị danh mục và tag & Admin thêm, sửa, xóa, ẩn địa điểm và quản lý danh mục tag/bộ lọc; quán bị ẩn không được gợi ý. & MUST & Khả thi cao. Hoàn thiện các RESTful API quản trị và lọc bỏ quán có trạng thái ẩn. \\
+\hline
+G6-FR09 & Import dữ liệu hàng loạt & Import danh sách địa điểm hàng loạt từ tệp CSV/Excel, có kiểm tra lỗi dữ liệu từng dòng. & SHOULD & Khả thi cao. Sử dụng thư viện pandas/csv của Python để kiểm tra cấu trúc file. \\
+\hline
+G6-FR10 & Giải thích lý do gợi ý & Hiển thị dòng giải thích ngắn ``vì sao hệ thống gợi ý'' từng điểm dựa trên rule/tiêu chí. & SHOULD & Khả thi cao. Nhãn tag đặc trưng và lý do gợi ý đã được cấu trúc hóa trong CSDL. \\
+\hline
+G6-FR11 & AI \& Cảnh báo giờ cao điểm & Tích hợp API bản đồ/route thực; cảnh báo kẹt xe giờ cao điểm (17:00--19:00) hoặc trợ lý AI diễn giải lịch trình. & COULD & Khả thi. Đã tích hợp thành công Google Gemini 2.5 Flash kèm chế độ Fallback offline. \\
+\end{longtable}
+
+\subsection{Danh sách thay đổi, giả định và cập nhật phạm vi MoSCoW}
+
+\subsubsection{Danh sách thay đổi đề xuất (Change Requests)}
+\begin{itemize}
+    \item CR-01 (Bổ sung cơ chế Fallback tĩnh cho AI Itinerary): Do đề bài yêu cầu thuật toán gợi ý phải kiểm thử được và tránh rủi ro mất mạng khi nghiệm thu demo, back-end được bổ sung khối sinh lộ trình dự phòng offline cho G6-FR11.
+    \item CR-02 (Bổ sung ngữ cảnh ``Đi một mình -- Solo Healing''): Kết quả khảo sát cho thấy nhu cầu học nhóm, đọc sách hoặc thư giãn cá nhân khi không tụ tập được nhóm bạn. Thuộc tính (Attribute) context được bổ sung thêm giá trị di\_1\_minh cho G6-FR02.
+    \item CR-03 (Chuẩn hóa quy đổi ngân sách): Khảo sát phân loại ngân sách thành 4 mức chi tiêu; dữ liệu địa điểm được quy chuẩn thành 3 mức giá (Mức 1: dưới 50k, Mức 2: 50--150k, Mức 3: trên 150k) để tương thích với G6-FR05.
+\end{itemize}
+
+\subsubsection{Danh sách giả định của dự án}
+\begin{itemize}
+    \item GĐ-01: Tác nhân khách truy cập hệ thống không cần đăng nhập; chỉ Quản trị viên (Admin) cần xác thực để thao tác CMS.
+    \item GĐ-02: Dữ liệu địa điểm là bộ dữ liệu mô phỏng gồm 100 địa điểm chất lượng cao bao phủ 6 quận trung tâm TP.HCM (Quận 1, 3, 5, 10, Bình Thạnh, Phú Nhuận).
+    \item GĐ-03: Khoảng cách giữa các địa điểm được tính theo tọa độ GPS và vận tốc trung bình xe máy đô thị (khoảng 20--25 km/h); đây là số liệu ước tính ở mức demo, không phải dữ liệu GIS thời gian thực.
+    \item GĐ-04: Khung giờ cao điểm tại TP.HCM được định nghĩa từ 17:00 đến 19:00 để đưa ra cảnh báo giao thông.
+\end{itemize}
+
+\subsubsection{Cập nhật phạm vi In-scope / Out-of-scope (MoSCoW)}
+Phạm vi dự án được phân định rành mạch, bảo đảm đáp ứng 100\% các tiêu chuẩn nghiệm thu học phần:
+\begin{itemize}
+    \item In-scope MUST (8 yêu cầu chức năng cốt lõi): G6-FR01 (Admin quản lý địa điểm), G6-FR02 (Tìm kiếm/lọc đa tiêu chí), G6-FR03 (Nhập nhu cầu nhóm), G6-FR04 (Tạo lịch trình theo rule), G6-FR05 (Kiểm tra ngân sách \& thời gian), G6-FR06 (Xáo trộn phương án), G6-FR07 (Hiển thị lịch trình \& cự ly), G6-FR08 (Admin quản trị tag \& ẩn/hiện quán).
+    \item In-scope SHOULD (2 yêu cầu chức năng nên có): G6-FR09 (Import hàng loạt từ CSV/Excel), G6-FR10 (Dòng giải thích lý do gợi ý).
+    \item In-scope COULD (1 yêu cầu chức năng mở rộng): G6-FR11 (Tích hợp AI tạo lời giải thích và cảnh báo giờ cao điểm).
+    \item Out-of-scope (Không làm trong MVP để tránh quá sức): Bản đồ điều hướng thương mại (Google Maps SDK trả phí); Tích hợp cổng thanh toán trực tuyến tiền thật; Phòng chat tương tác và biểu quyết nhóm thời gian thực (Real-time collaborative voting).
+\end{itemize}
+
+\subsection{Đối chiếu với mã nguồn thực tế của dự án}
+Kết quả đối chiếu từng yêu cầu đề tài với vị trí cài đặt trong mã nguồn thực tế được trình bày tại Bảng~\ref{tab:code_mapping} dưới đây:
+
+\begin{table}[H]
+\centering
+\caption{Đối chiếu yêu cầu đề tài với mã nguồn thực tế đã cài đặt}
+\label{tab:code_mapping}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{|L{1.8cm}|L{3.8cm}|>{\raggedright\arraybackslash}c|L{6.0cm}|}
+\hline
+\hd{Mã YC} & \hd{Nội dung yêu cầu đề tài} & \hd{Tình trạng} & \hd{Đối chiếu vị trí trong mã nguồn dự án} \\
+\hline
+G6-FR01 & Admin quản lý thông tin địa điểm & Hoàn thành & Tệp backend/data\_places.py chuẩn hóa đầy đủ 100 bản ghi gồm tọa độ, giá, giờ mở, tag. \\
+\hline
+G6-FR02 & Tìm kiếm/lọc đa tiêu chí & Hoàn thành & Endpoint GET /api/places và phương thức selectAnswer() flow trắc nghiệm tại frontend/app.js. \\
+\hline
+G6-FR03 & Người dùng nhập nhu cầu nhóm & Hoàn thành & Giao diện form nhập liệu tại frontend/index.html (điểm xuất phát, giờ rảnh, ngữ cảnh). \\
+\hline
+G6-FR04 & Tạo lịch trình gồm 2--3 điểm & Hoàn thành & Phương thức showFinishResults() tại front-end và endpoint POST /api/ai-itinerary tại back-end. \\
+\hline
+G6-FR05 & Kiểm tra ngân sách và thời gian & Hoàn thành & Thuật toán lọc theo price\_level kết hợp tính toán khung giờ rảnh trong backend/main.py. \\
+\hline
+G6-FR06 & Chức năng Xáo trộn / gợi ý lại & Hoàn thành & Nút ``Chọn lại'' tại giao diện và cơ chế tái sinh lộ trình mới với cùng tham số đầu vào. \\
+\hline
+G6-FR07 & Hiển thị thứ tự, bản đồ/cự ly & Hoàn thành & Giao diện Timeline trực quan tại index.html, ước tính thời gian xe máy theo cự ly GPS. \\
+\hline
+G6-FR08 & Admin thêm/sửa/xóa/ẩn địa điểm & Hoàn thành & Cấu trúc RESTful API tại backend/main.py hỗ trợ quản trị và lọc bỏ quán trạng thái ẩn. \\
+\hline
+G6-FR09 & Import danh sách quán từ CSV & Hoàn thành & Phương thức import\_places() sử dụng module csv chuẩn của Python kiểm tra lỗi dữ liệu. \\
+\hline
+G6-FR10 & Giải thích lý do gợi ý & Hoàn thành & Thuộc tính tag đặc trưng hiển thị trực tiếp trên từng thẻ kết quả quán tại front-end. \\
+\hline
+G6-FR11 & AI \& Cảnh báo giờ cao điểm & Hoàn thành & Tích hợp Gemini 2.5 Flash, cảnh báo khung giờ 17:00--19:00 kèm Fallback offline. \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Xây dựng kế hoạch dự án đơn giản}
+
+\subsection{Kế hoạch công việc dự án}
+Kế hoạch triển khai được phân rã theo 8 công đoạn chuẩn của môn học Nhập môn Công nghệ Phần mềm với quy mô Nhóm 6 gồm \textbf{05 thành viên}, tổng thời gian lao động ước tính là 150 giờ được thể hiện tại Bảng~\ref{tab:plan} dưới đây:
+
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}c|L{8.2cm}|>{\raggedright\arraybackslash}c|L{2.6cm}|}
+\caption{Phân công và kế hoạch tiến độ công việc dự án SGGo!}\label{tab:plan}\\
+\hline
+\hd{STT} & \hd{Công đoạn / Hạng mục công việc chi tiết} & \hd{Thời gian (Giờ)} & \hd{Người thực hiện} \\
+\hline
+\endfirsthead
+\multicolumn{4}{l}{\itshape Bảng~\thetable{} (tiếp theo)}\\
+\hline
+\hd{STT} & \hd{Công đoạn / Hạng mục công việc chi tiết} & \hd{Thời gian (Giờ)} & \hd{Người thực hiện} \\
+\hline
+\endhead
+\hline
+\endfoot
+\hline
+\endlastfoot
+
+1 & Khảo sát \& Xác định bài toán & 18 giờ & Cả nhóm (5 SV) \\
+1.1 & Thiết kế kịch bản phỏng vấn role-play và biểu mẫu Google Forms & 4 giờ & Thành viên 1, 2 \\
+1.2 & Thực hiện phỏng vấn sâu 2 đối tượng \& thu thập 23 mẫu khảo sát & 6 giờ & Cả nhóm (5 SV) \\
+1.3 & Tổng hợp số liệu định lượng, mô hình hóa As-Is và To-Be & 8 giờ & Thành viên 3, 4, 5 \\
+\hline
+2 & Phân tích yêu cầu \& Viết đặc tả SRS & 22 giờ & Cả nhóm (5 SV) \\
+2.1 & Lập phạm vi In/Out-of-scope; phân loại theo mô hình MoSCoW & 4 giờ & Thành viên 1, 5 \\
+2.2 & Viết đặc tả ca sử dụng, User Stories và Acceptance Criteria & 10 giờ & Thành viên 2, 3 \\
+2.3 & Định nghĩa Business Rules (lộ trình không ngược đường, kiểm soát giá) & 4 giờ & Thành viên 4 \\
+2.4 & Xác định các yêu cầu phi chức năng (Non-functional requirement: hiệu năng, tính sẵn sàng) & 4 giờ & Thành viên 5 \\
+\hline
+3 & Mô hình hóa \& Thiết kế hệ thống & 24 giờ & Cả nhóm (5 SV) \\
+3.1 & Thiết kế Biểu đồ use case (Use case diagram) tổng quan và phân rã mức 2 & 4 giờ & Thành viên 1 \\
+3.2 & Thiết kế Biểu đồ hoạt động (Activity diagram) và Sơ đồ trình tự (Sequence diagram) cho luồng tạo lịch trình & 6 giờ & Thành viên 2 \\
+3.3 & Thiết kế Data Dictionary và biểu đồ ERD (Thực thể Place, Context, Itinerary) & 8 giờ & Thành viên 3 \\
+3.4 & Thiết kế Wireframe/Prototype giao diện chuẩn Pop-Chill & 6 giờ & Thành viên 4, 5 \\
+\hline
+4 & Lập kế hoạch \& Quản trị dự án & 8 giờ & Trưởng nhóm \\
+4.1 & Khởi tạo Git repository, cấu hình nhánh và quy ước commit & 3 giờ & Trưởng nhóm \\
+4.2 & Quản lý Task Board và lập tài liệu Change Request (CR-01, CR-02) & 5 giờ & Trưởng nhóm, TV5 \\
+\hline
+5 & Xây dựng chương trình MVP (Cài đặt mã nguồn) & 42 giờ & Cả nhóm (5 SV) \\
+5.1 & Chuẩn hóa tọa độ GPS và khởi tạo 100 địa điểm (data\_places.py) & 8 giờ & Thành viên 3 \\
+5.2 & Lập trình back-end FastAPI: API lọc đa tiêu chí, kết nối Gemini AI & 14 giờ & Thành viên 1, 2 \\
+5.3 & Lập trình front-end Tailwind CSS: hiệu ứng chuyển bước, Timeline AI & 12 giờ & Thành viên 2, 4 \\
+5.4 & Tích hợp front-end -- back-end, cấu hình CORS, deploy lên Render & 8 giờ & Thành viên 4, 5 \\
+\hline
+6 & Kiểm thử chương trình & 18 giờ & Cả nhóm (5 SV) \\
+6.1 & Lập Test Plan và thiết kế tối thiểu 20 kịch bản kiểm thử (Test case) & 8 giờ & Thành viên 3, 5 \\
+6.2 & Thực thi kiểm thử, ghi nhận nhật ký lỗi (Defect), sửa lỗi và thực hiện Re-test & 10 giờ & Cả nhóm (5 SV) \\
+\hline
+7 & Xây dựng Bảng truy vết yêu cầu (RTM -- Requirement Traceability Matrix) & 6 giờ & Thành viên 1, 4 \\
+7.1 & Lập Bảng truy vết yêu cầu: Yêu cầu -- Ca sử dụng -- Module -- Kịch bản kiểm thử & 6 giờ & Thành viên 1, 4 \\
+\hline
+8 & Triển khai, nghiệm thu và Báo cáo tổng kết & 12 giờ & Cả nhóm (5 SV) \\
+8.1 & Chuẩn bị kịch bản nghiệm thu, tài khoản demo và viết tài liệu README & 4 giờ & Thành viên 2, 5 \\
+8.2 & Họp Retrospective tổng kết dự án và hoàn thiện báo cáo tiểu luận & 8 giờ & Cả nhóm (5 SV) \\
+\hline
+\multicolumn{2}{|l|}{\textbf{TỔNG CỘNG THỜI GIAN THỰC HIỆN}} & \textbf{150 giờ} & \textbf{Nhóm 6 (05 SV)} \\
+\hline
+\end{longtable}
+
+\subsection{Bảng quản lý rủi ro dự án}
+
+Phân tích và kiểm soát các rủi ro phát sinh trong quá trình thực hiện dự án SGGo! được tổng hợp tại Bảng~\ref{tab:quan_ly_rui_ro} dưới đây:
+
+\begin{table}[H]
+\centering
+\caption{Phân tích và kiểm soát rủi ro dự án SGGo!}
+\label{tab:quan_ly_rui_ro}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{|>{\raggedright\arraybackslash}c|L{2.0cm}|L{2.4cm}|L{2.4cm}|>{\raggedright\arraybackslash}c|L{1.5cm}|L{3.8cm}|}
+\hline
+\hd{STT} & \hd{Hoạt động} & \hd{Mối nguy} & \hd{Rủi ro phát sinh} & \hd{Mức độ} & \hd{Chiến lược} & \hd{Biện pháp kiểm soát} \\
+\hline
+1 & Tích hợp AI sinh lịch trình & API Gemini bị quá hạn mức hoặc mất kết nối mạng khi chấm thi. & Hệ thống báo lỗi, treo màn hình, không tạo được lịch trình trước hội đồng. & Cao & Giảm thiểu & Cài đặt sẵn cơ chế Fallback ngoại tuyến trong main.py: tự động trả về lịch trình mẫu hợp lệ khi API lỗi, đảm bảo demo 100\% thành công. \\
+\hline
+2 & Quản lý phạm vi dự án & Mải mê làm chức năng phức tạp (GPS real-time, phòng chat thời gian thực). & Không kịp hoàn thành các chức năng cốt lõi bắt buộc (MUST) trước hạn nộp. & Cao & Loại bỏ rủi ro & Áp dụng nghiêm ngặt nguyên tắc MoSCoW: Đóng băng yêu cầu COULD; tập trung hoàn thiện Quiz 3 bước, Lộ trình AI và Quản trị địa điểm. \\
+\hline
+3 & Dữ liệu địa điểm & Tọa độ GPS bị sai lệch hoặc không phù hợp ngữ cảnh buổi hẹn. & Thuật toán sắp xếp bị ngược đường, người dùng đánh giá thấp hệ thống. & Trung bình & Giảm thiểu & Chuẩn hóa sẵn 100 địa điểm với tọa độ thực tế tại 6 quận trung tâm TP.HCM; kiểm duyệt chặt chẽ thuộc tính context và price\_level. \\
+\hline
+4 & Kết nối FE \& BE & Lỗi chặn chia sẻ tài nguyên nguồn gốc chéo (CORS Error) khi deploy. & Trình duyệt chặn request, dữ liệu địa điểm không tải được về máy người dùng. & Trung bình & Giảm thiểu & Cấu hình CORSMiddleware cho phép tất cả các nguồn truy cập (allow\_origins=[``*'']) trong FastAPI; kiểm thử kỹ trên staging. \\
+\hline
+5 & Dữ liệu demo khi chấm thi & Nhập tay dữ liệu không chuẩn hoặc phát sinh lỗi cú pháp khi phản biện. & Mất nhiều thời gian thao tác, dễ phát sinh ngoại lệ không mong muốn trước giảng viên. & Trung bình & Giảm thiểu & Điền sẵn các giá trị mẫu mặc định (Default Value) trên form nhập liệu và chuẩn bị kịch bản nghiệm thu theo từng bước rõ ràng. \\
+\hline
+\end{tabular}
+\end{table}
+
+\end{document}
