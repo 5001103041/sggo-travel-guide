@@ -848,3 +848,53 @@ def get_all_places(category=None, context_tag=None, min_budget=None, max_budget=
             params.extend([f"%{search}%", f"%{search}%"])
 
     query += " ORDER BY rating DESC, reviews_count DESC"
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_place_by_id(place_id):
+    """Lấy chi tiết 1 địa điểm"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM places WHERE id = ?", (place_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def sync_place_tags_record(cursor, place_id: int, tags_str: str):
+    """Đồng bộ quan hệ N-N giữa place và tags vào bảng place_tags (Section 5 ERD)"""
+    if not place_id or not tags_str:
+        return
+    cursor.execute("SELECT id, tag_key FROM tags")
+    tag_map = {row[1]: row[0] for row in cursor.fetchall()}
+    if not tag_map:
+        return
+
+    cursor.execute("DELETE FROM place_tags WHERE place_id = ?", (place_id,))
+    
+    t1_list = []
+    t2_list = []
+    if "tier1:" in tags_str or "tier2:" in tags_str:
+        parts = tags_str.split("|")
+        for p in parts:
+            p = p.strip()
+            if p.startswith("tier1:"):
+                t1_list = [x.strip() for x in p.replace("tier1:", "").split(",") if x.strip()]
+            elif p.startswith("tier2:"):
+                t2_list = [x.strip() for x in p.replace("tier2:", "").split(",") if x.strip()]
+    else:
+        all_tags = [x.strip() for x in tags_str.split(",") if x.strip()]
+        t1_list = all_tags[:2]
+        t2_list = all_tags[2:]
+
+    for k in t1_list:
+        tid = tag_map.get(k)
+        if tid:
+            cursor.execute("INSERT OR IGNORE INTO place_tags (place_id, tag_id, tier) VALUES (?, ?, 1)", (place_id, tid))
+    for k in t2_list:
+        tid = tag_map.get(k)
+        if tid:
+            cursor.execute("INSERT OR IGNORE INTO place_tags (place_id, tag_id, tier) VALUES (?, ?, 2)", (place_id, tid))
+
+def add_place(data):
