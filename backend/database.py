@@ -48,3 +48,53 @@ def verify_password(stored_password: str, input_password: str) -> bool:
     """
     if not stored_password or not input_password:
         return False
+    if str(stored_password).startswith("sha256:"):
+        parts = str(stored_password).split(":")
+        if len(parts) == 3:
+            salt = parts[1]
+            expected_hash = parts[2]
+            computed_hash = hashlib.sha256((salt + input_password).encode("utf-8")).hexdigest()
+            return secrets.compare_digest(computed_hash, expected_hash)
+        return False
+    return stored_password == input_password
+
+def sanitize_cell_value(val):
+    """Bảo vệ chống lỗ hổng CSV/Excel Formula Injection (CWE-1236)"""
+    if val is None:
+        return ""
+    s = str(val)
+    if len(s) > 0 and s[0] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + s
+    return s
+
+def expand_address_abbreviations(text: str) -> str:
+    """Mở rộng các từ viết tắt phổ biến trong địa chỉ Việt Nam (đ., p., q., tp., tttm, ...)"""
+    if not text:
+        return ""
+    s = " " + str(text) + " "
+    s = re.sub(r'(?<=\s|\W)(?:đ|d)\.\s*', 'đường ', s, flags=re.IGNORECASE)
+    s = re.sub(r'(?<=\s|\W)(?:đ|d)\s+(?=[a-zà-ỹ0-9])', 'đường ', s, flags=re.IGNORECASE)
+    s = re.sub(r'(?<=\s|\W)p\.\s*', 'phường ', s, flags=re.IGNORECASE)
+    s = re.sub(r'(?<=\s|\W)p\s*(?=[0-9]+)', 'phường ', s, flags=re.IGNORECASE)
+    s = re.sub(r'(?<=\s|\W)q\.\s*', 'quận ', s, flags=re.IGNORECASE)
+    s = re.sub(r'(?<=\s|\W)q\s*(?=[0-9]+)', 'quận ', s, flags=re.IGNORECASE)
+    s = re.sub(r'(?<=\s|\W)tp\.\s*', 'thành phố ', s, flags=re.IGNORECASE)
+    s = re.sub(r'(?:tp\.?\s*hcm|tp\.?\s*hồ\s*chí\s*minh|tphcm|hồ\s*chí\s*minh)', 'thành phố hồ chí minh', s, flags=re.IGNORECASE)
+    s = re.sub(r'\btttm\b', 'trung tâm thương mại', s, flags=re.IGNORECASE)
+    s = re.sub(r'\bkdc\b', 'khu dân cư', s, flags=re.IGNORECASE)
+    s = re.sub(r'\bt(\d+)\b', r'tầng \1', s, flags=re.IGNORECASE)
+    return re.sub(r'\s+', ' ', s).strip()
+
+def normalize_search_text(s: str) -> str:
+    """Chuẩn hóa chuỗi văn bản bỏ dấu tiếng Việt, chữ thường, bỏ ký tự đặc biệt, mở rộng viết tắt"""
+    if not s:
+        return ""
+    import unicodedata, re
+    s = expand_address_abbreviations(str(s))
+    s = unicodedata.normalize('NFD', s)
+    s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+    s = s.replace('đ', 'd').replace('Đ', 'D').lower()
+    return re.sub(r'[^a-z0-9]', '', s)
+
+def haversine_distance_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Tính khoảng cách mét giữa 2 tọa độ GPS"""
