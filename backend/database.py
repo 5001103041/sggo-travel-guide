@@ -1258,3 +1258,63 @@ def import_file_data(data, filename="uploaded_places.csv"):
             reviews_count = 0
 
         gmaps_url = (row.get("google_maps_url") or row.get("maps_url") or "").strip()
+        if not gmaps_url:
+            import urllib.parse
+            gmaps_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(name + ' ' + address)}"
+
+        # Kiểm tra trùng lặp đa lớp thông minh (Tên, Link Maps, Địa chỉ, GPS < 25m)
+        dup_reason = find_duplicate_place(name, address, lat, lon, gmaps_url, category, existing_places)
+        if dup_reason:
+            errors.append({"row": row_idx, "field": "name", "reason": f"Địa điểm '{name}' đã tồn tại trong CSDL ({dup_reason})"})
+            continue
+
+        cursor.execute("""
+        INSERT INTO places (
+            name, category, address, district, lat, lon, open_time, close_time,
+            min_price, max_price, rating, reviews_count, peak_hours,
+            best_review, worst_review, image_url, tags, is_verified, is_hidden, google_maps_url
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?)
+        """, (
+            name,
+            category,
+            address,
+            row.get("district") or "TP.HCM",
+            lat,
+            lon,
+            row.get("open_time") or "",
+            row.get("close_time") or "",
+            min_price,
+            max_price,
+            rating,
+            reviews_count,
+            row.get("peak_hours") or "",
+            row.get("best_review") or "",
+            row.get("worst_review") or "",
+            row.get("image_url") or None,
+            row.get("tags") or "nhom_ban",
+            gmaps_url
+        ))
+        existing_places.append({
+            "name": name,
+            "category": category,
+            "address": address,
+            "lat": lat,
+            "lon": lon,
+            "google_maps_url": gmaps_url
+        })
+        success_count += 1
+
+    total_rows = (row_idx - 1)
+    error_count = len(errors)
+
+    # Ghi log lịch sử import vào CSDL (Section 5)
+    try:
+        cursor.execute("""
+        INSERT INTO import_logs (filename, total_rows, success_count, error_count, error_details_json)
+        VALUES (?, ?, ?, ?, ?)
+        """, (filename, total_rows, success_count, error_count, json.dumps(errors, ensure_ascii=False)))
+    except Exception as e:
+        print("[WARN] Failed to insert import_log:", e)
+
+    conn.commit()
+    conn.close()
