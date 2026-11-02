@@ -398,3 +398,53 @@ def migrate_existing_user_passwords(conn):
     cursor = conn.cursor()
     cursor.execute("SELECT id, password FROM users")
     users = cursor.fetchall()
+    for u in users:
+        pwd = u["password"]
+        if pwd and not str(pwd).startswith("sha256:"):
+            new_hash = hash_password(pwd)
+            cursor.execute("UPDATE users SET password = ? WHERE id = ?", (new_hash, u["id"]))
+    conn.commit()
+
+def init_db():
+    """Khởi tạo cấu trúc các bảng và nạp dữ liệu mẫu ban đầu"""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # 1. BẢNG USERS (Tài khoản & Phân quyền)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        full_name TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # 2. BẢNG PLACES (Thông tin địa điểm thực tế tại TP.HCM)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS places (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL CHECK (category IN ('an_uong', 'di_choi')),
+        address TEXT NOT NULL,
+        district TEXT NOT NULL DEFAULT 'Quận 5',
+        lat REAL NOT NULL CHECK ((lat BETWEEN 10.3 AND 11.2) OR lat = 0.0),
+        lon REAL NOT NULL CHECK ((lon BETWEEN 106.3 AND 107.2) OR lon = 0.0),
+        open_time TEXT NOT NULL DEFAULT '08:00',
+        close_time TEXT NOT NULL DEFAULT '22:00',
+        min_price INTEGER NOT NULL DEFAULT 30000 CHECK (min_price >= 0),
+        max_price INTEGER NOT NULL DEFAULT 100000 CHECK (max_price >= 0 AND (max_price = 0 OR max_price >= min_price)),
+        rating REAL NOT NULL DEFAULT 4.5 CHECK (rating >= 0.0 AND rating <= 5.0),
+        reviews_count INTEGER NOT NULL DEFAULT 100 CHECK (reviews_count >= 0),
+        peak_hours TEXT DEFAULT '18:00 - 20:00',
+        best_review TEXT DEFAULT 'Quán sạch sẽ, đồ ăn ngon, phục vụ nhanh.',
+        worst_review TEXT DEFAULT 'Giờ cao điểm hơi đông khách, nên đi sớm.',
+        image_url TEXT,
+        tags TEXT DEFAULT 'nhom_ban',
+        is_verified INTEGER NOT NULL DEFAULT 1 CHECK (is_verified IN (0, 1)),
+        is_verified_review INTEGER NOT NULL DEFAULT 1 CHECK (is_verified_review IN (0, 1)),
+        is_admin_choice INTEGER NOT NULL DEFAULT 0 CHECK (is_admin_choice IN (0, 1)),
+        price_display TEXT,
+        hours_display TEXT,
