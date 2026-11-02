@@ -748,3 +748,53 @@ def update_user_role(user_id, new_role):
     
     # Kiểm tra xem có phải hạ quyền của admin duy nhất không
     if new_role == 'user':
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+        admin_count = cursor.fetchone()[0]
+        cursor.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+        curr = cursor.fetchone()
+        if curr and curr['role'] == 'admin' and admin_count <= 1:
+            conn.close()
+            return False, "Không thể chuyển admin cuối cùng thành user (cần giữ ít nhất 1 admin)"
+            
+    cursor.execute("UPDATE users SET role = ? WHERE id = ?", (new_role, user_id))
+    conn.commit()
+    conn.close()
+    return True, "Cập nhật vai trò thành công"
+
+def delete_user(user_id):
+    """Xóa tài khoản người dùng"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Không cho phép xóa admin duy nhất
+    cursor.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+    target = cursor.fetchone()
+    if not target:
+        conn.close()
+        return False, "Tài khoản không tồn tại"
+        
+    if target['role'] == 'admin':
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+        admin_count = cursor.fetchone()[0]
+        if admin_count <= 1:
+            conn.close()
+            return False, "Không thể xóa admin cuối cùng của hệ thống"
+            
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return True, "Xóa tài khoản thành công"
+
+
+
+# ==============================================================================
+# THAO TÁC ĐỊA ĐIỂM (PLACES CRUD)
+# ==============================================================================
+
+def get_all_places(category=None, context_tag=None, min_budget=None, max_budget=None, min_rating=None, search=None, only_verified=True, include_hidden=False):
+    """Lấy danh sách địa điểm theo bộ lọc đa chiều (A đến Z)"""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = "SELECT * FROM places WHERE 1=1"
+    params = []
