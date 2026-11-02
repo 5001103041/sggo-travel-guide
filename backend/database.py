@@ -698,3 +698,53 @@ def authenticate_user(username, password):
     if not verify_password(stored_pwd, password):
         conn.close()
         return None
+        
+    # Tự động nâng cấp mật khẩu cũ dạng plaintext lên băm SHA-256
+    if not str(stored_pwd).startswith("sha256:"):
+        new_hashed = hash_password(password)
+        cursor.execute("UPDATE users SET password = ? WHERE id = ?", (new_hashed, user["id"]))
+        conn.commit()
+        
+    conn.close()
+    return {
+        "id": user["id"],
+        "username": user["username"],
+        "full_name": user["full_name"],
+        "role": user["role"]
+    }
+
+def register_user(username, password, full_name):
+    """Đăng ký tài khoản mới với mật khẩu được băm an toàn theo chuẩn SHA-256"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        hashed_pwd = hash_password(password)
+        cursor.execute("INSERT INTO users (username, password, full_name, role) VALUES (?, ?, ?, 'user')", 
+                       (username, hashed_pwd, full_name))
+        conn.commit()
+        user_id = cursor.lastrowid
+        conn.close()
+        return {"id": user_id, "username": username, "full_name": full_name, "role": "user"}
+    except sqlite3.IntegrityError:
+        conn.close()
+        return None
+
+def get_all_users():
+    """Lấy danh sách tất cả người dùng trong hệ thống (dành cho Admin)"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, full_name, role, created_at FROM users ORDER BY id ASC")
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+def update_user_role(user_id, new_role):
+    """Cập nhật vai trò (admin/user) của người dùng"""
+    if new_role not in ['admin', 'user']:
+        return False, "Vai trò không hợp lệ (chỉ chấp nhận 'admin' hoặc 'user')"
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Kiểm tra xem có phải hạ quyền của admin duy nhất không
+    if new_role == 'user':
