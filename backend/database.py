@@ -248,3 +248,53 @@ def find_duplicate_place(new_name, new_addr, new_lat, new_lon, new_maps, new_cat
 
         p_is_complex = is_commercial_complex(p.get("address"), p.get("name"))
         p_floor = extract_floor_number(p.get("address"))
+
+        # Lớp 1: Trùng tên 100%
+        if clean_name and p_name and clean_name == p_name:
+            return f"Trùng tên 100% với quán '{p.get('name')}' (ID #{p.get('id', '?')})"
+
+        # Lớp 2: Trùng link Google Maps thực tế
+        if clean_maps and p_maps and clean_maps == p_maps and "search/?api=1" not in clean_maps:
+            return f"Trùng liên kết Google Maps với quán '{p.get('name')}' (ID #{p.get('id', '?')})"
+
+        # Lớp 3: Trùng địa chỉ (KỂ CẢ TÊN KHÁC NHAU HOẶC CHƯA NHẬP TÊN!)
+        if clean_addr and p_addr:
+            # 3A. Khớp 100% chuỗi địa chỉ
+            if clean_addr == p_addr:
+                return f"Trùng hoàn toàn địa chỉ ('{p.get('address')}') với quán '{p.get('name')}' (ID #{p.get('id', '?')})"
+
+            # 3B. Khớp số nhà / tên đường qua addresses_match
+            if addresses_match(new_addr, p.get("address")):
+                if not new_is_complex and not p_is_complex:
+                    return f"Trùng hoàn toàn địa chỉ ('{p.get('address')}') với quán '{p.get('name')}' (ID #{p.get('id', '?')})"
+                else:
+                    # Nếu trong TTTM/Phức hợp mà trùng cả số tầng
+                    if new_floor and p_floor and new_floor == p_floor:
+                        return f"Trùng địa chỉ và cùng số tầng ({new_floor}) với quán '{p.get('name')}' (ID #{p.get('id', '?')})"
+                    if has_brand_overlap(new_name, p.get("name")):
+                        return f"Trùng địa chỉ và tên thương hiệu tương đồng với quán '{p.get('name')}' (ID #{p.get('id', '?')})"
+
+        # Phân biệt rạch ròi giữa TTTM (di_choi) và nhà hàng (an_uong) bên trong TTTM
+        if (new_is_complex or p_is_complex) and new_cat and p_cat and ((new_cat == 'di_choi' and p_cat == 'an_uong') or (new_cat == 'an_uong' and p_cat == 'di_choi')):
+            continue
+
+        # Lớp 4: Tọa độ GPS trùng sát (< 15 mét)
+        if lat and lon and p_lat and p_lon:
+            dist = haversine_distance_meters(lat, lon, p_lat, p_lon)
+            if dist < 15.0:
+                if has_brand_overlap(new_name, p.get("name")):
+                    return f"Tọa độ GPS trùng sát (~{round(dist)}m) và cùng thương hiệu với quán '{p.get('name')}' (ID #{p.get('id', '?')})"
+                if addresses_match(new_addr, p.get("address")):
+                    return f"Tọa độ GPS trùng sát (~{round(dist)}m) và cùng địa chỉ với quán '{p.get('name')}' (ID #{p.get('id', '?')})"
+                if dist < 5.0 and not new_is_complex and not p_is_complex:
+                    num1, st1 = split_house_number_and_street(new_addr)
+                    num2, st2 = split_house_number_and_street(p.get("address"))
+                    if not (num1 and num2 and num1 != num2):
+                        return f"Tọa độ GPS trùng sát (~{round(dist)}m) với quán '{p.get('name')}' (ID #{p.get('id', '?')}) tại '{p.get('address')}'"
+
+        # Lớp 5: Tên chứa nhau và trùng địa chỉ / đường
+        if has_brand_overlap(new_name, p.get("name")) and clean_addr and p_addr:
+            if clean_addr in p_addr or p_addr in clean_addr or clean_addr[:15] == p_addr[:15]:
+                return f"Tên và địa chỉ rất tương đồng với quán '{p.get('name')}' (ID #{p.get('id', '?')})"
+
+    return None
