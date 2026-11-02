@@ -1198,3 +1198,63 @@ def import_file_data(data, filename="uploaded_places.csv"):
             continue
 
         if category not in ["an_uong", "di_choi"]:
+            errors.append({"row": row_idx, "field": "category", "reason": f"Quán '{name}' có thể loại '{category}' không hợp lệ (phải là 'an_uong' hoặc 'di_choi')"})
+            continue
+
+        # 2. Kiểm tra kiểu dữ liệu tọa độ
+        lat_raw = row.get("lat")
+        if lat_raw is None or str(lat_raw).strip() == "":
+            errors.append({"row": row_idx, "field": "lat", "reason": f"Quán '{name}' thiếu tọa độ vĩ độ (lat)"})
+            continue
+        try:
+            lat = float(lat_raw)
+            if not (10.3 <= lat <= 11.2):
+                raise ValueError("Vĩ độ ngoài phạm vi TP.HCM (10.3 - 11.2)")
+        except Exception as e:
+            errors.append({"row": row_idx, "field": "lat", "reason": f"Quán '{name}': Vĩ độ (lat) '{lat_raw}' không hợp lệ ({str(e)})"})
+            continue
+
+        lon_raw = row.get("lon")
+        if lon_raw is None or str(lon_raw).strip() == "":
+            errors.append({"row": row_idx, "field": "lon", "reason": f"Quán '{name}' thiếu tọa độ kinh độ (lon)"})
+            continue
+        try:
+            lon = float(lon_raw)
+            if not (106.3 <= lon <= 107.2):
+                raise ValueError("Kinh độ ngoài phạm vi TP.HCM (106.3 - 107.2)")
+        except Exception as e:
+            errors.append({"row": row_idx, "field": "lon", "reason": f"Quán '{name}': Kinh độ (lon) '{lon_raw}' không hợp lệ ({str(e)})"})
+            continue
+
+        # 3. Kiểm tra kiểu dữ liệu mức giá (không mock giá nếu trống)
+        try:
+            min_price = int(float(row.get("min_price"))) if (row.get("min_price") is not None and str(row.get("min_price")).strip() != "") else 0
+            if min_price < 0:
+                raise ValueError("Giá âm")
+        except Exception:
+            errors.append({"row": row_idx, "field": "min_price", "reason": f"Quán '{name}': Giá tối thiểu (min_price) '{row.get('min_price')}' phải là số nguyên >= 0"})
+            continue
+
+        try:
+            max_price = int(float(row.get("max_price"))) if (row.get("max_price") is not None and str(row.get("max_price")).strip() != "") else 0
+            if max_price < min_price and max_price > 0:
+                raise ValueError("max_price < min_price")
+        except Exception:
+            errors.append({"row": row_idx, "field": "max_price", "reason": f"Quán '{name}': Giá tối đa (max_price) '{row.get('max_price')}' phải lớn hơn hoặc bằng giá tối thiểu"})
+            continue
+
+        # 4. Kiểm tra số sao đánh giá (không mock 4.5 sao nếu trống)
+        try:
+            rating = float(row.get("rating")) if (row.get("rating") is not None and str(row.get("rating")).strip() != "") else 0.0
+            if not (0.0 <= rating <= 5.0):
+                raise ValueError("Rating ngoài 0-5")
+        except Exception:
+            errors.append({"row": row_idx, "field": "rating", "reason": f"Quán '{name}': Đánh giá sao (rating) '{row.get('rating')}' phải trong khoảng 0.0 đến 5.0"})
+            continue
+
+        try:
+            reviews_count = int(float(row.get("reviews_count"))) if (row.get("reviews_count") is not None and str(row.get("reviews_count")).strip() != "") else 0
+        except Exception:
+            reviews_count = 0
+
+        gmaps_url = (row.get("google_maps_url") or row.get("maps_url") or "").strip()
