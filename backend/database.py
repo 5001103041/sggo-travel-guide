@@ -1378,3 +1378,43 @@ def save_itinerary(itin_data, stops_data):
             s.get("time_slot", ""),
             s.get("action_title", ""),
             s.get("travel_distance_km", 0.0),
+            s.get("travel_time_minutes", 0),
+            s.get("estimated_cost_min", 0),
+            s.get("estimated_cost_max", 0)
+        ))
+
+    conn.commit()
+    conn.close()
+    return itin_id
+
+def get_import_logs(limit=10):
+    """Lấy danh sách lịch sử nạp CSV gần nhất"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM import_logs ORDER BY id DESC LIMIT ?", (limit,))
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+# ==========================================
+# QUẢN LÝ TAG & BỘ LỌC (G6-FR08 & Section 5 ERD)
+# ==========================================
+def get_all_tags():
+    """Lấy danh sách tất cả các tag cùng số lượng quán liên kết"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT t.id, t.tag_key, t.name, t.tier_type, t.is_active, t.created_at,
+           COUNT(pt.place_id) as place_count
+    FROM tags t
+    LEFT JOIN place_tags pt ON t.id = pt.tag_id
+    GROUP BY t.id
+    ORDER BY t.tier_type, t.id
+    """)
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+def add_tag(tag_key: str, name: str, tier_type: str = "companion"):
+    """Thêm một tag mới vào hệ thống"""
