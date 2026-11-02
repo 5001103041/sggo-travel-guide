@@ -598,3 +598,53 @@ def seed_places_if_needed(conn):
             for p in raw_places:
                 name = p.get("name")
                 if not name:
+                    continue
+                category = p.get("category", "an_uong")
+                addr = p.get("address") or p.get("full_address") or "Quận 5, TP.HCM"
+                district = p.get("district", "Quận 5")
+                lat = float(p.get("lat") or 0.0)
+                lon = float(p.get("lon") or 0.0)
+                open_time = p.get("open_time") or ""
+                close_time = p.get("close_time") or ""
+                min_price = int(p.get("min_price") or 0)
+                max_price = int(p.get("max_price") or 0)
+                rating = float(p.get("rating") or 0.0)
+                reviews_count = int(p.get("reviews_count") or 0)
+                peak_hours = p.get("peak_hours") or ""
+                best_review = p.get("best_review") or ""
+                worst_review = p.get("worst_review") or ""
+                img = p.get("image_url") or None
+                tags = p.get("tags", "nhom_ban,di_1_minh")
+                is_verified = 1
+
+                places_to_insert.append((
+                    name, category, addr, district, lat, lon, open_time, close_time,
+                    min_price, max_price, rating, reviews_count, peak_hours,
+                    best_review, worst_review, img, tags, is_verified
+                ))
+
+    if places_to_insert:
+        cursor.executemany("""
+        INSERT INTO places (
+            name, category, address, district, lat, lon, open_time, close_time,
+            min_price, max_price, rating, reviews_count, peak_hours,
+            best_review, worst_review, image_url, tags, is_verified
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, places_to_insert)
+        conn.commit()
+
+
+def seed_tags_if_needed(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM tags")
+    if cursor.fetchone()[0] == 0:
+        default_tags = [
+            ("nhom_ban", "Nhóm bạn thân", "companion"),
+            ("hen_ho", "Cặp đôi / Hẹn hò", "companion"),
+            ("gia_dinh", "Gia đình / Người thân", "companion"),
+            ("di_1_minh", "Đi một mình (Solo)", "companion"),
+        ]
+        for k, n, t in default_tags:
+            cursor.execute("INSERT OR IGNORE INTO tags (tag_key, name, tier_type) VALUES (?, ?, ?)", (k, n, t))
+        conn.commit()
+
