@@ -1318,3 +1318,63 @@ def import_file_data(data, filename="uploaded_places.csv"):
 
     conn.commit()
     conn.close()
+    sync_db_to_json()
+    return {
+        "filename": filename,
+        "total_rows": total_rows,
+        "success_count": success_count,
+        "error_count": error_count,
+        "errors": errors
+    }
+
+
+def import_csv_data(csv_text, filename="uploaded_places.csv"):
+    """Wrapper tương thích ngược cho import CSV"""
+    return import_file_data(csv_text, filename=filename)
+
+
+def import_excel_data(excel_data, filename="uploaded_places.xlsx"):
+    """Wrapper chuyên dụng cho import Excel (.xlsx)"""
+    return import_file_data(excel_data, filename=filename)
+
+
+def save_itinerary(itin_data, stops_data):
+    """Lưu lịch trình và các chặng dừng vào CSDL (Section 5 ERD)"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO itineraries (
+        user_id, start_location, start_lat, start_lon, free_time, companion,
+        purpose, budget_level, target_budget, total_estimated_budget_min,
+        total_estimated_budget_max, total_duration_minutes, summary
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        itin_data.get("user_id"),
+        itin_data.get("start_location"),
+        itin_data.get("start_lat"),
+        itin_data.get("start_lon"),
+        itin_data.get("free_time"),
+        itin_data.get("companion", "ban_be"),
+        itin_data.get("purpose", "ca_hai"),
+        itin_data.get("budget_level", "100k_250k"),
+        itin_data.get("target_budget", 250000),
+        itin_data.get("total_estimated_budget_min", 0),
+        itin_data.get("total_estimated_budget_max", 0),
+        itin_data.get("total_duration_minutes", 0),
+        itin_data.get("summary", "")
+    ))
+    itin_id = cursor.lastrowid
+
+    for s in stops_data:
+        cursor.execute("""
+        INSERT INTO itinerary_stops (
+            itinerary_id, place_id, stop_order, time_slot, action_title,
+            travel_distance_km, travel_time_minutes, estimated_cost_min, estimated_cost_max
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            itin_id,
+            s.get("place_id"),
+            s.get("stop_order", 1),
+            s.get("time_slot", ""),
+            s.get("action_title", ""),
+            s.get("travel_distance_km", 0.0),
