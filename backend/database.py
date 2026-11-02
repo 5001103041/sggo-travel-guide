@@ -298,3 +298,53 @@ def find_duplicate_place(new_name, new_addr, new_lat, new_lon, new_maps, new_cat
                 return f"Tên và địa chỉ rất tương đồng với quán '{p.get('name')}' (ID #{p.get('id', '?')})"
 
     return None
+
+def migrate_schema_constraints(conn):
+    """Tự động kiểm tra và nâng cấp ràng buộc CHECK DDL cho SQLite mà không làm mất dữ liệu"""
+    cursor = conn.cursor()
+    cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='places'")
+    row = cursor.fetchone()
+    if row and "CHECK" not in row[0]:
+        cursor.execute("PRAGMA foreign_keys = OFF;")
+        cursor.execute("BEGIN TRANSACTION;")
+        cursor.execute("""
+        CREATE TABLE places_v2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL CHECK (category IN ('an_uong', 'di_choi')),
+            address TEXT NOT NULL,
+            district TEXT NOT NULL DEFAULT 'Quận 5',
+            lat REAL NOT NULL CHECK ((lat BETWEEN 10.3 AND 11.2) OR lat = 0.0),
+            lon REAL NOT NULL CHECK ((lon BETWEEN 106.3 AND 107.2) OR lon = 0.0),
+            open_time TEXT NOT NULL DEFAULT '08:00',
+            close_time TEXT NOT NULL DEFAULT '22:00',
+            min_price INTEGER NOT NULL DEFAULT 30000 CHECK (min_price >= 0),
+            max_price INTEGER NOT NULL DEFAULT 100000 CHECK (max_price >= 0 AND (max_price = 0 OR max_price >= min_price)),
+            rating REAL NOT NULL DEFAULT 4.5 CHECK (rating >= 0.0 AND rating <= 5.0),
+            reviews_count INTEGER NOT NULL DEFAULT 100 CHECK (reviews_count >= 0),
+            peak_hours TEXT DEFAULT '18:00 - 20:00',
+            best_review TEXT DEFAULT 'Quán sạch sẽ, đồ ăn ngon, phục vụ nhanh.',
+            worst_review TEXT DEFAULT 'Giờ cao điểm hơi đông khách, nên đi sớm.',
+            image_url TEXT,
+            tags TEXT DEFAULT 'nhom_ban',
+            is_verified INTEGER NOT NULL DEFAULT 1 CHECK (is_verified IN (0, 1)),
+            is_verified_review INTEGER NOT NULL DEFAULT 1 CHECK (is_verified_review IN (0, 1)),
+            is_admin_choice INTEGER NOT NULL DEFAULT 0 CHECK (is_admin_choice IN (0, 1)),
+            price_display TEXT,
+            hours_display TEXT,
+            is_hidden INTEGER NOT NULL DEFAULT 0 CHECK (is_hidden IN (0, 1)),
+            google_maps_url TEXT
+        );
+        """)
+        cursor.execute("PRAGMA table_info(places)")
+        cols = [r["name"] for r in cursor.fetchall()]
+        col_str = ", ".join(cols)
+        cursor.execute(f"INSERT INTO places_v2 ({col_str}) SELECT {col_str} FROM places")
+        cursor.execute("DROP TABLE places")
+        cursor.execute("ALTER TABLE places_v2 RENAME TO places")
+        conn.commit()
+        cursor.execute("PRAGMA foreign_keys = ON;")
+
+    cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")
+    row = cursor.fetchone()
+    if row and "CHECK" not in row[0]:
