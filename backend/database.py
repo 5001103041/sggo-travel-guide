@@ -198,3 +198,53 @@ def has_brand_overlap(name1, name2):
         return True
     if len(c1) >= 4 and len(c2) >= 4 and (c1 in c2 or c2 in c1):
         return True
+    
+    tokens1 = [w for w in c1.split() if len(w) >= 3 and w not in GENERIC_BRAND_WORDS]
+    tokens2 = [w for w in c2.split() if len(w) >= 3 and w not in GENERIC_BRAND_WORDS]
+    common = set(tokens1) & set(tokens2)
+    return len(common) > 0
+
+def find_duplicate_place(new_name, new_addr, new_lat, new_lon, new_maps, new_cat, existing_places, exclude_id=None):
+    """
+    Kiểm tra chống trùng lặp địa điểm thông minh đa lớp:
+    1. Trùng 100% tên chuẩn hóa (không phân biệt dấu, hoa thường, khoảng trắng)
+    2. Trùng link Google Maps thực tế
+    3. Trùng 100% địa chỉ chuỗi chuẩn hóa (kể cả tên quán hoàn toàn khác!)
+    4. Trùng địa chỉ nhà mặt phố hoặc cùng số tầng trong TTTM
+    5. Tọa độ GPS trùng sát (< 15 mét) và địa chỉ hoặc tên tương đồng
+    6. Tên tương đồng và cùng nằm trên cùng địa chỉ / đường
+    """
+    clean_name = normalize_search_text(new_name)
+    clean_addr = normalize_search_text(new_addr)
+    clean_maps = (new_maps or "").strip().lower()
+    try:
+        lat = float(new_lat or 0)
+    except Exception:
+        lat = 0.0
+    try:
+        lon = float(new_lon or 0)
+    except Exception:
+        lon = 0.0
+
+    new_is_complex = is_commercial_complex(new_addr, new_name)
+    new_floor = extract_floor_number(new_addr)
+
+    for p in existing_places:
+        if exclude_id is not None and str(p.get("id")) == str(exclude_id):
+            continue
+
+        p_name = normalize_search_text(p.get("name"))
+        p_addr = normalize_search_text(p.get("address"))
+        p_cat = p.get("category", "")
+        p_maps = (p.get("google_maps_url") or "").strip().lower()
+        try:
+            p_lat = float(p.get("lat") or 0)
+        except Exception:
+            p_lat = 0.0
+        try:
+            p_lon = float(p.get("lon") or 0)
+        except Exception:
+            p_lon = 0.0
+
+        p_is_complex = is_commercial_complex(p.get("address"), p.get("name"))
+        p_floor = extract_floor_number(p.get("address"))
