@@ -1078,3 +1078,63 @@ def generate_sample_excel():
         "best_review", "worst_review", "tags", "lat", "lon", "google_maps_url"
     ]
     ws.append(headers)
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="E11D48", end_color="E11D48", fill_type="solid")
+    for col_num in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    sample_rows = [
+        [
+            "Hủ Tiếu Nam Vang Triều Châu", "an_uong", "85 Trần Bình Trọng, Phường 1, Quận 5", "06:30", "22:00",
+            40000, 75000, 4.6, 820, "18:00 - 19:30",
+            "Nước dùng ngọt xương tự nhiên, sườn mềm tôm tươi", "Quán giờ tan tầm hơi đông", "nhom_ban,di_1_minh", 10.7570, 106.6780,
+            "https://www.google.com/maps/search/?api=1&query=H%E1%BB%A7+Ti%E1%BA%BFu+Nam+Vang+Tri%E1%BB%81u+Ch%C3%A2u+Qu%E1%BA%ADn+5"
+        ],
+        [
+            "Cà Phê Trầm Chợ Lớn", "di_choi", "142 Triệu Quang Phục, Phường 11, Quận 5", "08:00", "22:30",
+            35000, 65000, 4.5, 430, "15:00 - 17:00",
+            "Không gian hoài cổ, nhạc nhẹ, rất hợp học bài và hẹn hò", "Hẻm hơi nhỏ", "hen_ho,di_1_minh", 10.7540, 106.6610,
+            "https://www.google.com/maps/search/?api=1&query=C%C3%A0+Ph%C3%AA+Tr%E1%BA%A7m+Ch%E1%BB%A3+L%E1%BB%9Bn+Qu%E1%BA%ADn+5"
+        ]
+    ]
+    for r in sample_rows:
+        ws.append(r)
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = col[0].column_letter
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def parse_rows_from_file_content(data, filename: str):
+    """
+    Tự động nhận diện định dạng CSV hoặc Excel (.xlsx, .xls) và trích xuất danh sách row dictionaries
+    """
+    fname_lower = filename.lower()
+    is_excel = fname_lower.endswith(".xlsx") or fname_lower.endswith(".xls")
+
+    if is_excel or (isinstance(data, str) and ("base64," in data or (len(data) > 100 and "\n" not in data[:100] and "\r" not in data[:100]))):
+        import openpyxl
+        import base64
+        file_bytes = data
+        if isinstance(data, str):
+            if "base64," in data:
+                data = data.split("base64,")[1]
+            try:
+                file_bytes = base64.b64decode(data)
+            except Exception:
+                file_bytes = data.encode("utf-8")
+        elif isinstance(data, (bytes, bytearray)):
+            file_bytes = data
+
+        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+        sheet = wb.active
+        raw_rows = list(sheet.iter_rows(values_only=True))
