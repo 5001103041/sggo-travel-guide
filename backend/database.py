@@ -98,3 +98,53 @@ def normalize_search_text(s: str) -> str:
 
 def haversine_distance_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Tính khoảng cách mét giữa 2 tọa độ GPS"""
+    import math
+    R = 6371000
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+COMMERCIAL_COMPLEX_KEYWORDS = [
+    "mall", "plaza", "center", "centre", "tttm", "bitexco", "landmark",
+    "tầng ", "tang ", "lầu ", "lau ", "food court", "parkson", "takashimaya",
+    "vincom", "aeon", "crescent", "gigamall", "nowzone", "sc vivocity",
+    "lotte mart", "vạn hạnh mall", "van hanh mall", "chợ ", "cho ",
+    "bạch đằng", "bach dang", "công viên", "cong vien", "thảo cầm viên", "thao cam vien", "bảo tàng", "bao tang"
+]
+
+GENERIC_BRAND_WORDS = {
+    "quan", "nha", "hang", "tiem", "ca", "phe", "cafe", "tra", "sua", "buffet", "vietnam", "am", "thuc", "food", "coffee", "tea",
+    "van", "hanh", "mall", "plaza", "center", "centre", "tttm", "vincom", "aeon", "hung", "vuong", "bitexco", "landmark", "crescent",
+    "gigamall", "nowzone", "takashimaya", "parkson", "lotte", "bach", "dang", "cho", "ben", "thanh"
+}
+
+def is_commercial_complex(addr, name=""):
+    """Xác định xem địa chỉ hoặc tên có phải là TTTM / Phức hợp lớn hay không."""
+    text = (str(addr or "") + " " + str(name or "")).lower()
+    return any(k in text for k in COMMERCIAL_COMPLEX_KEYWORDS)
+
+def normalize_address_for_split(text):
+    """Chuẩn hóa địa chỉ nhưng giữ lại dấu phẩy để phân tách số nhà + đường"""
+    if not text:
+        return ""
+    text = expand_address_abbreviations(str(text))
+    text = unicodedata.normalize('NFD', text)
+    text = re.sub(r'[\u0300-\u036f]', '', text)
+    text = text.replace('đ', 'd').replace('Đ', 'd')
+    text = re.sub(r'[^a-zA-Z0-9\s,]', ' ', text)
+    return re.sub(r'\s+', ' ', text).strip().lower()
+
+def split_house_number_and_street(text):
+    """Tách số nhà và tên đường từ chuỗi địa chỉ"""
+    if not text:
+        return "", ""
+    norm = normalize_address_for_split(text)
+    part = norm.split(",")[0].strip()
+    m = re.match(r'^([0-9]+[a-z0-9\/\-]*)(\s+)(.*)$', part)
+    if m:
+        num = m.group(1).strip()
+        street = m.group(3).strip()
+        return num, street
