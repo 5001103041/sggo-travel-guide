@@ -548,3 +548,53 @@ def init_db():
 
     conn.commit()
 
+    # Nâng cấp các bảng cũ lên chuẩn CHECK constraints nếu cần
+    migrate_schema_constraints(conn)
+    migrate_existing_user_passwords(conn)
+
+    # Khởi tạo dữ liệu mẫu nếu bảng còn trống
+    seed_users_if_needed(conn)
+    seed_places_if_needed(conn)
+    seed_tags_if_needed(conn)
+    conn.close()
+
+def seed_users_if_needed(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("""
+        INSERT INTO users (username, password, full_name, role) VALUES 
+        ('admin', ?, 'Quản Trị Viên SGGo', 'admin'),
+        ('user1', ?, 'Nguyễn Văn A', 'user');
+        """, (hash_password('admin123'), hash_password('123456')))
+        conn.commit()
+    seed_places_if_needed(conn)
+    seed_tags_if_needed(conn)
+    conn.close()
+
+def seed_users_if_needed(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("""
+        INSERT INTO users (username, password, full_name, role) VALUES 
+        ('admin', 'admin123', 'Quản Trị Viên SGGo', 'admin'),
+        ('user1', '123456', 'Nguyễn Văn A', 'user');
+        """)
+        conn.commit()
+
+def seed_places_if_needed(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM places")
+    if cursor.fetchone()[0] > 0:
+        return
+
+    # Đọc 40 quán thực tế từ enriched_places.json
+    places_to_insert = []
+    if os.path.exists(ENRICHED_JSON_PATH):
+        with open(ENRICHED_JSON_PATH, "r", encoding="utf-8") as f:
+            raw_places = json.load(f)
+            
+            for p in raw_places:
+                name = p.get("name")
+                if not name:
