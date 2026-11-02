@@ -1018,3 +1018,63 @@ def delete_place(place_id):
     return True
 
 def toggle_hide_place(place_id):
+    """Bật / tắt trạng thái ẩn của địa điểm (Admin Soft Hide)"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, is_hidden FROM places WHERE id = ?", (place_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return None
+    curr_hidden = row["is_hidden"] if row["is_hidden"] is not None else 0
+    new_hidden = 1 if curr_hidden == 0 else 0
+    cursor.execute("UPDATE places SET is_hidden = ? WHERE id = ?", (new_hidden, place_id))
+    conn.commit()
+    conn.close()
+    sync_db_to_json()
+    return {"id": place_id, "is_hidden": new_hidden}
+
+
+
+# ==============================================================================
+# NHẬP XUẤT CSV (IMPORT / EXPORT)
+# ==============================================================================
+
+def generate_sample_csv():
+    """Tạo nội dung file CSV mẫu chuẩn cho Admin tải về điền (an toàn tuyệt đối với mọi dấu phẩy)"""
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_ALL)
+    writer.writerow([
+        "name", "category", "address", "open_time", "close_time", 
+        "min_price", "max_price", "rating", "reviews_count", "peak_hours",
+        "best_review", "worst_review", "tags", "lat", "lon", "google_maps_url"
+    ])
+    writer.writerow([
+        "Hủ Tiếu Nam Vang Triều Châu", "an_uong", "85 Trần Bình Trọng, Phường 1, Quận 5", "06:30", "22:00",
+        40000, 75000, 4.6, 820, "18:00 - 19:30",
+        "Nước dùng ngọt xương tự nhiên, sườn mềm tôm tươi", "Quán giờ tan tầm hơi đông", "nhom_ban,di_1_minh", 10.7570, 106.6780,
+        "https://www.google.com/maps/search/?api=1&query=H%E1%BB%A7+Ti%E1%BA%BFu+Nam+Vang+Tri%E1%BB%81u+Ch%C3%A2u+Qu%E1%BA%ADn+5"
+    ])
+    writer.writerow([
+        "Cà Phê Trầm Chợ Lớn", "di_choi", "142 Triệu Quang Phục, Phường 11, Quận 5", "08:00", "22:30",
+        35000, 65000, 4.5, 430, "15:00 - 17:00",
+        "Không gian hoài cổ, nhạc nhẹ, rất hợp học bài và hẹn hò", "Hẻm hơi nhỏ", "hen_ho,di_1_minh", 10.7540, 106.6610,
+        "https://www.google.com/maps/search/?api=1&query=C%C3%A0+Ph%C3%AA+Tr%E1%BA%A7m+Ch%E1%BB%A3+L%E1%BB%9Bn+Qu%E1%BA%ADn+5"
+    ])
+    return output.getvalue()
+
+def generate_sample_excel():
+    """Tạo nội dung file Excel (.xlsx) mẫu chuẩn cho Admin tải về nạp dữ liệu (G6-FR09)"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "DS_Dia_Diem_Mau"
+
+    headers = [
+        "name", "category", "address", "open_time", "close_time", 
+        "min_price", "max_price", "rating", "reviews_count", "peak_hours",
+        "best_review", "worst_review", "tags", "lat", "lon", "google_maps_url"
+    ]
+    ws.append(headers)
