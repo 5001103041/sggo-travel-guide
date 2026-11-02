@@ -898,3 +898,63 @@ def sync_place_tags_record(cursor, place_id: int, tags_str: str):
             cursor.execute("INSERT OR IGNORE INTO place_tags (place_id, tag_id, tier) VALUES (?, ?, 2)", (place_id, tid))
 
 def add_place(data):
+    """Thêm một địa điểm mới vào CSDL"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    gmaps_val = data.get("google_maps_url")
+    if not gmaps_val and data.get("name") and data.get("address"):
+        import urllib.parse
+        gmaps_val = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(str(data.get('name')) + ' ' + str(data.get('address')))}"
+
+    cursor.execute("""
+    INSERT INTO places (
+        name, category, address, district, lat, lon, open_time, close_time,
+        min_price, max_price, rating, reviews_count, peak_hours,
+        best_review, worst_review, image_url, tags, is_verified, is_verified_review, is_admin_choice,
+        price_display, hours_display, is_hidden, google_maps_url
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        data.get("name"),
+        data.get("category", "an_uong"),
+        data.get("address") or "TP.HCM",
+        data.get("district") or "TP.HCM",
+        float(data.get("lat") or 0.0),
+        float(data.get("lon") or 0.0),
+        data.get("open_time") or "",
+        data.get("close_time") or "",
+        int(data.get("min_price") or 0),
+        int(data.get("max_price") or 0),
+        float(data.get("rating")) if (data.get("rating") is not None and str(data.get("rating")).strip() != "") else 0.0,
+        int(data.get("reviews_count") or 0),
+        data.get("peak_hours") or "",
+        data.get("best_review") or "",
+        data.get("worst_review") or "",
+        data.get("image_url") or None,
+        data.get("tags", "nhom_ban"),
+        int(data.get("is_verified", 1)),
+        int(data.get("is_verified_review", 1)),
+        int(data.get("is_admin_choice", 0)),
+        data.get("price_display"),
+        data.get("hours_display"),
+        int(data.get("is_hidden", 0)),
+        gmaps_val
+    ))
+    new_id = cursor.lastrowid
+    sync_place_tags_record(cursor, new_id, data.get("tags", "nhom_ban"))
+    conn.commit()
+    conn.close()
+    sync_db_to_json()
+    return get_place_by_id(new_id)
+
+def update_place(place_id, data):
+    """Cập nhật thông tin địa điểm đã có trong SQLite"""
+    existing = get_place_by_id(place_id)
+    if not existing:
+        return None
+
+    raw_img = data.get("image_url")
+    img_val = raw_img.strip() if raw_img and str(raw_img).strip() else None
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    gmaps_val = data.get("google_maps_url", existing.get("google_maps_url"))
