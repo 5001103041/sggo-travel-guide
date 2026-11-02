@@ -648,3 +648,53 @@ def seed_tags_if_needed(conn):
             cursor.execute("INSERT OR IGNORE INTO tags (tag_key, name, tier_type) VALUES (?, ?, ?)", (k, n, t))
         conn.commit()
 
+    cursor.execute("SELECT COUNT(*) FROM place_tags")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("SELECT id, tag_key FROM tags")
+        tag_map = {row[1]: row[0] for row in cursor.fetchall()}
+
+        cursor.execute("SELECT id, tags FROM places")
+        places = cursor.fetchall()
+        for pid, tags_str in places:
+            if not tags_str:
+                continue
+            raw_tags = [t.strip() for t in tags_str.split(",") if t.strip()]
+            for idx, t in enumerate(raw_tags):
+                tag_id = tag_map.get(t)
+                if tag_id:
+                    tier = 1 if idx < 2 else 2
+                    cursor.execute("INSERT OR IGNORE INTO place_tags (place_id, tag_id, tier) VALUES (?, ?, ?)", (pid, tag_id, tier))
+        conn.commit()
+
+def sync_db_to_json():
+    """Tự động đồng bộ toàn bộ địa điểm từ SQLite ra file JSON để mang sang máy khác không bị mất"""
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM places ORDER BY id ASC")
+        rows = [dict(r) for r in cur.fetchall()]
+        conn.close()
+        with open(ENRICHED_JSON_PATH, "w", encoding="utf-8") as f:
+            json.dump(rows, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("[WARN] sync_db_to_json error:", e)
+
+
+# ==============================================================================
+# THAO TÁC NGƯỜI DÙNG & TÀI KHOẢN (AUTH)
+# ==============================================================================
+
+def authenticate_user(username, password):
+    """Kiểm tra thông tin đăng nhập với mật khẩu băm SHA-256 an toàn và tự động nâng cấp mật khẩu cũ"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, password, full_name, role FROM users WHERE username = ?", (username,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return None
+        
+    stored_pwd = user["password"]
+    if not verify_password(stored_pwd, password):
+        conn.close()
+        return None
