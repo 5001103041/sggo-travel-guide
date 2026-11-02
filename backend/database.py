@@ -1138,3 +1138,63 @@ def parse_rows_from_file_content(data, filename: str):
         wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
         sheet = wb.active
         raw_rows = list(sheet.iter_rows(values_only=True))
+        if not raw_rows:
+            return []
+
+        header_row = raw_rows[0]
+        headers = [str(h).strip().lower() if h is not None else f"col_{i}" for i, h in enumerate(header_row)]
+
+        parsed_rows = []
+        for r in raw_rows[1:]:
+            if not any(val is not None and str(val).strip() != "" for val in r):
+                continue
+            row_dict = {}
+            for i, val in enumerate(r):
+                if i < len(headers):
+                    key = headers[i]
+                    row_dict[key] = "" if val is None else str(val).strip()
+            parsed_rows.append(row_dict)
+        return parsed_rows
+    else:
+        csv_str = data if isinstance(data, str) else data.decode("utf-8-sig", errors="replace")
+        csv_str = csv_str.lstrip("\ufeff")
+        f = io.StringIO(csv_str)
+        reader = csv.DictReader(f)
+        return list(reader)
+
+
+def import_file_data(data, filename="uploaded_places.csv"):
+    """
+    Đọc dữ liệu từ file CSV hoặc Excel (.xlsx) tải lên và nạp vào CSDL với kiểm tra lỗi chặt chẽ (G6-FR09 & Business Rule 4):
+    - Phát hiện trường bắt buộc bị thiếu (Tên quán, Thể loại, Địa chỉ)
+    - Phát hiện kiểu dữ liệu sai (Tọa độ không phải float, Giá tiền không phải số nguyên, Sao không hợp lệ)
+    - Ghi nhận chi tiết dòng lỗi để Admin xem và chỉnh sửa (Demo Flow 3)
+    - Ghi log lịch sử import vào bảng import_logs (Section 5)
+    """
+    parsed_rows = parse_rows_from_file_content(data, filename)
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, name, category, address, lat, lon, google_maps_url FROM places")
+    existing_places = [dict(r) for r in cursor.fetchall()]
+
+    success_count = 0
+    errors = []
+    row_idx = 1  # Header là dòng 1, dòng dữ liệu đầu tiên là dòng 2
+
+    for row in parsed_rows:
+        row_idx += 1
+        name = sanitize_cell_value((row.get("name") or "").strip())
+        address = sanitize_cell_value((row.get("address") or "").strip())
+        category = sanitize_cell_value((row.get("category") or "").strip().lower())
+
+        # 1. Kiểm tra trường bắt buộc và độ dài
+        if not name or len(name) < 2:
+            errors.append({"row": row_idx, "field": "name", "reason": "Tên địa điểm phải có ít nhất 2 ký tự (trường bắt buộc)"})
+            continue
+
+        if not address or len(address) < 5:
+            errors.append({"row": row_idx, "field": "address", "reason": f"Quán '{name}' thiếu địa chỉ cụ thể hoặc địa chỉ quá ngắn (tối thiểu 5 ký tự)"})
+            continue
+
+        if category not in ["an_uong", "di_choi"]:
