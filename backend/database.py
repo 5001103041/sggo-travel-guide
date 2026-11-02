@@ -448,3 +448,53 @@ def init_db():
         is_admin_choice INTEGER NOT NULL DEFAULT 0 CHECK (is_admin_choice IN (0, 1)),
         price_display TEXT,
         hours_display TEXT,
+        is_hidden INTEGER NOT NULL DEFAULT 0 CHECK (is_hidden IN (0, 1)),
+        google_maps_url TEXT
+    );
+    """)
+
+    # Tự động migrate cột is_admin_choice và is_hidden nếu dùng CSDL cũ
+    cursor.execute("PRAGMA table_info(places)")
+    existing_cols = [r["name"] for r in cursor.fetchall()]
+    if "is_admin_choice" not in existing_cols:
+        cursor.execute("ALTER TABLE places ADD COLUMN is_admin_choice INTEGER DEFAULT 0")
+        conn.commit()
+    if "is_hidden" not in existing_cols:
+        cursor.execute("ALTER TABLE places ADD COLUMN is_hidden INTEGER DEFAULT 0")
+        conn.commit()
+    if "google_maps_url" not in existing_cols:
+        cursor.execute("ALTER TABLE places ADD COLUMN google_maps_url TEXT")
+        conn.commit()
+
+
+
+    # 4. BẢNG ITINERARIES (Lưu trữ lịch trình theo yêu cầu Section 5 đề tài)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS itineraries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        start_location TEXT NOT NULL,
+        start_lat REAL,
+        start_lon REAL,
+        free_time TEXT NOT NULL,
+        companion TEXT DEFAULT 'ban_be',
+        purpose TEXT DEFAULT 'ca_hai',
+        budget_level TEXT DEFAULT '100k_250k',
+        target_budget INTEGER DEFAULT 250000,
+        total_estimated_budget_min INTEGER DEFAULT 0,
+        total_estimated_budget_max INTEGER DEFAULT 0,
+        total_duration_minutes INTEGER DEFAULT 0,
+        summary TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+    """)
+
+    # 5. BẢNG ITINERARY_STOPS (Các chặng dừng trong lịch trình theo yêu cầu Section 5 đề tài)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS itinerary_stops (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        itinerary_id INTEGER NOT NULL,
+        place_id INTEGER NOT NULL,
+        stop_order INTEGER NOT NULL,
+        time_slot TEXT,
