@@ -148,3 +148,53 @@ def split_house_number_and_street(text):
         num = m.group(1).strip()
         street = m.group(3).strip()
         return num, street
+    return "", part
+
+def extract_floor_number(text):
+    """Trích xuất số tầng (tầng 4, lầu 3, floor 2...) từ chuỗi địa chỉ nếu có"""
+    if not text:
+        return ""
+    t = unicodedata.normalize('NFD', str(text))
+    t = re.sub(r'[\u0300-\u036f]', '', t).replace('đ', 'd').replace('Đ', 'd').lower()
+    m = re.search(r'(tang\s*[0-9]+|lau\s*[0-9]+|floor\s*[0-9]+|tang\s*tret|lau\s*tret|tang\s*lung|l[0-9]{1,2})', t)
+    if m:
+        return re.sub(r'\s+', '', m.group(1))
+    return ""
+
+def addresses_match(addr1, addr2):
+    """Kiểm tra hai chuỗi địa chỉ có cùng một số nhà và tên đường hay không"""
+    c1 = normalize_search_text(addr1)
+    c2 = normalize_search_text(addr2)
+    if not c1 or not c2:
+        return False
+    if c1 == c2:
+        return True
+    
+    num1, street1 = split_house_number_and_street(addr1)
+    num2, street2 = split_house_number_and_street(addr2)
+    
+    if num1 and num2 and street1 and street2:
+        if num1 == num2:
+            st1 = re.sub(r'^(duong|d)\s+', '', street1).strip()
+            st2 = re.sub(r'^(duong|d)\s+', '', street2).strip()
+            if st1 == st2 or (len(st1) >= 6 and len(st2) >= 6 and (st1 in st2 or st2 in st1)):
+                return True
+        return False
+
+    if len(c1) >= 12 and len(c2) >= 12:
+        if c1 in c2 or c2 in c1:
+            return True
+        if len(c1) >= 16 and len(c2) >= 16 and c1[:16] == c2[:16]:
+            return True
+    return False
+
+def has_brand_overlap(name1, name2):
+    """Kiểm tra sự trùng lặp hoặc tương đồng về thương hiệu giữa hai tên quán"""
+    c1 = normalize_search_text(name1)
+    c2 = normalize_search_text(name2)
+    if not c1 or not c2:
+        return False
+    if c1 == c2:
+        return True
+    if len(c1) >= 4 and len(c2) >= 4 and (c1 in c2 or c2 in c1):
+        return True
