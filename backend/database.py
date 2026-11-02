@@ -498,3 +498,53 @@ def init_db():
         place_id INTEGER NOT NULL,
         stop_order INTEGER NOT NULL,
         time_slot TEXT,
+        action_title TEXT,
+        travel_distance_km REAL,
+        travel_time_minutes INTEGER,
+        estimated_cost_min INTEGER DEFAULT 0,
+        estimated_cost_max INTEGER DEFAULT 0,
+        FOREIGN KEY (itinerary_id) REFERENCES itineraries(id) ON DELETE CASCADE,
+        FOREIGN KEY (place_id) REFERENCES places(id) ON DELETE CASCADE
+    );
+    """)
+
+    # 6. BẢNG IMPORT_LOGS (Lịch sử nạp CSV & Báo cáo dòng lỗi theo yêu cầu G6-FR09 & Section 5)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS import_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT NOT NULL DEFAULT 'uploaded_places.csv',
+        total_rows INTEGER NOT NULL DEFAULT 0,
+        success_count INTEGER NOT NULL DEFAULT 0,
+        error_count INTEGER NOT NULL DEFAULT 0,
+        error_details_json TEXT,
+        imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # 7. BẢNG TAGS (Danh mục thẻ ngữ cảnh theo yêu cầu G6-FR08 & Section 5 ERD)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tag_key TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        tier_type TEXT DEFAULT 'companion' CHECK (length(tier_type) >= 1),
+        is_active INTEGER DEFAULT 1 CHECK (is_active IN (0, 1)),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # 8. BẢNG PLACE_TAGS (Bảng quan hệ nhiều-nhiều giữa Place và Tag theo Section 5 ERD)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS place_tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        place_id INTEGER NOT NULL,
+        tag_id INTEGER NOT NULL,
+        tier INTEGER DEFAULT 1,
+        FOREIGN KEY (place_id) REFERENCES places(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+        UNIQUE(place_id, tag_id)
+    );
+    """)
+
+    conn.commit()
+
