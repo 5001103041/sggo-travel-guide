@@ -798,3 +798,53 @@ def get_all_places(category=None, context_tag=None, min_budget=None, max_budget=
 
     query = "SELECT * FROM places WHERE 1=1"
     params = []
+
+    if not include_hidden:
+        query += " AND (is_hidden = 0 OR is_hidden IS NULL)"
+
+    if only_verified:
+        query += " AND is_verified = 1"
+
+    if category and category != "all":
+        query += " AND category = ?"
+        params.append(category)
+
+    if context_tag and context_tag != "all":
+        query += " AND tags LIKE ?"
+        params.append(f"%{context_tag}%")
+
+    if min_budget and int(min_budget) > 0:
+        query += " AND max_price >= ?"
+        params.append(int(min_budget))
+
+    if max_budget is not None and str(max_budget).strip() != "":
+        max_b_val = int(max_budget)
+        if max_b_val == 0:
+            query += " AND min_price = 0 AND max_price = 0"
+        elif max_b_val > 0:
+            query += " AND min_price <= ?"
+            params.append(max_b_val)
+
+    if min_rating and float(min_rating) > 0:
+        query += " AND rating >= ?"
+        params.append(float(min_rating))
+
+    if search:
+        s_clean = str(search).strip()
+        if s_clean.startswith("#"):
+            s_id = s_clean[1:].strip()
+            if s_id.isdigit():
+                query += " AND id = ?"
+                params.append(int(s_id))
+            else:
+                query += " AND (name LIKE ? OR address LIKE ?)"
+                params.extend([f"%{s_clean}%", f"%{s_clean}%"])
+        elif s_clean.isdigit():
+            # Nếu gõ thuần số (VD: 18), tìm theo ID (khớp chính xác hoặc ID bắt đầu bằng tiền tố số đó)
+            query += " AND (id = ? OR CAST(id AS TEXT) LIKE ?)"
+            params.extend([int(s_clean), f"{s_clean}%"])
+        else:
+            query += " AND (name LIKE ? OR address LIKE ?)"
+            params.extend([f"%{search}%", f"%{search}%"])
+
+    query += " ORDER BY rating DESC, reviews_count DESC"
