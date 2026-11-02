@@ -958,3 +958,63 @@ def update_place(place_id, data):
     conn = get_connection()
     cursor = conn.cursor()
     gmaps_val = data.get("google_maps_url", existing.get("google_maps_url"))
+    if not gmaps_val and data.get("name") and data.get("address"):
+        import urllib.parse
+        gmaps_val = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(str(data.get('name')) + ' ' + str(data.get('address')))}"
+
+    cursor.execute("""
+    UPDATE places SET
+        name = ?, category = ?, address = ?, district = ?,
+        lat = ?, lon = ?, open_time = ?, close_time = ?,
+        min_price = ?, max_price = ?, rating = ?, reviews_count = ?,
+        peak_hours = ?, best_review = ?, worst_review = ?,
+        image_url = ?, tags = ?, is_verified = ?, is_verified_review = ?,
+        is_admin_choice = ?, price_display = ?, hours_display = ?, is_hidden = ?,
+        google_maps_url = ?
+    WHERE id = ?
+    """, (
+        data.get("name", existing.get("name")),
+        data.get("category", existing.get("category")),
+        data.get("address", existing.get("address")),
+        data.get("district", existing.get("district", "TP.HCM")),
+        float(data.get("lat") if data.get("lat") is not None else existing.get("lat", 0.0)),
+        float(data.get("lon") if data.get("lon") is not None else existing.get("lon", 0.0)),
+        data.get("open_time", existing.get("open_time")),
+        data.get("close_time", existing.get("close_time")),
+        int(data.get("min_price") if data.get("min_price") is not None else existing.get("min_price", 0)),
+        int(data.get("max_price") if data.get("max_price") is not None else existing.get("max_price", 0)),
+        float(data.get("rating")) if (data.get("rating") is not None and str(data.get("rating")).strip() != "") else existing.get("rating"),
+        int(data.get("reviews_count") if data.get("reviews_count") is not None else existing.get("reviews_count", 0)),
+        data.get("peak_hours", existing.get("peak_hours", "")) or "",
+        data.get("best_review", existing.get("best_review", "")) or "",
+        data.get("worst_review", existing.get("worst_review", "")) or "",
+        img_val,
+        data.get("tags", existing.get("tags", "nhom_ban")),
+        int(data.get("is_verified", existing.get("is_verified", 1))),
+        int(data.get("is_verified_review", existing.get("is_verified_review", 1))),
+        int(data.get("is_admin_choice", existing.get("is_admin_choice", 0))),
+        data.get("price_display", existing.get("price_display")),
+        data.get("hours_display", existing.get("hours_display")),
+        int(data.get("is_hidden", existing.get("is_hidden", 0))),
+        gmaps_val,
+        place_id
+    ))
+    sync_place_tags_record(cursor, place_id, data.get("tags", existing.get("tags", "nhom_ban")))
+    conn.commit()
+    conn.close()
+    sync_db_to_json()
+    return get_place_by_id(place_id)
+
+def delete_place(place_id):
+    """Xóa một địa điểm và toàn bộ dữ liệu phụ thuộc (Itinerary Stops, Place Tags)"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM itinerary_stops WHERE place_id = ?", (place_id,))
+    cursor.execute("DELETE FROM place_tags WHERE place_id = ?", (place_id,))
+    cursor.execute("DELETE FROM places WHERE id = ?", (place_id,))
+    conn.commit()
+    conn.close()
+    sync_db_to_json()
+    return True
+
+def toggle_hide_place(place_id):
