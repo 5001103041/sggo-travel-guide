@@ -348,3 +348,53 @@ def migrate_schema_constraints(conn):
     cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")
     row = cursor.fetchone()
     if row and "CHECK" not in row[0]:
+        cursor.execute("PRAGMA foreign_keys = OFF;")
+        cursor.execute("BEGIN TRANSACTION;")
+        cursor.execute("""
+        CREATE TABLE users_v2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            full_name TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("PRAGMA table_info(users)")
+        cols = [r["name"] for r in cursor.fetchall()]
+        col_str = ", ".join(cols)
+        cursor.execute(f"INSERT INTO users_v2 ({col_str}) SELECT {col_str} FROM users")
+        cursor.execute("DROP TABLE users")
+        cursor.execute("ALTER TABLE users_v2 RENAME TO users")
+        conn.commit()
+        cursor.execute("PRAGMA foreign_keys = ON;")
+
+    cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='tags'")
+    row = cursor.fetchone()
+    if row and "CHECK" not in row[0]:
+        cursor.execute("PRAGMA foreign_keys = OFF;")
+        cursor.execute("BEGIN TRANSACTION;")
+        cursor.execute("""
+        CREATE TABLE tags_v2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tag_key TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            tier_type TEXT DEFAULT 'companion' CHECK (length(tier_type) >= 1),
+            is_active INTEGER DEFAULT 1 CHECK (is_active IN (0, 1)),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("PRAGMA table_info(tags)")
+        cols = [r["name"] for r in cursor.fetchall()]
+        col_str = ", ".join(cols)
+        cursor.execute(f"INSERT INTO tags_v2 ({col_str}) SELECT {col_str} FROM tags")
+        cursor.execute("DROP TABLE tags")
+        cursor.execute("ALTER TABLE tags_v2 RENAME TO tags")
+        conn.commit()
+        cursor.execute("PRAGMA foreign_keys = ON;")
+
+def migrate_existing_user_passwords(conn):
+    """Tự động mã hóa băm SHA-256 các mật khẩu tài khoản cũ dạng plaintext"""
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, password FROM users")
+    users = cursor.fetchall()
