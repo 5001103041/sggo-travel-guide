@@ -698,3 +698,53 @@ def quick_recommend(req: QuickRecommendRequest):
     # Tại TP.HCM không có quán ăn nào dưới 20.000đ. Tự động chuyển hướng gợi ý điểm tham quan/check-in 0đ miễn phí!
     if not scored_places and req.category == "an_uong" and req.price_level == "custom" and req.custom_budget and req.custom_budget < 20000:
         free_places = [p for p in get_all_places(category="di_choi", include_hidden=False) if p.get("min_price", 0) == 0 and p.get("max_price", 0) == 0]
+        for p in free_places:
+            p_dict = dict(p)
+            tier_pts, fit_tier = get_companion_tier_score(p, mapped_tag)
+            p_dict["fit_tier"] = fit_tier
+            p_dict["free_fallback_notice"] = f"Ngân sách bạn nhập ({req.custom_budget:,}đ) không đủ cho các quán ẩm thực tại TP.HCM (tối thiểu ~20.000đ). SGGo gợi ý các điểm đến tham quan & check-in 0đ phù hợp nhất cho bạn!"
+            p_dict["is_currently_open"] = is_place_open_at_time(p, check_t)
+            rating = float(p.get("rating", 4.0))
+            reviews_count = int(p.get("reviews_count", 0))
+            r_score = (rating - 4.0) * 4.0 + (math.log10(reviews_count + 1) * 2.0 if rating >= 4.0 else -math.log10(reviews_count + 1))
+            scored_places.append((tier_pts + 35.0 + r_score, p_dict))
+
+    # 2. Xử lý trường hợp: Người dùng chọn Ẩm thực nhưng lại chọn Miễn phí (0đ).
+    # Thực tế Sài Gòn không có quán ăn miễn phí 0đ, tự động chuyển hướng tìm các điểm tham quan/check-in 0đ!
+    if not scored_places and req.price_level == "free":
+        free_places = [p for p in get_all_places(category="di_choi", include_hidden=False) if p.get("min_price", 0) == 0 and p.get("max_price", 0) == 0]
+        for p in free_places:
+            p_dict = dict(p)
+            tier_pts, fit_tier = get_companion_tier_score(p, mapped_tag)
+            p_dict["fit_tier"] = fit_tier
+            p_dict["free_fallback_notice"] = "Sài Gòn không có quán ăn miễn phí (0đ). SGGo đã gợi ý các điểm đến tham quan & check-in 0đ phù hợp nhất cho bạn!"
+            p_dict["is_currently_open"] = is_place_open_at_time(p, check_t)
+            rating = float(p.get("rating", 4.0))
+            reviews_count = int(p.get("reviews_count", 0))
+            r_score = (rating - 4.0) * 4.0 + (math.log10(reviews_count + 1) * 2.0 if rating >= 4.0 else -math.log10(reviews_count + 1))
+            scored_places.append((tier_pts + 35.0 + r_score, p_dict))
+
+    # 3. Nếu vào giờ quá khuya không còn quán nào mở cửa trong danh mục
+    # CHỈ kích hoạt fallback này nếu thực sự có quán phù hợp danh mục/ngân sách nhưng tất cả đều đang đóng cửa!
+    if not scored_places:
+        matching_places = [p for p in all_places if (not req.category or req.category == "all" or p.get("category") == req.category)]
+        if req.price_level == "custom" and req.custom_budget and req.custom_budget > 0:
+            matching_places = [p for p in matching_places if (p.get("min_price", 0) or 0) <= req.custom_budget * 1.3]
+        
+        if matching_places:
+            for p in matching_places:
+                p_dict = dict(p)
+                p_dict["is_currently_open"] = False
+                p_dict["closed_warning"] = "Hiện tại là đêm khuya, các địa điểm phù hợp đã đóng cửa. SGGo gợi ý các điểm sẽ mở cửa sớm nhất vào sáng mai cho bạn!"
+                tier_pts, fit_tier = get_companion_tier_score(p, mapped_tag)
+                p_dict["fit_tier"] = fit_tier
+                scored_places.append((tier_pts + float(p.get("rating", 4.0)), p_dict))
+
+    # Bổ sung khoảng cách cho các địa điểm fallback nếu có GPS
+    if req.user_lat and req.user_lon:
+        for _, p_dict in scored_places:
+            if "distance_km" not in p_dict and p_dict.get("lat") and p_dict.get("lon"):
+                try:
+                    p_dict["distance_km"] = round(calculate_haversine_distance(
+                        float(req.user_lat), float(req.user_lon),
+                        float(p_dict.get("lat")), float(p_dict.get("lon"))
