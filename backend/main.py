@@ -898,3 +898,53 @@ def is_place_open_during_window(p: dict, free_time_str: str) -> bool:
         for rw_start, rw_end in req_windows:
             for pw_start, pw_end in place_windows:
                 overlap_start = max(rw_start, pw_start)
+                overlap_end = min(rw_end, pw_end)
+                if overlap_end - overlap_start >= 15:
+                    return True
+        return False
+    except Exception:
+        return True
+
+def check_peak_hours_overlap(arr_min: int, dep_min: int, peak_str: Optional[str]) -> Tuple[bool, str]:
+    """Kiểm tra thời gian dừng chân của khách có trùng giờ cao điểm quán không"""
+    if not peak_str:
+        return False, ""
+    try:
+        windows = peak_str.split("&")
+        for w in windows:
+            parts = w.strip().split("-")
+            if len(parts) == 2:
+                ot_parts = re.findall(r'(\d{1,2})[:hH](\d{0,2})', parts[0].strip())
+                ct_parts = re.findall(r'(\d{1,2})[:hH](\d{0,2})', parts[1].strip())
+                if ot_parts and ct_parts:
+                    p_start = int(ot_parts[0][0]) * 60 + int(ot_parts[0][1] or 0)
+                    p_end = int(ct_parts[0][0]) * 60 + int(ct_parts[0][1] or 0)
+                    overlap_start = max(arr_min, p_start)
+                    overlap_end = min(dep_min, p_end)
+                    if overlap_end - overlap_start >= 15:
+                        return True, w.strip()
+    except Exception:
+        pass
+    return False, ""
+
+@app.post("/api/ai-itinerary")
+def generate_itinerary(req: ItineraryRequest, x_user_id: Optional[str] = Header(None, alias="X-User-Id")):
+    all_places = get_all_places(include_hidden=False)
+    if not all_places:
+        raise HTTPException(status_code=500, detail="Cơ sở dữ liệu đang rỗng.")
+
+    num_stops = req.num_stops if (req.num_stops and 2 <= req.num_stops <= 4) else 3
+    radius_km = float(req.radius_km) if (req.radius_km and float(req.radius_km) > 0) else None
+
+    # 1. RÀNG BUỘC NGHIỆP VỤ BẮT BUỘC (BUSINESS RULE 3 & KIỂM THỬ BẮT BUỘC)
+    free_duration = parse_free_time_minutes(req.free_time)
+    target_budget = parse_target_budget_amount(req)
+    if target_budget == 0 or req.budget == "free" or req.budget_level == "free":
+        target_budget = 0
+        req.budget_level = "free"
+
+    # Ràng buộc thời gian rảnh thực tế theo số trạm:
+    # 2 trạm cần tối thiểu 70 phút (2 chặng xe máy ~20p + 2 trạm x 25p)
+    # 3 trạm cần tối thiểu 105 phút (3 chặng xe máy ~30p + 3 trạm x 25p)
+    # 4 trạm cần tối thiểu 140 phút (4 chặng xe máy ~40p + 4 trạm x 25p)
+    min_time_needed = {2: 70, 3: 105, 4: 140}.get(num_stops, 105)
