@@ -498,3 +498,53 @@ def get_places(category: Optional[str] = None, tag: Optional[str] = None,
 @app.get("/api/places/{place_id}")
 def get_place(place_id: int):
     place = get_place_by_id(place_id)
+    if not place:
+        raise HTTPException(status_code=404, detail="Không tìm thấy địa điểm này.")
+    return place
+
+# ==============================================================================
+# API GỢI Ý NHANH (QUICK RECOMMENDATION - 5 MỨC NGÂN SÁCH & TỰ NHẬP)
+# ==============================================================================
+
+def parse_place_tiers(place):
+    """
+    Bóc tách cấu trúc 2-Tier:
+    - Nếu chuỗi có định dạng tier1:...|tier2:...: bóc tách chính xác từng Tier.
+    - Nếu chuỗi dạng cũ phân tách dấu phẩy (tag1,tag2,tag3,tag4): 2 tag đầu là Tier 1, còn lại là Tier 2.
+    """
+    tags_str = (place.get("tags") or "").strip()
+    if not tags_str:
+        return [], []
+    if "tier1:" in tags_str or "tier2:" in tags_str:
+        parts = tags_str.split("|")
+        t1, t2 = [], []
+        for p in parts:
+            p = p.strip()
+            if p.startswith("tier1:"):
+                t1 = [x.strip() for x in p.replace("tier1:", "").split(",") if x.strip()]
+            elif p.startswith("tier2:"):
+                t2 = [x.strip() for x in p.replace("tier2:", "").split(",") if x.strip()]
+        return t1, t2
+    else:
+        all_tags = [x.strip() for x in tags_str.split(",") if x.strip()]
+        return all_tags[:2], all_tags[2:]
+
+
+def get_companion_tier_score(place, mapped_tag):
+    """
+    Mô hình Phân Tầng 2 Bậc (2-Tier Fit Model):
+    - Tier 1 (Cốt lõi - Phù hợp xuất sắc): +20.0 điểm cho MỌI tag thuộc Tier 1 (CÙNG TIER THÌ CÙNG ĐIỂM)
+    - Tier 2 (Khả dụng / Thứ cấp): +12.0 điểm cho MỌI tag thuộc Tier 2 (CÙNG TIER THÌ CÙNG ĐIỂM)
+    - Không có tag: -10.0 điểm
+    """
+    if not mapped_tag:
+        return 0.0, None
+    t1, t2 = parse_place_tiers(place)
+    if mapped_tag in t1:
+        return 20.0, 1
+    elif mapped_tag in t2:
+        return 12.0, 2
+    else:
+        return -10.0, None
+
+
