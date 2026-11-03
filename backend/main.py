@@ -398,3 +398,53 @@ def calculate_proportional_dwell_times(places: list, free_duration: int, total_t
     
     raw_dwells = [int(round((stay_budget * w) / total_w)) for w in weights]
     clamped = [max(20, min(120, d)) for d in raw_dwells]
+    return clamped
+
+def estimate_dwell_time(spot: dict) -> int:
+    """Ước tính thời gian lưu lại phù hợp với đặc thù từng quán/địa điểm (phút)"""
+    cat = spot.get("category", "")
+    name_norm = remove_accent(spot.get("name", "")).lower()
+
+    if cat == "di_choi":
+        return 40  # Điểm di tích, bảo tàng, check-in công viên
+
+    if any(w in name_norm for w in ["cafe", "kafe", "coffee", "tra sua", "che", "kem", "sinh to", "banh mi", "an vat", "nuoc ep"]):
+        return 30
+    if any(w in name_norm for w in ["lau", "nuong", "bbq", "hai san", "nha hang", "oc", "quan nhau"]):
+        return 60
+    return 45
+
+def find_budget_optimal_route(start_coords, candidates_pool, target_budget: int = 0, max_stops: int = 3):
+    """
+    Tối ưu hóa đa mục tiêu: Chọn max_stops trạm vừa gần nhất (TSP Nearest Neighbor)
+    vừa đảm bảo tổng chi phí tối thiểu <= target_budget (G6-FR05 MUST).
+    """
+    if len(candidates_pool) <= max_stops:
+        return optimize_route_nearest_neighbor(start_coords, candidates_pool, max_stops=max_stops)
+
+    import itertools
+    pool = candidates_pool[:12]
+
+    if target_budget > 0:
+        valid_routes = []
+        for combo in itertools.combinations(pool, max_stops):
+            cost = sum(p.get("min_price", 0) for p in combo)
+            if cost <= target_budget:
+                ordered = optimize_route_nearest_neighbor(start_coords, list(combo), max_stops=max_stops)
+                if ordered:
+                    total_d = calculate_haversine_distance(start_coords[0], start_coords[1], ordered[0].get("lat") or 10.75, ordered[0].get("lon") or 106.66)
+                    for i in range(len(ordered) - 1):
+                        total_d += calculate_haversine_distance(
+                            ordered[i].get("lat") or 10.75, ordered[i].get("lon") or 106.66,
+                            ordered[i+1].get("lat") or 10.75, ordered[i+1].get("lon") or 106.66
+                        )
+                    valid_routes.append((total_d, cost, ordered))
+
+        if valid_routes:
+            valid_routes.sort(key=lambda x: x[0])
+            return valid_routes[0][2]
+
+    return optimize_route_nearest_neighbor(start_coords, pool, max_stops=max_stops)
+
+# ==============================================================================
+# CÁC API XÁC THỰC TÀI KHOẢN (AUTH)
