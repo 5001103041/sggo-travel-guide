@@ -1418,3 +1418,51 @@ def get_all_tags():
 
 def add_tag(tag_key: str, name: str, tier_type: str = "companion"):
     """Thêm một tag mới vào hệ thống"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    clean_key = tag_key.strip().lower().replace(" ", "_")
+    try:
+        cursor.execute("""
+        INSERT INTO tags (tag_key, name, tier_type, is_active)
+        VALUES (?, ?, ?, 1)
+        """, (clean_key, name.strip(), tier_type))
+        conn.commit()
+        tag_id = cursor.lastrowid
+        conn.close()
+        return {"status": "success", "id": tag_id, "tag_key": clean_key, "name": name}
+    except Exception as e:
+        conn.close()
+        return {"status": "error", "message": str(e)}
+
+def update_tag(tag_id: int, name: str, is_active: int = 1):
+    """Cập nhật tên và trạng thái của tag"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    UPDATE tags SET name = ?, is_active = ? WHERE id = ?
+    """, (name.strip(), is_active, tag_id))
+    success = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return success
+
+def delete_tag(tag_id: int):
+    """Xóa tag khỏi hệ thống (đồng thời xóa liên kết trong place_tags)"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM place_tags WHERE tag_id = ?", (tag_id,))
+    cursor.execute("DELETE FROM tags WHERE id = ?", (tag_id,))
+    success = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return success
+
+def toggle_tag_active(tag_id: int, is_active: int):
+    """Bật/tắt trạng thái sử dụng của tag"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE tags SET is_active = ? WHERE id = ?", (is_active, tag_id))
+    success = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return success
