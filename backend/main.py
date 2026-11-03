@@ -48,3 +48,53 @@ VALID_DISTRICTS = set(TPHCM_DISTRICTS) | {
     "TP.HCM"
 }
 
+def require_admin(x_user_role: Optional[str] = Header(None, alias="X-User-Role")):
+    """Bảo mật RBAC: Kiểm tra vai trò của người gọi API, từ chối 403 Forbidden nếu không phải admin"""
+    if x_user_role != "admin":
+        raise HTTPException(status_code=403, detail="Truy cập bị từ chối: Yêu cầu quyền Quản trị viên (Admin)!")
+    return x_user_role
+
+# Tự động đọc file .env
+ENV_PATH = os.path.join(os.path.dirname(__file__), ".env")
+if os.path.exists(ENV_PATH):
+    with open(ENV_PATH, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ[k.strip()] = v.strip()
+
+# Khởi tạo CSDL SQLite khi server bật
+init_db()
+
+app = FastAPI(title="SGGo! Travel Guide API", version="2.0.0")
+
+# Cấu hình CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.middleware("http")
+async def add_no_cache_for_dev(request, call_next):
+    response = await call_next(request)
+    path = request.url.path.lower()
+    if path.endswith((".js", ".css", ".html")) or path == "/" or path.endswith("/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+# Khởi tạo Gemini AI Client
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+ai_client = None
+if GEMINI_KEY:
+    try:
+        from google import genai
+        ai_client = genai.Client(api_key=GEMINI_KEY)
+    except Exception:
+        ai_client = None
+
