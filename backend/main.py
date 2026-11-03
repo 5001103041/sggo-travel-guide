@@ -548,3 +548,53 @@ def get_companion_tier_score(place, mapped_tag):
         return -10.0, None
 
 
+@app.post("/api/quick-recommend")
+def quick_recommend(req: QuickRecommendRequest):
+    """
+    Thuật toán phân tích ma trận đa chiều & Chấm điểm độ phù hợp (Smart Scoring):
+    1. Lọc thể loại (category): Ẩm thực hoặc Vui chơi
+    2. Điểm tương thích đồng hành (context): đi 1 mình, cặp đôi, nhóm bạn, gia đình (chuẩn hóa 2-Tier)
+    3. Điểm khớp ngân sách (budget): <50k, 50k-100k, 100k-250k, >250k hoặc số tiền tự nhập
+    4. Trọng số uy tín (rating, reviews)
+    5. Hỗ trợ offset xoay vòng (Đổi gợi ý khác) không bao giờ bị trùng lặp cứng nhắc
+    """
+    all_places = get_all_places(category=req.category, include_hidden=False)
+    if not all_places:
+        all_places = get_all_places(include_hidden=False)
+
+    tag_mapping = {
+        "di_1_minh": "di_1_minh",
+        "nguoi_yeu": "hen_ho",
+        "ban_be": "nhom_ban",
+        "gia_dinh": "gia_dinh"
+    }
+    mapped_tag = tag_mapping.get(req.context, None)
+
+    scored_places = []
+    for p in all_places:
+        score = 0.0
+        p_dict = dict(p)
+
+        # 1. Khớp Category
+        if req.category and req.category != "all" and p.get("category") != req.category:
+            continue
+
+        # 2. Khớp Context (Đồng hành) - Mô hình 2-Tier Chuẩn Xác (Cùng Tier thì Cùng Điểm)
+        tier_pts, fit_tier = get_companion_tier_score(p, mapped_tag)
+        score += tier_pts
+        p_dict["fit_tier"] = fit_tier
+
+        # 2.5 Kiểm tra trạng thái mở cửa (Business Rule 2: Loại trừ 100% quán đang đóng cửa)
+        check_t = req.client_time
+        if not check_t:
+            now_vn = datetime.datetime.utcnow() + datetime.timedelta(hours=7)
+            check_t = now_vn.strftime("%H:%M")
+        is_open_now = is_place_open_at_time(p, check_t)
+        p_dict["is_currently_open"] = is_open_now
+        if not is_open_now:
+            # Loại bỏ hoàn toàn quán đóng cửa khỏi gợi ý khám phá
+            continue
+        score += 15.0
+
+        # 3. Khớp Ngân sách (Loại trừ tuyệt đối các quán vi phạm giới hạn ngân sách)
+        min_p = p.get("min_price", 0)
