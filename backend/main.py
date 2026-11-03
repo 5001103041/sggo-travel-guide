@@ -998,3 +998,53 @@ def generate_itinerary(req: ItineraryRequest, x_user_id: Optional[str] = Header(
     if req.purpose == "an_uong":
         open_purpose_places = [p for p in open_pool if p.get("category") == "an_uong"]
     elif req.purpose == "di_choi":
+        open_purpose_places = [p for p in open_pool if p.get("category") == "di_choi"]
+    else:
+        open_purpose_places = open_pool
+
+    if len(open_purpose_places) < num_stops:
+        return {
+            "feasible": False,
+            "error_code": "ALL_PLACES_CLOSED",
+            "message": f"Vào khung giờ rảnh '{req.free_time}', hầu như tất cả các địa điểm thuộc mục đích này đều đã đóng cửa (chỉ có {len(open_purpose_places)} điểm mở cửa).",
+            "suggestion": "Bạn hãy đổi sang khung giờ rảnh vào ban ngày hoặc buổi tối (ví dụ: '18:30 - 22:30' hoặc '14:00 - 18:30') để khám phá trọn vẹn nhé!",
+            "recommended_time": "18:30 - 22:30",
+            "recommended_budget": target_budget
+        }
+
+    available_places = open_pool
+    places_by_id = {p["id"]: p for p in available_places}
+
+    companion_map = {
+        "di_1_minh": "Đi một mình (Solo)",
+        "nguoi_yeu": "Cặp đôi / Người yêu (Hẹn hò lãng mạn)",
+        "ban_be": "Nhóm bạn thân",
+        "gia_dinh": "Gia đình (Có người lớn / trẻ em)"
+    }
+    companion_str = companion_map.get(req.companion or "ban_be", "Nhóm bạn thân")
+
+    purpose_map = {
+        "an_uong": "Chỉ đi Ăn uống (Thưởng thức ẩm thực đặc sản)",
+        "di_choi": "Chỉ đi Vui chơi (Tham quan di tích, check-in, chụp ảnh, cà phê - TUYỆT ĐỐI KHÔNG ăn no)",
+        "ca_hai": "Cả hai (Kết hợp vừa ăn đặc sản vừa tham quan/vui chơi/cafe)"
+    }
+    purpose_str = purpose_map.get(req.purpose or "ca_hai", "Cả hai (Ăn uống và Vui chơi)")
+    takenote_str = req.takenote or req.context or "Không có ghi chú loại trừ đặc biệt."
+
+    # 2. Chấm điểm Smart Score & Chọn Top 20 ứng viên sáng giá nhất (Phân tầng 2-Tier + Bán kính/Cự ly + Đánh giá)
+    mapped_comp_tag = {"ban_be": "nhom_ban", "nguoi_yeu": "hen_ho", "gia_dinh": "gia_dinh", "di_1_minh": "di_1_minh"}.get(req.companion, "nhom_ban")
+    scored_candidates = []
+    for p in open_purpose_places:
+        c_score = 0.0
+        # 1. Điểm phân tầng đồng hành 2-Tier
+        tier_pts, _ = get_companion_tier_score(p, mapped_comp_tag)
+        c_score += tier_pts
+
+        # 2. Điểm cự ly gần điểm xuất phát
+        p_lat = float(p.get("lat") or start_lat)
+        p_lon = float(p.get("lon") or start_lon)
+        dist_from_start = calculate_haversine_distance(start_lat, start_lon, p_lat, p_lon)
+        if dist_from_start <= 3.0:
+            c_score += 25.0 - (dist_from_start / 3.0) * 5.0
+        elif dist_from_start <= 7.0:
+            c_score += 20.0 - ((dist_from_start - 3.0) / 4.0) * 8.0
