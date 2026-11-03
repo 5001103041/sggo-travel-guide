@@ -248,3 +248,53 @@ def resolve_start_coords(location_str: str):
 
     # 3. Mặc định: Tâm Quận 5 (Khu vực Thuận Kiều Plaza / Hồng Bàng)
     return 10.7554, 106.6577
+
+def optimize_route_nearest_neighbor(start_coords, candidates, max_stops=3):
+    """Thuật toán láng giềng gần nhất (Nearest Neighbor) chọn 3 trạm liên hoàn thuận đường"""
+    current_lat, current_lon = start_coords
+    unvisited = list(candidates)
+    route = []
+
+    for _ in range(min(max_stops, len(candidates))):
+        nearest_node = None
+        min_dist = float('inf')
+
+        for place in unvisited:
+            p_lat = place.get("lat")
+            p_lon = place.get("lon")
+            if not p_lat or not p_lon:
+                continue
+            dist = calculate_haversine_distance(current_lat, current_lon, float(p_lat), float(p_lon))
+            if dist < min_dist:
+                min_dist = dist
+                nearest_node = place
+
+        if nearest_node:
+            dist_km = round(min_dist, 2)
+            travel_min = max(3, int(round(dist_km * 3.5))) # Ước tính 3.5 phút/km xe máy Sài Gòn
+            node_copy = dict(nearest_node)
+            node_copy["dist_km"] = dist_km
+            node_copy["travel_minutes"] = travel_min
+            route.append(node_copy)
+            current_lat, current_lon = nearest_node["lat"], nearest_node["lon"]
+            unvisited.remove(nearest_node)
+
+    return route
+
+def calculate_traffic_speed_model(dist_km: float, clock_min: int):
+    """
+    Mô hình vận tốc xe máy biến thiên theo khung giờ thực tế tại TP.HCM (Time-Varying Traffic Speed Model):
+    - Giờ cao điểm sáng (07:00 - 09:00) & chiều tan tầm (16:30 - 19:00): 4.8 phút/km (~12.5 km/h)
+    - Giờ bình thường (09:00 - 16:30 & 19:00 - 21:00): 3.0 phút/km (~20 km/h)
+    - Đêm khuya / Sáng sớm (21:00 - 07:00): 2.2 phút/km (~27 km/h)
+    """
+    h = (clock_min // 60) % 24
+    m = clock_min % 60
+    t_val = h + m / 60.0
+
+    if (7.0 <= t_val <= 9.0) or (16.5 <= t_val <= 19.0):
+        factor = 4.8
+        status = f"Giờ cao điểm ({h:02d}:{m:02d}), mật độ xe cộ đông, chú ý kẹt xe."
+        badge = "Cao điểm"
+    elif t_val >= 21.0 or t_val < 7.0:
+        factor = 2.2
