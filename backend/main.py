@@ -148,3 +148,53 @@ class ItineraryRequest(BaseModel):
 
 class PlaceModel(BaseModel):
     name: str
+    category: str
+    address: str
+    district: Optional[str] = "TP.HCM"
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    open_time: Optional[str] = ""
+    close_time: Optional[str] = ""
+    min_price: Optional[int] = None
+    max_price: Optional[int] = None
+    rating: Optional[float] = None
+    reviews_count: Optional[int] = None
+    peak_hours: Optional[str] = ""
+    best_review: Optional[str] = ""
+    worst_review: Optional[str] = ""
+    image_url: Optional[str] = None
+    tags: Optional[str] = "nhom_ban"
+    is_verified: Optional[int] = 1
+    is_verified_review: Optional[int] = 1
+    is_admin_choice: Optional[int] = 0
+    is_hidden: Optional[int] = 0
+    price_display: Optional[str] = None
+    hours_display: Optional[str] = None
+    google_maps_url: Optional[str] = None
+
+# ==============================================================================
+# THUẬT TOÁN ĐỊNH TUYẾN & GPS (HAVERSINE NEAREST NEIGHBOR)
+# ==============================================================================
+
+def remove_accent(text: str) -> str:
+    """Loại bỏ dấu tiếng Việt để tìm kiếm không phân biệt dấu"""
+    text = unicodedata.normalize('NFD', text)
+    return ''.join(c for c in text if unicodedata.category(c) != 'Mn').lower()
+
+def calculate_haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Tính khoảng cách đường tròn lớn giữa 2 tọa độ GPS (km)"""
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2 +
+         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+         math.sin(dlon / 2) ** 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+haversine_distance = calculate_haversine_distance
+
+def resolve_start_coords(location_str: str):
+    """
+    Geocoding điểm xuất phát:
+    1. Ưu tiên tra cứu nhanh các địa danh/trường học/chợ nổi tiếng tại Quận 5 (0ms).
