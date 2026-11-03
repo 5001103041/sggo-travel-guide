@@ -198,3 +198,53 @@ def resolve_start_coords(location_str: str):
     """
     Geocoding điểm xuất phát:
     1. Ưu tiên tra cứu nhanh các địa danh/trường học/chợ nổi tiếng tại Quận 5 (0ms).
+    2. Nếu không có trong danh mục nhanh -> Gọi OpenStreetMap Nominatim.
+    3. Nếu không tìm thấy hoặc mất mạng -> Fallback về tọa độ trung tâm Quận 5.
+    """
+    loc_clean = location_str.strip()
+    loc_norm = remove_accent(loc_clean)
+
+    # 1. Bảng toạ độ tức thì cho các địa danh tiêu biểu tại Quận 5
+    landmarks = {
+        "su pham": (10.7601, 106.6823),
+        "280 an duong vuong": (10.7601, 106.6823),
+        "an duong vuong": (10.7601, 106.6823),
+        "an dong": (10.7573, 106.6713),
+        "cho an dong": (10.7573, 106.6713),
+        "binh tay": (10.7497, 106.6515),
+        "cho binh tay": (10.7497, 106.6515),
+        "cho lon": (10.7535, 106.6580),
+        "thuan kieu": (10.7554, 106.6577),
+        "cho ray": (10.7577, 106.6596),
+        "benh vien cho ray": (10.7577, 106.6596),
+        "y duoc": (10.7562, 106.6589),
+        "dai hoc y duoc": (10.7562, 106.6589),
+        "van lang": (10.7585, 106.6705),
+        "cong vien van lang": (10.7585, 106.6705),
+        "hung vuong": (10.7570, 106.6625),
+        "dai the gioi": (10.7530, 106.6690),
+        "ben thanh": (10.7725, 106.6980),
+        "cho ben thanh": (10.7725, 106.6980),
+        "nha tho duc ba": (10.7798, 106.6990),
+        "sai gon": (10.7554, 106.6577)
+    }
+    for k, coords in landmarks.items():
+        if k in loc_norm:
+            return coords
+
+    # 2. Gọi Nominatim nếu là địa chỉ lạ
+    try:
+        query = f"{loc_clean}, Ho Chi Minh City, Vietnam"
+        url = "https://nominatim.openstreetmap.org/search?" + urllib.parse.urlencode({
+            "q": query, "format": "json", "limit": 1
+        })
+        req = urllib.request.Request(url, headers={"User-Agent": "SGGo-Travel-Guide-D5/2.0"})
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            data = json.loads(resp.read().decode())
+            if data and len(data) > 0:
+                return float(data[0]["lat"]), float(data[0]["lon"])
+    except Exception:
+        pass
+
+    # 3. Mặc định: Tâm Quận 5 (Khu vực Thuận Kiều Plaza / Hồng Bàng)
+    return 10.7554, 106.6577
