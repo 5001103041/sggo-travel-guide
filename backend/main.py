@@ -598,3 +598,53 @@ def quick_recommend(req: QuickRecommendRequest):
 
         # 3. Khớp Ngân sách (Loại trừ tuyệt đối các quán vi phạm giới hạn ngân sách)
         min_p = p.get("min_price", 0)
+        max_p = p.get("max_price", 0)
+        avg_p = (min_p + max_p) / 2.0
+
+        if req.price_level == "free":
+            # Khi chọn Miễn phí (0đ): BẮT BUỘC giá phải là 0đ (loại bỏ tuyệt đối quán có thu phí)
+            if not (min_p == 0 and max_p == 0):
+                continue
+            score += 35.0
+        elif p.get("category") == "di_choi" and min_p == 0 and max_p == 0:
+            if req.price_level == "under_50k":
+                score += 20.0
+            elif req.price_level == "50k_100k":
+                score += 10.0
+            else:
+                score += 5.0
+        else:
+            if req.price_level == "under_50k":
+                # Dưới 50k: Quán phải có giá tối thiểu <= 65k (loại bỏ dứt điểm các quán đắt tiền 100k, 200k)
+                if min_p > 65000:
+                    continue
+                if max_p <= 55000:
+                    score += 25.0
+                else:
+                    score += 15.0
+            elif req.price_level == "50k_100k":
+                # 50k - 100k: Quán trong khoảng hợp lý [40k, 125k]
+                if min_p > 125000 or (max_p > 0 and max_p < 40000):
+                    continue
+                if 45000 <= avg_p <= 110000:
+                    score += 25.0
+                else:
+                    score += 15.0
+            elif req.price_level == "100k_250k":
+                # 100k - 250k: Quán trong khoảng [90k, 280k]
+                if min_p > 280000 or (max_p > 0 and max_p < 85000):
+                    continue
+                if 95000 <= avg_p <= 260000:
+                    score += 25.0
+                else:
+                    score += 15.0
+            elif req.price_level == "above_250k":
+                # Trên 250k: Trải nghiệm cao cấp
+                if max_p > 0 and max_p < 150000:
+                    continue
+                if max_p >= 250000:
+                    score += 25.0
+                else:
+                    score += 15.0
+            elif req.price_level == "custom" and req.custom_budget and req.custom_budget > 0:
+                cb = req.custom_budget
