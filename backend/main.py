@@ -298,3 +298,53 @@ def calculate_traffic_speed_model(dist_km: float, clock_min: int):
         badge = "Cao điểm"
     elif t_val >= 21.0 or t_val < 7.0:
         factor = 2.2
+        status = f"Khung giờ đêm khuya ({h:02d}:{m:02d}), đường phố thông thoáng, chạy xe êm."
+        badge = "Đường vắng"
+    else:
+        factor = 3.0
+        status = f"Khung giờ bình thường ({h:02d}:{m:02d}), giao thông ổn định, lưu thông vừa phải."
+        badge = "Bình thường"
+
+    t_min = max(3, int(round(dist_km * factor)))
+    return t_min, status, badge
+
+def get_osrm_route_legs(coords: List[Tuple[float, float]], timeout: float = 5.0) -> Optional[List[float]]:
+    """
+    Gọi OSRM API mã nguồn mở (OpenStreetMap) để lấy cự ly đường phố thực tế chính xác từng mét.
+    Nếu timeout hoặc lỗi mạng -> trả về None để tự động fallback sang Haversine * 1.25.
+    """
+    try:
+        coord_str = ';'.join(f'{lon},{lat}' for lat, lon in coords)
+        url = f'http://router.project-osrm.org/route/v1/driving/{coord_str}?overview=false'
+        req = urllib.request.Request(url, headers={'User-Agent': 'SGGoTravelGuide/1.0'})
+        with urllib.request.urlopen(req, timeout=timeout) as res:
+            data = json.loads(res.read().decode())
+        if data.get('code') == 'Ok':
+            routes = data.get('routes', [])
+            if routes and 'legs' in routes[0]:
+                return [round(leg['distance'] / 1000.0, 2) for leg in routes[0]['legs']]
+    except Exception:
+        pass
+    return None
+
+def get_natural_dwell_bounds(spot: dict) -> Tuple[int, int, int, str]:
+    """
+    Trả về (min_dwell, default_dwell, max_dwell, group_name) chuẩn tự nhiên theo đúng 7 NHÓM ĐỊA ĐIỂM HỌC THUẬT:
+    - Nhóm 1 (ID 1 - 49): Cà phê, Trà sữa, Tiệm bánh & Kem, Chè (45 - 90 phút, chuẩn 60p)
+    - Nhóm 2 (ID 50 - 63): Workshop Thủ công & Trải nghiệm Nghệ thuật (75 - 150 phút, chuẩn 105p)
+    - Nhóm 3 (ID 64 - 100): Quán Lẩu, Nướng BBQ, Quán Ốc & Quán Nhậu (70 - 120 phút, chuẩn 90p)
+    - Nhóm 4 (ID 101 - 140): Gà rán, Mì cay, Pizza, Fastfood & Đồ Hàn/Nhật (45 - 90 phút, chuẩn 60p)
+    - Nhóm 5 (ID 141 - 160): Quán Ăn truyền thống Sài Gòn (Phở, Cơm tấm, Hủ tiếu) (30 - 50 phút, chuẩn 40p)
+    - Nhóm 6 (ID 161 - 180): Trung tâm Thương mại & Khu mua sắm Phức hợp (60 - 100 phút, chuẩn 75p)
+    - Nhóm 7 (ID 181 - 201): Di tích lịch sử, Bảo tàng, Công viên & Tâm linh (45 - 90 phút, chuẩn 60p)
+    """
+    pid = spot.get("id")
+    if isinstance(pid, int):
+        if 1 <= pid <= 49:
+            return 45, 60, 90, "Nhóm 1: Cà phê, Trà sữa, Bánh & Kem"
+        elif 50 <= pid <= 63:
+            return 75, 105, 150, "Nhóm 2: Workshop Thủ công & Nghệ thuật"
+        elif 64 <= pid <= 100:
+            return 70, 90, 120, "Nhóm 3: Quán Lẩu, Nướng BBQ, Ốc & Nhậu"
+        elif 101 <= pid <= 140:
+            return 45, 60, 90, "Nhóm 4: Gà rán, Mì cay, Pizza, Fastfood"
