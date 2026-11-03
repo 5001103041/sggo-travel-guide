@@ -748,3 +748,53 @@ def quick_recommend(req: QuickRecommendRequest):
                     p_dict["distance_km"] = round(calculate_haversine_distance(
                         float(req.user_lat), float(req.user_lon),
                         float(p_dict.get("lat")), float(p_dict.get("lon"))
+                    ), 2)
+                except Exception:
+                    pass
+
+    # Sắp xếp theo điểm phù hợp giảm dần
+    scored_places.sort(key=lambda x: x[0], reverse=True)
+    sorted_places = [item[1] for item in scored_places]
+
+    if not sorted_places:
+        return []
+
+    # Xử lý xoay vòng gợi ý (offset) để người dùng bấm "Đổi 3 quán khác"
+    offset = req.offset or 0
+    if offset >= len(sorted_places):
+        offset = 0
+
+    results = sorted_places[offset : offset + 3]
+    if len(results) < 3 and len(sorted_places) >= 3:
+        results.extend(sorted_places[: 3 - len(results)])
+
+    return results
+
+# ==============================================================================
+# API LẬP LỘ TRÌNH THÔNG MINH (RULE-BASED + HEURISTIC TSP + GEMINI AI EXPLANATION)
+# ==============================================================================
+
+def parse_free_time_minutes(free_time_str: str) -> int:
+    """Tính tổng số phút rảnh từ chuỗi thời gian (VD: '14:00 - 18:30' -> 270 phút, '1h6p' -> 66 phút)"""
+    if not free_time_str:
+        return 240
+    # 1. Định dạng khoảng thời gian: "14:00 - 18:30" hoặc "18:00 - 19:06"
+    parts = re.findall(r'(\d{1,2})[:hH](\d{0,2})', free_time_str)
+    if len(parts) >= 2:
+        h1, m1 = int(parts[0][0]), int(parts[0][1] or 0)
+        h2, m2 = int(parts[1][0]), int(parts[1][1] or 0)
+        start_m = h1 * 60 + m1
+        end_m = h2 * 60 + m2
+        if end_m < start_m:
+            end_m += 24 * 60
+        return max(15, end_m - start_m)
+
+    # 2. Định dạng thời lượng có cả giờ và phút: "1h6p", "1h 30p", "1 tiếng 6 phút", "1 giờ 30 phút"
+    hm_match = re.search(r'(\d+)\s*(?:tiếng|giờ|h)\s*(\d+)\s*(?:phút|p)?', free_time_str, re.IGNORECASE)
+    if hm_match:
+        h = int(hm_match.group(1))
+        m = int(hm_match.group(2))
+        return h * 60 + m
+
+    # 3. Định dạng chỉ có giờ: "2h", "3 tiếng", "1.5h"
+    h_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:tiếng|giờ|h)', free_time_str, re.IGNORECASE)
