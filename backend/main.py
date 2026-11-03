@@ -848,3 +848,53 @@ def is_place_open_at_time(p: dict, check_time_str: str) -> bool:
             return True
 
         if p_end < p_start:
+            return check_mins >= p_start or check_mins <= p_end
+        else:
+            return p_start <= check_mins <= p_end
+    except Exception:
+        return True
+
+def is_place_open_during_window(p: dict, free_time_str: str) -> bool:
+    """Kiểm tra quán có mở cửa trong khung giờ rảnh không (Business Rule 2)"""
+    ot = p.get("open_time")
+    ct = p.get("close_time")
+    if not ot or not ct or ot == "Chưa rõ" or ct == "Chưa rõ":
+        return True
+    try:
+        parts = re.findall(r'(\d{1,2})[:hH](\d{0,2})', free_time_str)
+        if len(parts) >= 2:
+            req_start = int(parts[0][0]) * 60 + int(parts[0][1] or 0)
+            req_end = int(parts[1][0]) * 60 + int(parts[1][1] or 0)
+        elif len(parts) == 1:
+            req_start = int(parts[0][0]) * 60 + int(parts[0][1] or 0)
+            req_end = req_start + 120
+        else:
+            return True
+
+        ot_parts = re.findall(r'(\d{1,2})[:hH](\d{0,2})', ot)
+        ct_parts = re.findall(r'(\d{1,2})[:hH](\d{0,2})', ct)
+        if not ot_parts or not ct_parts:
+            return True
+        p_start = int(ot_parts[0][0]) * 60 + int(ot_parts[0][1] or 0)
+        p_end = int(ct_parts[0][0]) * 60 + int(ct_parts[0][1] or 0)
+
+        if p_start == p_end:
+            return True
+
+        req_windows = []
+        if req_end < req_start:
+            req_windows.append((req_start, 1440))
+            req_windows.append((0, req_end))
+        else:
+            req_windows.append((req_start, req_end))
+
+        place_windows = []
+        if p_end < p_start:
+            place_windows.append((p_start, 1440))
+            place_windows.append((0, p_end))
+        else:
+            place_windows.append((p_start, p_end))
+
+        for rw_start, rw_end in req_windows:
+            for pw_start, pw_end in place_windows:
+                overlap_start = max(rw_start, pw_start)
