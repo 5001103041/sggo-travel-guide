@@ -948,3 +948,53 @@ def generate_itinerary(req: ItineraryRequest, x_user_id: Optional[str] = Header(
     # 3 trạm cần tối thiểu 105 phút (3 chặng xe máy ~30p + 3 trạm x 25p)
     # 4 trạm cần tối thiểu 140 phút (4 chặng xe máy ~40p + 4 trạm x 25p)
     min_time_needed = {2: 70, 3: 105, 4: 140}.get(num_stops, 105)
+    if free_duration < min_time_needed:
+        h_free = free_duration // 60
+        m_free = free_duration % 60
+        free_display = f"{h_free}h{m_free:02d}p" if h_free > 0 else f"{m_free} phút"
+        h_need = min_time_needed // 60
+        m_need = min_time_needed % 60
+        need_display = f"{h_need}h{m_need:02d}p" if m_need > 0 else f"{h_need} tiếng"
+        return {
+            "feasible": False,
+            "error_code": "TIME_TOO_SHORT",
+            "message": f"Khung giờ rảnh của bạn ({free_display} - {free_duration} phút) quá ngắn để hoàn thành lịch trình {num_stops} trạm (tối thiểu cần khoảng {need_display} bao gồm thời gian di chuyển và dừng chân trải nghiệm).",
+            "suggestion": f"Bạn hãy mở rộng khung giờ rảnh lên tối thiểu {need_display} (hoặc gợi ý: 14:00 - 18:30) hoặc chọn số trạm ít hơn để trải nghiệm không bị vội nhé!",
+            "recommended_time": "14:00 - 18:30",
+            "recommended_budget": target_budget
+        }
+
+    # Ràng buộc ngân sách: Nếu đi ăn uống mà ngân sách < 40k (không phải chọn 0đ)
+    if req.purpose in ["an_uong", "ca_hai"] and req.budget_level != "free" and target_budget < 40000:
+        return {
+            "feasible": False,
+            "error_code": "BUDGET_TOO_LOW",
+            "message": f"Ngân sách ({target_budget:,}đ) quá thấp cho lộ trình ẩm thực 3 trạm tại TP.HCM.",
+            "suggestion": "Bạn hãy nới ngân sách lên tối thiểu 80.000đ - 100.000đ hoặc chuyển sang mục đích 'Chỉ đi Tham quan' để check-in các điểm 0đ nhé!",
+            "recommended_time": req.free_time,
+            "recommended_budget": 100000
+        }
+
+    # 1. Xác định toạ độ điểm xuất phát (Ưu tiên GPS chính xác từ Geolocation API của trình duyệt)
+    if req.start_lat and req.start_lon:
+        start_lat, start_lon = float(req.start_lat), float(req.start_lon)
+    else:
+        start_lat, start_lon = resolve_start_coords(req.start_location)
+
+    # Ràng buộc giờ mở cửa (Business Rule 2 & 3): Địa điểm đóng cửa KHÔNG ĐƯỢC đưa vào lịch trình
+    open_pool = [p for p in all_places if is_place_open_during_window(p, req.free_time)]
+
+    # Lọc theo bán kính nếu có thiết lập
+    if radius_km:
+        in_radius_pool = [
+            p for p in open_pool 
+            if p.get("lat") and p.get("lon") and 
+            calculate_haversine_distance(start_lat, start_lon, float(p["lat"]), float(p["lon"])) <= radius_km
+        ]
+        if len(in_radius_pool) >= num_stops:
+            open_pool = in_radius_pool
+    
+    # Kiểm tra số lượng quán mở cửa theo mục đích
+    if req.purpose == "an_uong":
+        open_purpose_places = [p for p in open_pool if p.get("category") == "an_uong"]
+    elif req.purpose == "di_choi":
