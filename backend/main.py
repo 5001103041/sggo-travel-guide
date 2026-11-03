@@ -798,3 +798,53 @@ def parse_free_time_minutes(free_time_str: str) -> int:
 
     # 3. Định dạng chỉ có giờ: "2h", "3 tiếng", "1.5h"
     h_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:tiếng|giờ|h)', free_time_str, re.IGNORECASE)
+    if h_match:
+        return int(float(h_match.group(1)) * 60)
+
+    # 4. Định dạng chỉ có phút: "90 phút", "66p"
+    m_match = re.search(r'(\d+)\s*(?:phút|p)', free_time_str, re.IGNORECASE)
+    if m_match:
+        return int(m_match.group(1))
+
+    return 240
+
+def parse_target_budget_amount(req: ItineraryRequest) -> int:
+    """Xác định ngân sách mục tiêu dạng số nguyên (VNĐ)"""
+    if req.budget_level == "free" or req.budget == "free" or req.target_budget == 0:
+        return 0
+    if req.target_budget is not None and req.target_budget > 0:
+        return req.target_budget
+    lvl = req.budget_level or req.budget or "100k_250k"
+    if lvl == "free":
+        return 0
+    elif lvl == "under_100k":
+        return 100000
+    elif lvl == "100k_250k":
+        return 250000
+    elif lvl == "above_250k":
+        return 500000
+    return 250000
+
+def is_place_open_at_time(p: dict, check_time_str: str) -> bool:
+    """Kiểm tra quán có đang mở cửa tại thời điểm check_time_str (HH:MM) không (Business Rule 2)"""
+    ot = p.get("open_time")
+    ct = p.get("close_time")
+    if not ot or not ct or ot == "Chưa rõ" or ct == "Chưa rõ":
+        return True
+    try:
+        parts = re.findall(r'(\d{1,2})[:hH](\d{0,2})', check_time_str)
+        if not parts:
+            return True
+        check_mins = int(parts[0][0]) * 60 + int(parts[0][1] or 0)
+
+        ot_parts = re.findall(r'(\d{1,2})[:hH](\d{0,2})', ot)
+        ct_parts = re.findall(r'(\d{1,2})[:hH](\d{0,2})', ct)
+        if not ot_parts or not ct_parts:
+            return True
+        p_start = int(ot_parts[0][0]) * 60 + int(ot_parts[0][1] or 0)
+        p_end = int(ct_parts[0][0]) * 60 + int(ct_parts[0][1] or 0)
+
+        if p_start == p_end:
+            return True
+
+        if p_end < p_start:
