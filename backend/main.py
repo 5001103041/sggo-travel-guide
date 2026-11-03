@@ -648,3 +648,53 @@ def quick_recommend(req: QuickRecommendRequest):
                     score += 15.0
             elif req.price_level == "custom" and req.custom_budget and req.custom_budget > 0:
                 cb = req.custom_budget
+                if min_p > cb * 1.3:
+                    continue
+                ratio = min(avg_p, cb) / max(avg_p, cb, 1)
+                score += 25.0 * ratio
+
+        # 4. Trọng số Đánh giá (Rating & Reviews)
+        rating = float(p.get("rating", 4.0))
+        reviews_count = int(p.get("reviews_count", 0))
+
+        # Điểm số sao: Chuẩn hóa tách mốc trung bình 4.0 (Mean-Centering)
+        rating_score = (rating - 4.0) * 4.0
+
+        # Điểm độ uy tín cộng đồng: Biến đổi Logarithmic Scaling log10(reviews + 1) * 2.0
+        if rating >= 4.0:
+            review_score = math.log10(reviews_count + 1) * 2.0
+        else:
+            review_score = -math.log10(reviews_count + 1) * 1.0
+
+        score += (rating_score + review_score)
+
+        # 5. Điểm Khoảng cách Không gian (Spatial Proximity Scoring) nếu người dùng có vị trí GPS
+        if req.user_lat and req.user_lon and p.get("lat") and p.get("lon"):
+            try:
+                dist_km = calculate_haversine_distance(
+                    float(req.user_lat), float(req.user_lon),
+                    float(p.get("lat")), float(p.get("lon"))
+                )
+                p_dict["distance_km"] = round(dist_km, 2)
+                
+                # Nếu người dùng bật tùy chọn 'Ưu tiên gần tôi':
+                if req.prioritize_distance:
+                    if dist_km <= 3.0:
+                        dist_score = 25.0 - (dist_km / 3.0) * 5.0           # Cực gần <= 3km: +20 đến +25 điểm
+                    elif dist_km <= 7.0:
+                        dist_score = 20.0 - ((dist_km - 3.0) / 4.0) * 8.0    # Gần 3 - 7km: +12 đến +20 điểm
+                    elif dist_km <= 15.0:
+                        dist_score = 12.0 - ((dist_km - 7.0) / 8.0) * 10.0   # Vừa phải 7 - 15km: +2 đến +12 điểm
+                    else:
+                        dist_score = max(-10.0, -((dist_km - 15.0) * 1.5))   # Quá xa > 15km: trừ nhẹ điểm
+                    score += dist_score
+                    p_dict["distance_score"] = round(dist_score, 1)
+            except Exception:
+                pass
+
+        scored_places.append((score, p_dict))
+
+    # 1. Xử lý ngân sách tự nhập quá thấp cho ẩm thực (< 20.000đ)
+    # Tại TP.HCM không có quán ăn nào dưới 20.000đ. Tự động chuyển hướng gợi ý điểm tham quan/check-in 0đ miễn phí!
+    if not scored_places and req.category == "an_uong" and req.price_level == "custom" and req.custom_budget and req.custom_budget < 20000:
+        free_places = [p for p in get_all_places(category="di_choi", include_hidden=False) if p.get("min_price", 0) == 0 and p.get("max_price", 0) == 0]
