@@ -448,3 +448,53 @@ def find_budget_optimal_route(start_coords, candidates_pool, target_budget: int 
 
 # ==============================================================================
 # CÁC API XÁC THỰC TÀI KHOẢN (AUTH)
+# ==============================================================================
+
+@app.post("/api/auth/login")
+def login(req: LoginRequest):
+    user = authenticate_user(req.username, req.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sai tên đăng nhập hoặc mật khẩu!")
+    return {"status": "ok", "user": user}
+
+@app.post("/api/auth/register")
+def register(req: RegisterRequest):
+    u = (req.username or "").strip()
+    if not re.match(r'^[a-zA-Z0-9_]{3,30}$', u):
+        raise HTTPException(status_code=400, detail="Tên tài khoản phải từ 3 đến 30 ký tự, chỉ gồm chữ cái, số và dấu gạch dưới (_), không chứa khoảng trắng!")
+        
+    p = req.password or ""
+    if len(p) < 6:
+        raise HTTPException(status_code=400, detail="Mật khẩu phải có tối thiểu 6 ký tự để đảm bảo an toàn!")
+        
+    fn = (req.full_name or "").strip()
+    if len(fn) < 2:
+        raise HTTPException(status_code=400, detail="Họ và tên phải có tối thiểu 2 ký tự!")
+
+    user = register_user(u, p, fn)
+    if not user:
+        raise HTTPException(status_code=400, detail="Tên tài khoản này đã có người sử dụng!")
+    return {"status": "ok", "user": user}
+
+# ==============================================================================
+# CÁC API ĐỊA ĐIỂM (PLACES & SEARCH TỪ A ĐẾN Z)
+# ==============================================================================
+
+@app.get("/health")
+@app.get("/api/health")
+def health_check():
+    """Kiểm tra tình trạng hoạt động của máy chủ backend (Health check)"""
+    return {"status": "healthy", "service": "sggo-travel-guide"}
+
+@app.get("/api/places")
+def get_places(category: Optional[str] = None, tag: Optional[str] = None, 
+               min_price: Optional[int] = None, max_price: Optional[int] = None,
+               min_rating: Optional[float] = None, search: Optional[str] = None,
+               only_verified: Optional[bool] = True, include_hidden: Optional[bool] = False):
+    return get_all_places(category=category, context_tag=tag, min_budget=min_price, 
+                          max_budget=max_price, min_rating=min_rating, search=search, 
+                          only_verified=only_verified, include_hidden=include_hidden)
+
+@app.get("/api/places/{place_id}")
+def get_place(place_id: int):
+    place = get_place_by_id(place_id)
