@@ -348,3 +348,53 @@ def get_natural_dwell_bounds(spot: dict) -> Tuple[int, int, int, str]:
             return 70, 90, 120, "Nhóm 3: Quán Lẩu, Nướng BBQ, Ốc & Nhậu"
         elif 101 <= pid <= 140:
             return 45, 60, 90, "Nhóm 4: Gà rán, Mì cay, Pizza, Fastfood"
+        elif 141 <= pid <= 160:
+            return 30, 40, 50, "Nhóm 5: Quán Ăn truyền thống (Phở, Cơm tấm, Hủ tiếu)"
+        elif 161 <= pid <= 180:
+            return 60, 75, 100, "Nhóm 6: Trung tâm Thương mại & Chợ đầu mối"
+        elif 181 <= pid <= 201:
+            return 45, 60, 90, "Nhóm 7: Di tích lịch sử, Bảo tàng & Tâm linh"
+
+    # Fallback dự phòng theo từ khóa nếu địa điểm do Admin thêm mới ngoài ID 1-201
+    cat = spot.get("category", "")
+    name_norm = remove_accent(spot.get("name", "")).lower()
+    review_norm = remove_accent(spot.get("best_review", "") or "").lower()
+    text = name_norm + " " + review_norm
+
+    if any(k in text for k in ["workshop", "nen", "candle", "gom", "ve tranh", "ban cung"]):
+        return 75, 105, 150, "Nhóm 2: Workshop Thủ công & Nghệ thuật"
+    if any(k in text for k in ["lau", "nuong", "bbq", "buffet", "hai san", "oc", "quan nhau"]):
+        return 70, 90, 120, "Nhóm 3: Quán Lẩu, Nướng BBQ, Ốc & Nhậu"
+    if any(k in text for k in ["ga ran", "kfc", "lotteria", "bonchon", "jollibee", "pizza", "mi cay", "dookki"]):
+        return 45, 60, 90, "Nhóm 4: Gà rán, Mì cay, Pizza, Fastfood"
+    if any(k in text for k in ["che", "kem", "gelato", "trang mieng", "banh trang", "cafe", "coffee", "kafe", "tra sua"]):
+        return 45, 60, 90, "Nhóm 1: Cà phê, Trà sữa, Bánh & Kem"
+    if any(k in text for k in ["mall", "centre", "plaza", "cho ben thanh", "cho binh tay"]):
+        return 60, 75, 100, "Nhóm 6: Trung tâm Thương mại & Chợ đầu mối"
+    if cat == "di_choi":
+        return 45, 60, 90, "Nhóm 7: Di tích lịch sử, Bảo tàng & Tâm linh"
+    return 30, 40, 50, "Nhóm 5: Quán Ăn truyền thống (Phở, Cơm tấm, Hủ tiếu)"
+
+def calculate_proportional_dwell_times(places: list, free_duration: int, total_travel_minutes: int) -> list:
+    """
+    Mô hình Phân bổ Quỹ thời gian Động theo Trọng số Danh mục (Dynamic Proportional Time-Budget Allocation Model):
+    Tự động cân đối thời gian dừng chân tại từng quán dựa trên tổng quỹ thời gian rảnh trừ đi thời gian di chuyển,
+    nhân với trọng số của từng loại hình quán.
+    """
+    def get_weight(spot):
+        cat = spot.get("category", "")
+        name_norm = remove_accent(spot.get("name", "")).lower()
+        if cat == "di_choi":
+            return 1.0
+        if any(w in name_norm for w in ["cafe", "kafe", "coffee", "tra", "che", "kem", "sinh to", "an vat", "banh mi"]):
+            return 0.8
+        if any(w in name_norm for w in ["lau", "nuong", "bbq", "hai san", "nha hang", "oc"]):
+            return 1.4
+        return 1.2
+
+    weights = [get_weight(p) for p in places]
+    total_w = sum(weights) or 1.0
+    stay_budget = max(len(places) * 20, free_duration - total_travel_minutes)
+    
+    raw_dwells = [int(round((stay_budget * w) / total_w)) for w in weights]
+    clamped = [max(20, min(120, d)) for d in raw_dwells]
