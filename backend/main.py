@@ -98,3 +98,53 @@ if GEMINI_KEY:
     except Exception:
         ai_client = None
 
+# ==============================================================================
+# PYDANTIC DATA MODELS
+# ==============================================================================
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    full_name: str
+
+class QuickRecommendRequest(BaseModel):
+    category: Optional[str] = "all"      # 'an_uong', 'di_choi'
+    context: Optional[str] = "all"       # 'di_1_minh', 'nguoi_yeu', 'ban_be', 'gia_dinh'
+    price_level: Optional[str] = "all"   # 'under_50k', '50k_100k', '100k_250k', 'above_250k', 'custom', 'all'
+    custom_budget: Optional[int] = None
+    offset: Optional[int] = 0
+    client_time: Optional[str] = None    # Giờ kiểm tra (HH:MM) để lọc quán mở/đóng
+    user_lat: Optional[float] = None     # Tọa độ GPS người dùng (Vĩ độ)
+    user_lon: Optional[float] = None     # Tọa độ GPS người dùng (Kinh độ)
+    prioritize_distance: Optional[bool] = False # Có bật ưu tiên khoảng cách gần tôi không
+
+class UserRoleUpdate(BaseModel):
+    role: str
+
+class ExtractGmapsRequest(BaseModel):
+    url_or_query: str
+
+class ItineraryRequest(BaseModel):
+    user_id: Optional[int] = None
+    start_location: str
+    start_lat: Optional[float] = None
+    start_lon: Optional[float] = None
+    free_time: str                       # Giờ rảnh: '14:00 - 18:30', '19:00 - 22:30', etc.
+    companion: Optional[str] = "ban_be"  # 'di_1_minh', 'nguoi_yeu', 'ban_be', 'gia_dinh'
+    purpose: Optional[str] = "ca_hai"    # 'an_uong', 'di_choi', 'ca_hai'
+    takenote: Optional[str] = ""         # Ghi chú / Loại trừ địa điểm
+    context: Optional[str] = ""          # Giữ tương thích ngược
+    budget: Optional[str] = None
+    budget_level: Optional[str] = None
+    target_budget: Optional[int] = None
+    num_stops: Optional[int] = 3         # Số trạm dừng mong muốn (2, 3, 4 - mặc định 3)
+    radius_km: Optional[float] = None    # Giới hạn bán kính quanh điểm xuất phát (km)
+    shuffle_seed: Optional[int] = 0      # Dùng cho G6-FR06: Xáo trộn / Đổi phương án khác
+    ai_model: Optional[str] = "gemini-3.5-flash-lite"
+
+class PlaceModel(BaseModel):
+    name: str
