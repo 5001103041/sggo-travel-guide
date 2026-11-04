@@ -1,0 +1,60 @@
+/* ==============================================================================
+   SGGO! MODERN EDITORIAL DESIGN SYSTEM — CẨM NANG DU LỊCH SÀI GÒN
+   Màu chủ đạo: Sài Gòn Carmine Red (#E11D48) — Sang trọng, tinh tế, chuẩn mực quốc tế
+   ============================================================================== */
+
+:root {
+  --c-brand: #E11D48;           /* Sài Gòn Carmine Red: Màu biểu tượng nhận diện */
+  --c-brand-hover: #BE123C;     /* Crimson đậm khi hover */
+  --c-brand-light: #FFE4E6;     /* Nền tag thương hiệu */
+  --c-bg: #F8FAFC;              /* Nền Slate-50 mát mắt, tinh tế */
+  --c-surface: #FFFFFF;         /* Nền trắng thẻ */
+  --c-border: #E2E8F0;          /* Viền Slate-200 tinh gọn */
+  --c-text-headline: #0F172A;   /* Đen mun than chì Slate-900 */
+  --c-text-body: #334155;       /* Xám than Slate-700 */
+  --c-text-muted: #64748B;      /* Xám Slate-500 */
+  --c-amber: #D97706;           /* Vàng hổ phách cho số sao */
+  --c-emerald: #059669;         /* Xanh ngọc cho mở cửa & khen */
+}
+
+body {
+  background-color: var(--c-bg);
+  color: var(--c-text-headline);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Loại bỏ hoàn toàn các hiệu ứng glow AI màu mè */
+.pop-glow-orange, .pop-glow-teal {
+  display: none !important;
+}
+
+/* ==================== NAVIGATION TABS ==================== */
+.tab-pill {
+  padding: 8px 18px;
+  border-radius: 12px;
+  color: #64748B;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-pill:hover {
+  color: #0F172A;
+}
+
+.tab-pill.active {
+  background-color: #FFFFFF;
+  color: var(--c-brand);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* ==================== UTILITIES ==================== */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
