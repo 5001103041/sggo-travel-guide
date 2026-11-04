@@ -778,3 +778,103 @@
           <!-- Bản Đồ Tương Tác Tuyến Đường 3 Trạm -->
           <div class="mb-6 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
             <div class="flex items-center justify-between mb-2 px-1">
+              <div>
+                <h4 class="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <i class="fa-solid fa-map-location-dot text-[#E11D48]"></i> Bản Đồ Tuyến Đường 3 Trạm
+                </h4>
+                              </div>
+              <button type="button" onclick="toggleItineraryMap()" id="btnToggleMap" class="text-[11px] font-bold px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-[#E11D48] transition flex items-center gap-1 shadow-2xs cursor-pointer">
+                <i class="fa-regular fa-eye-slash text-xs"></i> <span>Thu gọn bản đồ</span>
+              </button>
+            </div>
+            <div id="itineraryMapWrapper">
+              <div id="itineraryMap" class="w-full h-80 rounded-xl border border-slate-200 shadow-inner bg-slate-100 relative z-0"></div>
+            </div>
+          </div>
+
+          <!-- KHỐI TÓM TẮT & MINH BẠCH CÔNG NGHỆ (GEMINI AI + OPENSTREETMAP OSRM) -->
+          <div class="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 mb-6 shadow-xs">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+              <div class="flex items-center gap-2 text-xs font-black text-[#E11D48] uppercase tracking-wider">
+                <i class="fa-solid fa-compass text-sm"></i> <span>Tóm Tắt & Lời Khuyên Hành Trình</span>
+              </div>
+              
+              <!-- 3 Badge minh bạch công nghệ: AI Engine, Map Routing & Haversine Distance -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <!-- Badge AI -->
+                <div id="aiModelBadge" class="inline-flex items-center gap-1.5 text-[11px] font-black px-3 py-1 rounded-full bg-purple-50 text-purple-800 border border-purple-200 shadow-2xs">
+                  <i class="fa-solid fa-brain text-purple-600"></i>
+                  <span id="aiModelText">Google Gemini</span>
+                </div>
+                <!-- Badge OSRM -->
+                <div id="routingEngineBadge" class="inline-flex items-center gap-1.5 text-[11px] font-black px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200 shadow-2xs">
+                  <i class="fa-solid fa-diamond-turn-right text-sky-600"></i>
+                  <span id="routingEngineText">OpenStreetMap</span>
+                </div>
+                <!-- Badge Haversine -->
+                <div id="haversineBadge" class="inline-flex items-center gap-1.5 text-[11px] font-black px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                  <i class="fa-solid fa-compass-drafting text-emerald-600"></i>
+                  <span>Haversine</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cảnh báo nếu OSRM lỗi và fallback sang Haversine -->
+            <div id="routingWarningBanner" class="hidden mt-3 p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs font-medium flex items-start gap-2 shadow-2xs">
+              <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 text-sm flex-shrink-0"></i>
+              <span id="routingWarningText"></span>
+            </div>
+
+            <!-- Nội dung lời khuyên & phân tích -->
+            <div id="aiSummary" class="text-xs sm:text-sm text-slate-700 mt-3.5 leading-relaxed">
+              Đang tối ưu lịch trình...
+            </div>
+
+            <!-- Banner thời gian rảnh còn dư nếu có -->
+            <div id="spareTimeBanner" class="hidden mt-3.5 p-3 bg-teal-50 border border-teal-200 text-teal-900 rounded-2xl text-xs font-semibold flex items-center gap-2 shadow-2xs">
+              <i class="fa-regular fa-lightbulb text-teal-600 text-sm flex-shrink-0"></i>
+              <span id="spareTimeText"></span>
+            </div>
+          </div>
+
+          <!-- Thanh Tiêu Đề Timeline & Nút Xáo Trộn Gợi Ý Lịch Trình Khác (G6-FR06 MUST) -->
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <h3 id="aiTimelineTitle" class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-route text-[#E11D48]"></i> Dòng Thời Gian Hành Trình (Timeline 3 Chặng)
+            </h3>
+            <button type="button" onclick="shuffleAIItinerary()" class="px-3.5 py-2 bg-slate-100 hover:bg-rose-50 hover:text-[#E11D48] text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-2xs cursor-pointer">
+              <i class="fa-solid fa-shuffle text-xs text-[#E11D48]"></i>
+              <span>Đổi Phương Án Khác</span>
+            </button>
+          </div>
+
+          <div id="aiTimeline" class="space-y-4">
+            <!-- Timeline render động -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+    <!-- 4. TRANG QUẢN TRỊ ADMIN (BỘ LỌC A-Z, TRÍCH XUẤT GOOGLE MAPS, CRUD & CSV) -->
+    <main id="viewAdmin" class="max-w-5xl mx-auto py-2 hidden">
+      <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs mb-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-5 border-b border-slate-200">
+          <div>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#E11D48] bg-rose-50 px-2.5 py-1 rounded-lg">
+              <i class="fa-solid fa-gear"></i> Khu Vực Quản Trị Hệ Thống
+            </span>
+            <h2 class="text-2xl font-black text-slate-900 mt-2">Bảng Điều Khiển Quản Trị SGGo</h2>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="downloadCSVTemplate()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer" title="Tải file mẫu CSV">
+              <i class="fa-solid fa-file-csv text-rose-600"></i> File CSV Mẫu
+            </button>
+            <button onclick="downloadExcelTemplate()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer" title="Tải file mẫu Excel (.xlsx)">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i> File Excel Mẫu
+            </button>
+            <button onclick="openImportModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+              <i class="fa-solid fa-file-arrow-up"></i> Nhập CSV / Excel
+            </button>
+            <button onclick="openAddPlaceModal()" class="px-3.5 py-2 bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-plus"></i> Thêm Quán Mới
