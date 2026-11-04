@@ -2048,3 +2048,53 @@ def extract_gmaps_info(req: ExtractGmapsRequest):
                 conn_fb.close()
                 if rows:
                     import math
+                    def haversine(lat1, lon1, lat2, lon2):
+                        R = 6371000
+                        phi1, phi2 = math.radians(lat1), math.radians(lat2)
+                        dphi = math.radians(lat2 - lat1)
+                        dlam = math.radians(lon2 - lon1)
+                        a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlam/2)**2
+                        return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                    
+                    nearest = min(rows, key=lambda r: haversine(extracted_lat, extracted_lon, r[3], r[4]))
+                    nearest_dist = haversine(extracted_lat, extracted_lon, nearest[3], nearest[4])
+                    if nearest_dist <= 2500: # Trong bán kính 2.5km
+                        if extracted_district == "TP.HCM" and nearest[1]:
+                            extracted_district = nearest[1]
+                        if not extracted_address:
+                            extracted_address = f"Khu vực {nearest[1]}, TP.HCM"
+            except Exception:
+                pass
+
+    # Bóc tách quận thực tế từ địa chỉ hoặc tên quán nếu vẫn là TP.HCM
+    if extracted_district == "TP.HCM":
+        all_districts = ["Quận 1", "Quận 3", "Quận 4", "Quận 5", "Quận 6", "Quận 7", "Quận 8", "Quận 10", "Quận 11", "Quận 12", "Bình Thạnh", "Gò Vấp", "Phú Nhuận", "Tân Bình", "Tân Phú", "Bình Tân", "Thủ Đức", "TP. Thủ Đức", "Bình Chánh", "Hóc Môn", "Củ Chi", "Nhà Bè", "Cần Giờ"]
+        for d in all_districts:
+            if d.lower() in extracted_address.lower() or d.lower() in extracted_name.lower():
+                extracted_district = d
+                break
+
+    # Phân loại thể loại chuẩn xác (Hạn chế tối đa nhầm lẫn)
+    name_clean = remove_accent(extracted_name).lower()
+    is_play = any(k in name_clean for k in [
+        "boardgame", "workshop", "game", "bao tang", "cong vien", "khu vui choi", "dinh doc lap", "chua", "nha tho", "ho con rua", "pho di bo", "diem hen", "cau anh sao", "ben bach dang", "trien lam"
+    ])
+    if is_play:
+        category = "di_choi"
+    else:
+        is_food = bool(re.search(r'\b(quan|tiem|com|pho|hu tieu|sui cao|dimsum|lau|banh|che|tra sua|cafe|coffee|tea|nuoc|food|an|bun|oc|ga|bo|mi|banh mi)\b', name_clean))
+        category = "an_uong" if is_food else "di_choi"
+
+    # Trả về kết quả bóc tách từ URL - Tuyệt đối không tự động điền các số liệu ảo
+    has_real_coords = (extracted_lat is not None and extracted_lon is not None and extracted_lat > 0)
+    status = "ok" if (extracted_name and has_real_coords) else "partial"
+    msg = ("Đã trích xuất thông tin tham khảo từ link Google Maps. Dữ liệu chỉ mang tính chất tham khảo, Admin cần kiểm tra lại kỹ trước khi lưu!" 
+           if status == "ok" 
+           else "Chỉ trích xuất được một phần dữ liệu từ liên kết. Dữ liệu chỉ mang tính tham khảo, Admin vui lòng kiểm tra và điền các trường còn lại bên dưới!")
+
+    return {
+        "status": status,
+        "message": msg,
+        "place": {
+            "name": extracted_name,
+            "category": category,
