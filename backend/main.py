@@ -1898,3 +1898,53 @@ def extract_gmaps_info(req: ExtractGmapsRequest):
     if text_before:
         parts = [p.strip() for p in re.split(r'[·–—|]|\s*-\s*', text_before) if p.strip()]
         if len(parts) >= 2:
+            extracted_name = parts[0]
+            extracted_address = ", ".join(parts[1:])
+        elif len(parts) == 1:
+            if any(k in parts[0] for k in ["Đường", "Phường", "Quận", "TP.", "Hồ Chí Minh"]):
+                extracted_address = parts[0]
+            else:
+                extracted_name = parts[0]
+
+    import requests
+
+    # 1. BÓC TÁCH NGAY TỪ LINK GỐC (0ms, KHÔNG CẦN CHỜ MẠNG)
+    m_direct_place = re.search(r'/place/([^/@?]+)', target_url)
+    if m_direct_place:
+        extracted_name = urllib.parse.unquote_plus(m_direct_place.group(1)).replace("+", " ").strip()
+
+    m_direct_coords = re.search(r'/@([0-9.]+),([0-9.]+)', target_url)
+    if not m_direct_coords:
+        m_direct_coords = re.search(r'!3d([0-9.]+)!4d([0-9.]+)', target_url)
+    if not m_direct_coords:
+        m_direct_coords = re.search(r'[?&](?:q|ll)=([0-9.]+),([0-9.]+)', target_url)
+    if m_direct_coords:
+        try:
+            extracted_lat = float(m_direct_coords.group(1))
+            extracted_lon = float(m_direct_coords.group(2))
+        except Exception:
+            pass
+
+    # 2. CHỈ GỌI MẠNG NẾU LÀ LINK RÚT GỌN HOẶC CHƯA CÓ ĐỦ TÊN VÀ TỌA ĐỘ
+    need_network = (not extracted_name or extracted_lat is None or extracted_lon is None)
+    if need_network:
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "Accept-Language": "vi,en;q=0.9"
+            }
+            resp = requests.get(target_url, allow_redirects=True, timeout=3.5, headers=headers)
+            final_url = resp.url
+            html = resp.text
+
+            # Kiểm tra redirect qua thẻ meta refresh nếu có (maps.app.goo.gl)
+            if "maps.app.goo.gl" in final_url or "goo.gl/maps" in final_url:
+                meta_ref = re.search(r"""<meta[^>]+http-equiv=["']refresh["'][^>]+content=["'][0-9]+;\s*url=([^"']+)["']""", html, re.IGNORECASE)
+                if meta_ref:
+                    final_url = meta_ref.group(1).replace("&amp;", "&")
+
+            if not extracted_name:
+                m_place = re.search(r'/place/([^/@?]+)', final_url)
+                if m_place:
+                    extracted_name = urllib.parse.unquote_plus(m_place.group(1)).replace("+", " ").strip()
+                elif "/search/" in final_url:
