@@ -638,3 +638,73 @@
                 </div>
               </div>
 
+              <!-- 8. Giới hạn bán kính quanh điểm xuất phát -->
+              <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/90">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-xs font-bold text-slate-800">8. Giới hạn bán kính quanh điểm xuất phát</label>
+                  <span id="aiRadiusDisplay" class="text-xs font-black text-[#E11D48]">Toàn thành phố</span>
+                </div>
+                <div class="grid grid-cols-5 gap-2 text-xs">
+                  <button type="button" onclick="selectAIRadius(null, 'Toàn thành phố')" id="airadius_all" class="companion-chip active py-2 px-2 rounded-xl border-2 border-[#E11D48] bg-rose-50 font-bold text-[#E11D48] shadow-xs transition text-center cursor-pointer">Tất cả</button>
+                  <button type="button" onclick="selectAIRadius(3, 'Trong vòng 3 km')" id="airadius_3" class="companion-chip py-2 px-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">3 km</button>
+                  <button type="button" onclick="selectAIRadius(5, 'Trong vòng 5 km')" id="airadius_5" class="companion-chip py-2 px-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">5 km</button>
+                  <button type="button" onclick="selectAIRadius(10, 'Trong vòng 10 km')" id="airadius_10" class="companion-chip py-2 px-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">10 km</button>
+                  <button type="button" onclick="selectAIRadius(20, 'Trong vòng 20 km')" id="airadius_20" class="companion-chip py-2 px-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">20 km</button>
+                </div>
+              </div>
+
+              <input type="hidden" id="aiModelSelect" value="gemini-3.5-flash-lite" />
+            </div>
+
+            <!-- CỤM NÚT HÀNH ĐỘNG (Ghim cố định ở đáy cột trái, không bị trôi) -->
+            <div class="pt-3.5 mt-auto border-t border-slate-100 shrink-0">
+              <!-- NÚT TẠO LỊCH TRÌNH -->
+              <button onclick="requestAIItinerary()" id="btnSubmitAI" class="w-full py-3.5 bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-2xl text-xs sm:text-sm font-extrabold tracking-wider uppercase transition shadow-md shadow-[#E11D48]/20 flex items-center justify-center gap-2 cursor-pointer shrink-0">
+                <i class="fa-solid fa-route"></i>
+                <span>Tạo Lịch Trình Khám Phá</span>
+              </button>
+
+              <!-- Cảnh báo vi phạm ràng buộc & Đề xuất nới điều kiện (Business Rule 3 & Nhóm Test Bắt Buộc) -->
+              <div id="aiConstraintAlert" class="mt-3 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 hidden">
+                <div class="flex items-start gap-2.5">
+                  <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm mt-0.5 flex-shrink-0"></i>
+                  <div class="flex-1">
+                    <h4 id="aiConstraintTitle" class="text-xs font-black text-amber-900 uppercase tracking-wide">Không tìm thấy lịch trình khả thi</h4>
+                    <p id="aiConstraintMessage" class="text-xs text-amber-800 mt-1 font-medium"></p>
+                    <div id="aiConstraintSuggestionBox" class="mt-2.5 p-3 bg-white/95 rounded-xl border border-amber-200 text-xs text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-2xs">
+                      <span id="aiConstraintSuggestionText" class="font-medium leading-relaxed"></span>
+                      <button type="button" onclick="handleAutoRelaxConstraint()" class="px-3.5 py-1.5 bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs">
+                        <i class="fa-solid fa-sliders"></i> <span>Mở rộng phạm vi tìm kiếm</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- CỘT PHẢI: KẾT QUẢ LỘ TRÌNH, BẢN ĐỒ & TIMELINE (CUỘN ĐỘC LẬP) -->
+        <div id="colRightContent" class="lg:col-span-7 xl:col-span-7 flex flex-col lg:h-full lg:overflow-hidden transition-all duration-200">
+          <!-- Thanh điều hướng mở lại bảng điều khiển khi đã thu gọn -->
+          <div id="barExpandSidebar" class="hidden mb-3 shrink-0 w-full max-w-[940px] mx-auto flex items-center justify-between">
+            <button type="button" onclick="togglePlannerSidebar()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white border border-slate-200/90 text-slate-700 hover:text-[#E11D48] hover:border-rose-300 shadow-2xs font-bold text-xs transition cursor-pointer">
+              <i class="fa-solid fa-angles-right text-[#E11D48]"></i> <span>Mở lại bảng điều khiển</span>
+            </button>
+            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-xl">Chế độ xem tập trung</span>
+          </div>
+
+          <!-- Placeholder ban đầu khi chưa tạo lịch trình (Tự giãn full chiều cao) -->
+          <div id="aiPlaceholderArea" class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-10 text-center shadow-xs flex flex-col items-center justify-center flex-1 h-full lg:overflow-y-auto custom-scrollbar w-full max-w-[940px] mx-auto">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-rose-50 text-[#E11D48] flex items-center justify-center text-3xl mx-auto mb-4 shadow-2xs border border-rose-100">
+              <i class="fa-solid fa-map-location-dot"></i>
+            </div>
+            <h3 class="text-xl font-black text-slate-800">Lộ Trình Của Bạn Sẽ Xuất Hiện Tại Đây</h3>
+            <p class="text-xs sm:text-sm text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
+              Thiết lập điểm xuất phát, khung giờ rảnh và ngân sách ở bảng điều khiển bên trái, sau đó bấm <strong>"Tạo Lịch Trình Khám Phá"</strong>.
+            </p>
+            
+            <!-- 3 Trụ cột công nghệ -->
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg text-left">
+              <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
