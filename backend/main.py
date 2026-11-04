@@ -1248,3 +1248,53 @@ QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
                     is_excluded = True
                 else:
                     words = [w for w in norm_base.split() if len(w) > 1]
+                    for i in range(len(words) - 1):
+                        bigram = f"{words[i]} {words[i+1]}"
+                        if bigram in tn_clean and bigram not in ["quan 5", "tp hcm", "sai gon", "duong an", "hoi quan", "thanh pho"]:
+                            is_excluded = True
+                            break
+
+                if not is_excluded:
+                    filtered_cands.append(p)
+
+            if len(filtered_cands) >= num_stops:
+                candidates = filtered_cands
+
+        seed = req.shuffle_seed or 0
+
+        # Đối với mục đích 'Cả hai': BẮT BUỘC kết hợp cả vui chơi (di_choi) và ăn uống (an_uong) cho mọi số trạm (2, 3, 4)
+        if req.purpose == "ca_hai":
+            play_cands = [p for p in candidates if p.get("category") == "di_choi"]
+            eat_cands = [p for p in candidates if p.get("category") == "an_uong"]
+            if play_cands and eat_cands:
+                play_sorted = sorted(play_cands, key=lambda p: calculate_haversine_distance(start_lat, start_lon, p.get("lat") or 10.75, p.get("lon") or 106.66))
+                eat_sorted = sorted(eat_cands, key=lambda p: calculate_haversine_distance(start_lat, start_lon, p.get("lat") or 10.75, p.get("lon") or 106.66))
+                
+                off_play = (seed * 2) % max(1, len(play_sorted) - 2) if len(play_sorted) > 3 else 0
+                off_eat = (seed * 3) % max(1, len(eat_sorted) - 3) if len(eat_sorted) > 4 else 0
+                
+                win_play = play_sorted[off_play:off_play + 6]
+                win_eat = eat_sorted[off_eat:off_eat + 8]
+                
+                if num_stops == 2:
+                    # 1 Đi chơi + 1 Ăn uống
+                    opt_play = optimize_route_nearest_neighbor((start_lat, start_lon), win_play, max_stops=1)
+                    opt_eat = optimize_route_nearest_neighbor((start_lat, start_lon), win_eat, max_stops=1)
+                    opt_stops = optimize_route_nearest_neighbor((start_lat, start_lon), opt_play + opt_eat, max_stops=2)
+                elif num_stops == 4:
+                    # 2 Đi chơi + 2 Ăn uống
+                    opt_play = optimize_route_nearest_neighbor((start_lat, start_lon), win_play, max_stops=2)
+                    opt_eat = optimize_route_nearest_neighbor((start_lat, start_lon), win_eat, max_stops=2)
+                    opt_stops = optimize_route_nearest_neighbor((start_lat, start_lon), opt_play + opt_eat, max_stops=4)
+                else:
+                    # num_stops == 3: 1 Đi chơi + 2 Ăn uống
+                    best_combo = None
+                    best_dist = float('inf')
+
+                    import itertools
+                    for p_stop in win_play[:4]:
+                        p_cost = p_stop.get("min_price", 0)
+                        rem_budget = target_budget - p_cost if target_budget > 0 else 999999999
+                        for e1, e2 in itertools.combinations(win_eat[:8], 2):
+                            if (e1.get("min_price", 0) + e2.get("min_price", 0)) <= rem_budget:
+                                trip = [p_stop, e1, e2]
