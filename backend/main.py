@@ -1648,3 +1648,53 @@ def validate_place_payload(place: PlaceModel):
         raise HTTPException(status_code=400, detail="Tọa độ GPS (Vĩ độ và Kinh độ) là bắt buộc!")
         
     try:
+        lat = float(place.lat)
+        lon = float(place.lon)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Tọa độ GPS phải là số thực hợp lệ!")
+        
+    if not (10.3 <= lat <= 11.2) or not (106.3 <= lon <= 107.2):
+        raise HTTPException(status_code=400, detail="Tọa độ GPS nằm ngoài phạm vi TP.HCM (Vĩ độ: 10.3 - 11.2, Kinh độ: 106.3 - 107.2)!")
+        
+    # 2. Ràng buộc định dạng giờ mở/đóng cửa HH:MM
+    time_regex = r'^([01]\d|2[0-3]):([0-5]\d)$'
+    ot = (place.open_time or "").strip()
+    if ot and not re.match(time_regex, ot):
+        raise HTTPException(status_code=400, detail="Giờ mở cửa không đúng định dạng chuẩn (HH:MM, ví dụ: 08:00)!")
+    ct = (place.close_time or "").strip()
+    if ct and not re.match(time_regex, ct):
+        raise HTTPException(status_code=400, detail="Giờ đóng cửa không đúng định dạng chuẩn (HH:MM, ví dụ: 22:00)!")
+
+    # 3. Ràng buộc mức giá và biên trên 50 triệu VNĐ
+    if place.min_price is not None and place.min_price < 0:
+        raise HTTPException(status_code=400, detail="Mức giá tối thiểu không được là số âm!")
+    if place.max_price is not None and place.max_price < 0:
+        raise HTTPException(status_code=400, detail="Mức giá tối đa không được là số âm!")
+    if (place.min_price is not None and place.min_price > 50000000) or (place.max_price is not None and place.max_price > 50000000):
+        raise HTTPException(status_code=400, detail="Mức giá không được vượt quá 50,000,000 VNĐ!")
+    if place.min_price is not None and place.max_price is not None:
+        if place.max_price > 0 and place.max_price < place.min_price:
+            raise HTTPException(status_code=400, detail="Mức giá tối đa không được nhỏ hơn mức giá tối thiểu!")
+            
+    if place.rating is not None and not (0.0 <= float(place.rating) <= 5.0):
+        raise HTTPException(status_code=400, detail="Điểm đánh giá sao phải nằm trong khoảng từ 0.0 đến 5.0!")
+        
+    if place.reviews_count is not None and place.reviews_count < 0:
+        raise HTTPException(status_code=400, detail="Số lượt đánh giá không được là số âm!")
+
+    # 4. Ràng buộc toàn vẹn tham chiếu Thẻ ngữ cảnh (Tags)
+    if place.tags:
+        valid_tag_keys = set(t["tag_key"] for t in get_all_tags() if t.get("is_active", 1) == 1)
+        if valid_tag_keys:
+            raw_tags = []
+            if "tier1:" in place.tags or "tier2:" in place.tags:
+                for p in place.tags.split("|"):
+                    p = p.strip()
+                    if p.startswith("tier1:") or p.startswith("tier2:"):
+                        raw_tags.extend([x.strip() for x in p.split(":", 1)[1].split(",") if x.strip()])
+            else:
+                raw_tags = [x.strip() for x in place.tags.split(",") if x.strip()]
+            for t in raw_tags:
+                if t not in valid_tag_keys:
+                    raise HTTPException(status_code=400, detail=f"Thẻ ngữ cảnh '{t}' không tồn tại hoặc đã bị vô hiệu hóa trong hệ thống!")
+
