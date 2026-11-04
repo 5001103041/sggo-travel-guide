@@ -1298,3 +1298,53 @@ QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
                         for e1, e2 in itertools.combinations(win_eat[:8], 2):
                             if (e1.get("min_price", 0) + e2.get("min_price", 0)) <= rem_budget:
                                 trip = [p_stop, e1, e2]
+                                ordered = optimize_route_nearest_neighbor((start_lat, start_lon), trip, max_stops=3)
+                                d = calculate_haversine_distance(start_lat, start_lon, ordered[0].get("lat") or 10.75, ordered[0].get("lon") or 106.66) + \
+                                    calculate_haversine_distance(ordered[0].get("lat") or 10.75, ordered[0].get("lon") or 106.66, ordered[1].get("lat") or 10.75, ordered[1].get("lon") or 106.66) + \
+                                    calculate_haversine_distance(ordered[1].get("lat") or 10.75, ordered[1].get("lon") or 106.66, ordered[2].get("lat") or 10.75, ordered[2].get("lon") or 106.66)
+                                if d < best_dist:
+                                    best_dist = d
+                                    best_combo = ordered
+
+                    if best_combo:
+                        opt_stops = best_combo
+                    else:
+                        opt_play = optimize_route_nearest_neighbor((start_lat, start_lon), win_play, max_stops=1)
+                        opt_eat = optimize_route_nearest_neighbor((start_lat, start_lon), win_eat, max_stops=2)
+                        opt_stops = optimize_route_nearest_neighbor((start_lat, start_lon), opt_play + opt_eat, max_stops=3)
+            else:
+                c_sorted = sorted(candidates, key=lambda p: calculate_haversine_distance(start_lat, start_lon, p.get("lat") or 10.75, p.get("lon") or 106.66))
+                off = (seed * 3) % max(1, len(c_sorted) - 4) if len(c_sorted) > 5 else 0
+                opt_stops = optimize_route_nearest_neighbor((start_lat, start_lon), c_sorted[off:off + 10], max_stops=num_stops)
+        else:
+            c_sorted = sorted(candidates, key=lambda p: calculate_haversine_distance(start_lat, start_lon, p.get("lat") or 10.75, p.get("lon") or 106.66))
+            off = (seed * 3) % max(1, len(c_sorted) - 4) if len(c_sorted) > 5 else 0
+            opt_stops = find_budget_optimal_route((start_lat, start_lon), c_sorted[off:off + 12], target_budget=target_budget, max_stops=num_stops)
+
+        selected_ids = [p["id"] for p in opt_stops]
+        takenote_txt = f'"{takenote_str}"' if (takenote_str and takenote_str != "Không có ghi chú riêng") else 'Không có ghi chú riêng'
+        stop_reasons = []
+        for idx, p in enumerate(opt_stops):
+            cat_label = "ẩm thực" if p.get("category") == "an_uong" else "đi chơi / tham quan"
+            stop_reasons.append(f"• Vì sao chọn {p.get('name')}: Điểm {cat_label} chuẩn gu, không gian phù hợp với {companion_str} và thuận tiện giờ mở cửa.")
+        stop_reasons_str = "\n".join(stop_reasons)
+        overall_advice = (
+            f"Tiếp nhận tiêu chí:\n"
+            f"• Khung giờ: {req.free_time} | Bạn đồng hành: {companion_str}\n"
+            f"• Ghi chú riêng (Take note): {takenote_txt}\n\n"
+            f"Lý do lựa chọn lộ trình:\n"
+            f"{stop_reasons_str}\n"
+            f"• Logic kết hợp lộ trình: Tuyến đường {num_stops} chặng được sắp xếp tối ưu theo cung đường từ '{req.start_location}', chuyển tiếp tự nhiên giữa các hoạt động mà không bị ngược hướng di chuyển."
+        )
+
+    chosen_places = [places_by_id[pid] for pid in selected_ids if pid in places_by_id]
+    if len(chosen_places) < num_stops:
+        chosen_places = open_purpose_places[:num_stops]
+
+    # 5. SẮP XẾP TỐI ƯU CHỐNG NGƯỢC ĐƯỜNG (Nearest Neighbor TSP từ vị trí xuất phát)
+    optimized_places = optimize_route_nearest_neighbor((start_lat, start_lon), chosen_places, max_stops=num_stops)
+    if not optimized_places:
+        optimized_places = chosen_places
+
+    # 6. Tạo đường link Google Maps Multi-stop dẫn đường xe máy liên hoàn
+    lat0, lon0 = start_lat, start_lon
