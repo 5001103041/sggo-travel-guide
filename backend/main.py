@@ -2098,3 +2098,53 @@ def extract_gmaps_info(req: ExtractGmapsRequest):
         "place": {
             "name": extracted_name,
             "category": category,
+            "address": extracted_address,
+            "district": extracted_district,
+            "lat": extracted_lat,
+            "lon": extracted_lon,
+            "open_time": extracted_open_time,
+            "close_time": extracted_close_time,
+            "min_price": None,
+            "max_price": None,
+            "rating": extracted_rating,
+            "reviews_count": extracted_reviews_count,
+            "peak_hours": "",
+            "best_review": "",
+            "worst_review": "",
+            "image_url": extracted_image if (extracted_image and str(extracted_image).strip()) else None,
+            "tags": "nhom_ban",
+            "is_verified": 1,
+            "google_maps_url": target_url
+        }
+    }
+
+class TagCreateRequest(BaseModel):
+    tag_key: str
+    name: str
+    tier_type: Optional[str] = "companion"
+
+class TagUpdateRequest(BaseModel):
+    name: str
+    is_active: Optional[int] = 1
+
+class ImportCSVRequest(BaseModel):
+    csv_content: Optional[str] = None
+    file_base64: Optional[str] = None
+    filename: Optional[str] = "places_import.csv"
+
+@app.post("/api/admin/import-csv", dependencies=[Depends(require_admin)])
+def import_csv_places(req: ImportCSVRequest):
+    content = req.file_base64 if req.file_base64 else (req.csv_content or "")
+    res = import_file_data(content, filename=req.filename or "places_import.csv")
+    return {
+        "status": "ok",
+        "imported_count": res.get("success_count", 0),
+        "error_count": res.get("error_count", 0),
+        "total_rows": res.get("total_rows", 0),
+        "errors": res.get("errors", [])
+    }
+
+@app.post("/api/admin/import-excel", dependencies=[Depends(require_admin)])
+def import_excel_places(req: ImportCSVRequest):
+    return import_csv_places(req)
+
