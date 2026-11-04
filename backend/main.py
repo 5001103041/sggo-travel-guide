@@ -1948,3 +1948,53 @@ def extract_gmaps_info(req: ExtractGmapsRequest):
                 if m_place:
                     extracted_name = urllib.parse.unquote_plus(m_place.group(1)).replace("+", " ").strip()
                 elif "/search/" in final_url:
+                    m_search = re.search(r'/search/([^/@?]+)', final_url)
+                    if m_search:
+                        extracted_name = urllib.parse.unquote_plus(m_search.group(1)).replace("+", " ").strip()
+                elif "?q=" in final_url or "&q=" in final_url or "?query=" in final_url:
+                    m_q = re.search(r'[?&](?:q|query)=([^&]+)', final_url)
+                    if m_q:
+                        extracted_name = urllib.parse.unquote_plus(m_q.group(1)).replace("+", " ").strip()
+
+            if extracted_lat is None or extracted_lon is None:
+                m_coords = re.search(r'/@([0-9.]+),([0-9.]+)', final_url)
+                if m_coords:
+                    extracted_lat = float(m_coords.group(1))
+                    extracted_lon = float(m_coords.group(2))
+                else:
+                    m_data_coords = re.search(r'!3d([0-9.]+)!4d([0-9.]+)', final_url)
+                    if m_data_coords:
+                        extracted_lat = float(m_data_coords.group(1))
+                        extracted_lon = float(m_data_coords.group(2))
+                    else:
+                        m_q_coords = re.search(r'[?&](?:q|ll)=([0-9.]+),([0-9.]+)', final_url)
+                        if m_q_coords:
+                            extracted_lat = float(m_q_coords.group(1))
+                            extracted_lon = float(m_q_coords.group(2))
+
+            og_img = re.search(r"""<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']""", html)
+            if og_img and ("googleusercontent" in og_img.group(1) or "streetview" in og_img.group(1)):
+                extracted_image = og_img.group(1)
+        except Exception:
+            pass
+
+    # Nếu tên quán có chứa luôn địa chỉ dạng "Tên Quán, Số nhà, Phường, Quận..."
+    if "," in extracted_name and any(k in extracted_name for k in ["Quận", "Phường", "Đường"]):
+        parts = extracted_name.split(",", 1)
+        extracted_name = parts[0].strip()
+        extracted_address = parts[1].strip()
+
+    if not extracted_name or extracted_name.startswith("http"):
+        extracted_name = raw_input.rstrip("/").split("/")[-1].replace("+", " ").replace("-", " ")
+
+    if re.match(r'^[0-9.,\s]+$', extracted_name):
+        extracted_name = ""
+    else:
+        extracted_name = ' '.join(w.capitalize() for w in extracted_name.split())
+
+    # 2.5. TRÍCH XUẤT ĐỊA CHỈ CHUẨN XÁC 100% SỐ NHÀ, SAO VÀ GIỜ THẬT BẰNG HEADLESS CHROME DOM
+    if target_url and target_url.startswith("http"):
+        chrome_details = extract_real_place_chrome(target_url)
+        if not extracted_address and chrome_details.get("address"):
+            extracted_address = chrome_details["address"]
+        if chrome_details.get("rating") is not None:
