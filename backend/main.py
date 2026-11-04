@@ -1398,3 +1398,53 @@ QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
             dist = round(raw_h_dist, 2)  # Haversine chuẩn thuần túy, tuyệt đối KHÔNG nhân 1.25
         t_min, traf_note, traf_badge = calculate_traffic_speed_model(dist, temp_cursor)
         travel_data.append((dist, t_min, traf_note, traf_badge))
+        total_dist += dist
+        total_t_min += t_min
+        curr_lat, curr_lon = p_lat, p_lon
+        temp_cursor += t_min + 45
+
+    # Bước 7.2: Mô hình Dừng Chân Lai Theo Đúng 7 Nhóm Trải Nghiệm Học Thuật (Hybrid Dwell Model A + B)
+    proportional_dwells = []
+    dwell_group_labels = []
+    for spot in optimized_places:
+        ai_info = gemini_stops_info.get(spot["id"], {})
+        rec_dwell = ai_info.get("recommended_dwell_min")
+        min_d, def_d, max_d, grp_label = get_natural_dwell_bounds(spot)
+        if isinstance(rec_dwell, (int, float)) and rec_dwell > 0:
+            dwell = max(min_d, min(max_d, int(rec_dwell)))
+        else:
+            dwell = def_d
+        # Bổ sung 10 phút đệm thực tế (tìm chỗ gửi xe, lấy vé, gọi món)
+        dwell += 10
+        proportional_dwells.append(dwell)
+        dwell_group_labels.append(grp_label)
+
+    # Kiểm tra quỹ thời gian: Cân đối co giãn thời gian dừng chân để tổng thời gian (di chuyển + dừng chân) vừa vặn khung giờ rảnh
+    stay_budget = max(len(optimized_places) * 20, free_duration - total_t_min)
+    current_total_dwell = sum(proportional_dwells)
+    if current_total_dwell > stay_budget:
+        scale_factor = stay_budget / current_total_dwell
+        scaled_dwells = []
+        for d, spot in zip(proportional_dwells, optimized_places):
+            min_d, _, _, _ = get_natural_dwell_bounds(spot)
+            # Cân đối co giãn, tối thiểu 20 phút cho mỗi trạm
+            scaled_d = max(20, min(d, int(round(d * scale_factor))))
+            scaled_dwells.append(scaled_d)
+        
+        # Cân đối tinh chỉnh để tổng thời gian dừng + di chuyển vừa vặn với free_duration
+        while sum(scaled_dwells) > stay_budget and any(d > 20 for d in scaled_dwells):
+            max_idx = max(range(len(scaled_dwells)), key=lambda i: scaled_dwells[i])
+            if scaled_dwells[max_idx] > 20:
+                scaled_dwells[max_idx] -= 5
+            else:
+                break
+        proportional_dwells = scaled_dwells
+
+    steps = []
+    stops_db_data = []
+    curr_lat, curr_lon = start_lat, start_lon
+
+    for idx, spot in enumerate(optimized_places):
+        p_lat = float(spot.get("lat") or curr_lat)
+        p_lon = float(spot.get("lon") or curr_lon)
+        dist, t_min, traf_note, traf_badge = travel_data[idx]
