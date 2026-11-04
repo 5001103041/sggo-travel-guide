@@ -1448,3 +1448,53 @@ QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
         p_lat = float(spot.get("lat") or curr_lat)
         p_lon = float(spot.get("lon") or curr_lon)
         dist, t_min, traf_note, traf_badge = travel_data[idx]
+        dwell_min = proportional_dwells[idx]
+
+        arrive_min = clock_cursor + t_min
+        depart_min = arrive_min + dwell_min
+        clock_cursor = depart_min
+
+        arr_h, arr_m = (arrive_min // 60) % 24, arrive_min % 60
+        dep_h, dep_m = (depart_min // 60) % 24, depart_min % 60
+        slot_time = f"{arr_h:02d}:{arr_m:02d} - {dep_h:02d}:{dep_m:02d}"
+
+        ai_info = gemini_stops_info.get(spot["id"], {})
+        action_title = ai_info.get("action_title") or f"Trạm {idx+1}: Khám phá {spot['name']} [{ 'Ẩm thực' if spot.get('category') == 'an_uong' else 'Đi chơi/Di tích' }]"
+        ai_reason = ai_info.get("ai_reason", "Địa điểm mở cửa phù hợp, thuận tuyến đường di chuyển tối ưu.")
+        must_try_tip = ai_info.get("must_try_tip")
+        if not must_try_tip or not must_try_tip.strip():
+            if spot.get("category") == "an_uong":
+                must_try_tip = spot.get("must_try_dishes") or (f"Món nổi bật: {spot.get('best_review')[:70]}..." if spot.get("best_review") else "Không có đề xuất món cụ thể trong đánh giá thực tế.")
+            else:
+                must_try_tip = "Tham quan không gian kiến trúc, chụp ảnh check-in và khám phá các trải nghiệm tại điểm đến."
+
+        traffic_warning = f"[{traf_badge}] {traf_note} • Khoảng cách ~{dist} km ({t_min} phút xe máy)."
+
+        p_min_cost = spot.get("min_price", 0)
+        p_max_cost = spot.get("max_price", 0)
+
+        # Xây dựng giải thích rule minh bạch (G6-FR10 SHOULD)
+        tier_pts, fit_tier = get_companion_tier_score(spot, mapped_comp_tag)
+        rule_reasons = []
+        if tier_pts > 0:
+            rule_reasons.append(f"Khớp bối cảnh '{companion_str}' (+{int(tier_pts)}đ Tier {fit_tier})")
+        rule_reasons.append(f"Mở cửa ({spot.get('open_time')}-{spot.get('close_time')})")
+        avg_cost = (p_min_cost + p_max_cost) // 2
+        rule_reasons.append(f"Chi phí ~{avg_cost:,}đ")
+        rule_reasons.append(f"Dừng chân ~{dwell_min} phút (cân đối quỹ giờ rảnh)")
+        rule_explanation = " • ".join(rule_reasons)
+
+        spot_peak = spot.get("peak_hours") or ""
+        is_peak, peak_win = check_peak_hours_overlap(arrive_min, depart_min, spot_peak)
+        if is_peak:
+            peak_warning = f"⚡ Trùng giờ cao điểm ({peak_win}): Dự kiến quán rất đông khách vào khung giờ này, bạn nên chủ động đặt bàn trước hoặc ghé sớm!"
+        elif spot_peak:
+            peak_warning = f"Quán có giờ cao điểm ({spot_peak}). Khung giờ bạn ghé ({arr_h:02d}:{arr_m:02d} - {dep_h:02d}:{dep_m:02d}) không trùng giờ cao điểm, không gian tương đối thoáng đãng để bạn yên tâm trải nghiệm."
+        else:
+            peak_warning = f"Khung giờ bạn ghé ({arr_h:02d}:{arr_m:02d} - {dep_h:02d}:{dep_m:02d}) không ghi nhận giờ cao điểm căng thẳng, quán thoáng đãng bạn hoàn toàn yên tâm trải nghiệm."
+
+        step_dict = {
+            "place_id": spot.get("id"),
+            "id": spot.get("id"),
+            "name": spot.get("name"),
+            "category": spot.get("category"),
