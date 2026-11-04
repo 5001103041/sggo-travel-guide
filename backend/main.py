@@ -1098,3 +1098,53 @@ def generate_itinerary(req: ItineraryRequest, x_user_id: Optional[str] = Header(
     selected_ids = []
     overall_advice = ""
     gemini_stops_info = {}
+    model_choice = req.ai_model or "gemini-3.5-flash-lite"
+    actual_model = model_choice
+    ai_status = "fallback"
+
+    # 3. Sử dụng Google Gemini AI để thấu hiểu ngữ cảnh và chọn các trạm phù hợp nhất (ưu tiên gemini-3.5-flash-lite siêu nhanh)
+    if ai_client and req.ai_model not in ["none", "rule_based", "off"]:
+        prompt = f"""Bạn là Chuyên gia Lập Lộ trình Du lịch & Ẩm thực Sài Gòn (TP.HCM) cho nền tảng SGGo! Travel Guide.
+YÊU CẦU CỦA NGƯỜI DÙNG:
+- Điểm xuất phát: "{req.start_location}"
+- Khung giờ rảnh: "{req.free_time}"
+- Bạn đồng hành: "{companion_str}"
+- Mục đích chuyến đi: "{purpose_str}"
+- Số lượng trạm dừng mong muốn: {num_stops} trạm
+- Ngân sách tối đa mong muốn: {target_budget:,}đ (Nếu là 0đ nghĩa là miễn phí)
+- Ghi chú & Yêu cầu riêng (Take note): "{takenote_str}"
+
+TOP ĐỊA ĐIỂM SÁNG GIÁ NHẤT ĐÃ ĐƯỢC HỆ THỐNG LỌC SẴN:
+{places_context}
+
+QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
+1. MỤC ĐÍCH CHUYẾN ĐI (BẮT BUỘC TUÂN THỦ TÙY THEO LỰA CHỌN CỦA NGƯỜI DÙNG: "{purpose_str}"):
+   - Nếu là "Chỉ đi Ăn uống" (purpose="an_uong"): 100% TẤT CẢ CÁC TRẠM PHẢI LÀ quán ăn/ẩm thực (category='an_uong')! TUYỆT ĐỐI KHÔNG chọn điểm di tích hay bảo tàng!
+   - Nếu là "Chỉ đi Vui chơi" (purpose="di_choi"): 100% TẤT CẢ CÁC TRẠM PHẢI LÀ điểm tham quan, di tích, vui chơi, workshop (category='di_choi')! TUYỆT ĐỐI KHÔNG chọn quán ăn uống!
+   - CHỈ KHI NÀO người dùng chọn "Cả hai" (purpose="ca_hai"): MỚI BẮT BUỘC kết hợp cả hai thể loại:
+     + Nếu chọn {num_stops} = 2: BẮT BUỘC chọn đúng 1 điểm Đi chơi/Di tích VÀ 1 quán Ẩm thực! TUYỆT ĐỐI KHÔNG chọn 2 quán ăn hoặc 2 điểm đi chơi!
+     + Nếu chọn {num_stops} = 3: BẮT BUỘC có ít nhất 1 điểm Đi chơi/Di tích VÀ ít nhất 1 quán Ẩm thực (ví dụ 1 chơi + 2 ăn, hoặc 2 chơi + 1 ăn)!
+     + Nếu chọn {num_stops} = 4: BẮT BUỘC có ít nhất 1 điểm Đi chơi/Di tích VÀ ít nhất 1 quán Ẩm thực!
+2. BẠN ĐỒNG HÀNH:
+   - Ưu tiên không gian phù hợp với "{companion_str}".
+3. XỬ LÝ GHI CHÚ ĐẶC BIỆT (TAKE NOTE) & LOẠI TRỪ NGỮ NGHĨA (QUAN TRỌNG):
+   - Đọc kỹ ghi chú của người dùng: "{takenote_str}"
+   - Nếu người dùng ghi "chán chỗ X", "loại trừ X", "không thích X", "tránh X" (tên quán hoặc thương hiệu) -> TUYỆT ĐỐI LOẠI BỎ địa điểm đó, không được chọn!
+   - Nếu người dùng ghi kiêng cữ / dị ứng / không muốn ăn món gì (ví dụ: "không ăn cay", "dị ứng hải sản", "ghét ốc", "không đồ ngọt", "thèm nướng", "ăn chay"...) -> Đọc kỹ tên quán, món ăn đặc trưng và review khen/chê ở trên để LOẠI TRỪ triệt để quán có món đó, và ưu tiên quán đúng sở thích!
+   - Nếu người dùng có yêu cầu về không gian (ví dụ: "thích máy lạnh", "yên tĩnh làm việc", "ngoài trời thoáng mát", "bãi xe rộng", "không ồn ào"...) -> Đối chiếu trực tiếp với bình luận của khách để chọn quán phù hợp.
+4. NGUYÊN TẮC VIẾT `must_try_tip` (CHẤT LƯỢNG CAO, SỰ THẬT TỪ REVIEW, CẤM ẢO DỮ LIỆU):
+   - NẾU LÀ QUÁN ĂN UỐNG (category='an_uong'):
+     BẮT BUỘC TRÍCH XUẤT ĐÍCH DANH TÊN MÓN ĂN / ĐỒ UỐNG ĐƯỢC KHEN NHIỀU NHẤT từ mục "Khách khen/Món ngon" của quán ở trên.
+     Nếu trong review của quán không nhắc đến món cụ thể, ghi đúng: "Không có đề xuất món cụ thể trong đánh giá thực tế."
+     TUYỆT ĐỐI CẤM BỊA ĐẶT TÊN MÓN KHÔNG CÓ TRONG DỮ LIỆU!
+   - NẾU LÀ ĐIỂM ĐI CHƠI / DI TÍCH (category='di_choi'):
+     BẮT BUỘC GHI RÕ VIỆC NÊN LÀM HOẶC HOẠT ĐỘNG NỔI BẬT NHẤT KHI ĐẾN ĐÂY (ví dụ: ngắm cảnh/chụp ảnh góc đẹp, tham quan triển lãm, trải nghiệm hoạt động...).
+   - TUYỆT ĐỐI CẤM các câu hiển nhiên, ngô nghê hoặc rao giảng vô ích như: "tự lấy muỗng đũa", "ăn vừa bụng", "nhớ giữ gìn vệ sinh", "uống nhiều nước"!
+5. NGUYÊN TẮC TRÌNH BÀY `overall_advice` (TÁCH BẠCH TỪNG TRẠM, NÓI THẲNG TRỌNG TÂM, TUYỆT ĐỐI KHÔNG NGÔ NGHÊ):
+   BẮT BUỘC định dạng xuống dòng mạch lạc theo đúng mẫu sau:
+   Tiếp nhận tiêu chí:
+   • Khung giờ: {req.free_time} | Bạn đồng hành: {companion_str}
+   • Ghi chú riêng (Take note): "{takenote_str}" (Nếu có ghi chú, trích dẫn chính xác yêu cầu của người dùng; nếu trống thì ghi "Không có ghi chú riêng")
+
+   Lý do lựa chọn lộ trình:
+   • Vì sao chọn [Tên trạm 1]: [Nêu lý do đắt giá và cụ thể: không gian, phong cách, vibe hợp với {companion_str} ra sao và đáp ứng take note thế nào]
