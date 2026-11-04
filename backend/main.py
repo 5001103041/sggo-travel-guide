@@ -1598,3 +1598,53 @@ QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
         "ai_status": ai_status,
         "ai_status_message": ai_status_message,
         "routing_source": routing_source,
+        "routing_warning": routing_warning,
+        "spare_time_minutes": spare_time_minutes,
+        "spare_time_message": spare_time_message,
+        "num_stops": len(optimized_places),
+        "start_location": req.start_location,
+        "start_coords": {"lat": start_lat, "lon": start_lon},
+        "gmaps_multi_url": gmaps_multi_url,
+        "kpi": {
+            "target_budget": target_budget,
+            "total_min_cost": total_min_cost,
+            "total_max_cost": total_max_cost,
+            "is_within_budget": is_within_budget,
+            "free_duration_minutes": free_duration,
+            "total_duration_minutes": total_duration_minutes,
+            "spare_time_minutes": spare_time_minutes,
+            "spare_time_message": spare_time_message,
+            "total_travel_distance_km": round(total_dist, 2),
+            "total_travel_time_minutes": total_t_min,
+            "is_within_time": is_within_time
+        }
+    }
+
+
+
+# ==============================================================================
+# CÁC API QUẢN TRỊ DÀNH CHO ADMIN (ADMIN CRUD & IMPORT CSV)
+# ==============================================================================
+
+def validate_place_payload(place: PlaceModel):
+    name = (place.name or "").strip()
+    if len(name) < 2:
+        raise HTTPException(status_code=400, detail="Tên địa điểm phải có ít nhất 2 ký tự!")
+    
+    cat = (place.category or "").strip().lower()
+    if cat not in ["an_uong", "di_choi"]:
+        raise HTTPException(status_code=400, detail="Thể loại địa điểm không hợp lệ (phải là 'an_uong' hoặc 'di_choi')!")
+        
+    addr = (place.address or "").strip()
+    if len(addr) < 5:
+        raise HTTPException(status_code=400, detail="Địa chỉ phải cụ thể (ít nhất 5 ký tự)!")
+
+    # 1. Ràng buộc chuẩn hóa 22 Quận/Huyện của TP.HCM
+    dist = (place.district or "").strip()
+    if dist and dist not in VALID_DISTRICTS:
+        raise HTTPException(status_code=400, detail=f"Khu vực '{dist}' không thuộc danh sách 22 quận/huyện hợp lệ của TP.HCM!")
+        
+    if place.lat is None or place.lon is None:
+        raise HTTPException(status_code=400, detail="Tọa độ GPS (Vĩ độ và Kinh độ) là bắt buộc!")
+        
+    try:
