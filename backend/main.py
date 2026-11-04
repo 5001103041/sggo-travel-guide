@@ -1698,3 +1698,53 @@ def validate_place_payload(place: PlaceModel):
                 if t not in valid_tag_keys:
                     raise HTTPException(status_code=400, detail=f"Thẻ ngữ cảnh '{t}' không tồn tại hoặc đã bị vô hiệu hóa trong hệ thống!")
 
+@app.post("/api/admin/places", dependencies=[Depends(require_admin)])
+def create_new_place(place: PlaceModel):
+    validate_place_payload(place)
+
+    # Kiểm tra chống trùng lặp đa lớp thông minh (Tên, Link Maps, Địa chỉ, GPS < 15m)
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, category, address, lat, lon, google_maps_url FROM places")
+    existing_places = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+
+    from backend.database import find_duplicate_place
+    dup_reason = find_duplicate_place(
+        place.name, place.address, place.lat, place.lon, place.google_maps_url, place.category, existing_places
+    )
+    if dup_reason:
+        raise HTTPException(status_code=400, detail=f"Địa điểm này đã tồn tại trong CSDL ({dup_reason})!")
+
+    new_p = add_place(place.model_dump())
+    return {"status": "ok", "place": new_p}
+
+@app.put("/api/admin/places/{place_id}", dependencies=[Depends(require_admin)])
+def modify_place(place_id: int, place: PlaceModel):
+    validate_place_payload(place)
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, category, address, lat, lon, google_maps_url FROM places")
+    existing_places = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+
+    from backend.database import find_duplicate_place
+    dup_reason = find_duplicate_place(
+        place.name, place.address, place.lat, place.lon, place.google_maps_url, place.category, existing_places, exclude_id=place_id
+    )
+    if dup_reason:
+        raise HTTPException(status_code=400, detail=f"Không thể cập nhật: Dữ liệu bị trùng lặp với địa điểm khác trong CSDL ({dup_reason})!")
+
+    updated = update_place(place_id, place.model_dump())
+    if not updated:
+        raise HTTPException(status_code=404, detail="Không tìm thấy địa điểm để cập nhật.")
+    return {"status": "ok", "place": updated}
+
+@app.delete("/api/admin/places/{place_id}", dependencies=[Depends(require_admin)])
+def remove_place(place_id: int):
+    delete_place(place_id)
+    return {"status": "ok", "message": "Đã xóa địa điểm thành công."}
+
+@app.post("/api/admin/places/{place_id}/toggle-hide", dependencies=[Depends(require_admin)])
+def toggle_admin_place_hide(place_id: int):
