@@ -568,3 +568,73 @@
               <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/90">
                 <label class="block text-xs font-bold text-slate-800 mb-2">4. Bạn đi chơi với ai? (Không gian phù hợp)</label>
                 <div class="grid grid-cols-4 gap-2 text-xs">
+                  <button type="button" onclick="selectAICompanion('di_1_minh')" id="comp_di_1_minh" class="companion-chip py-2 px-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">
+                    <span>Đi 1 mình</span>
+                  </button>
+                  <button type="button" onclick="selectAICompanion('nguoi_yeu')" id="comp_nguoi_yeu" class="companion-chip py-2 px-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">
+                    <span>Cặp đôi</span>
+                  </button>
+                  <button type="button" onclick="selectAICompanion('ban_be')" id="comp_ban_be" class="companion-chip active py-2 px-2 rounded-xl border-2 border-[#E11D48] bg-rose-50 font-bold text-[#E11D48] shadow-xs transition text-center cursor-pointer">
+                    <span>Nhóm bạn</span>
+                  </button>
+                  <button type="button" onclick="selectAICompanion('gia_dinh')" id="comp_gia_dinh" class="companion-chip py-2 px-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">
+                    <span>Gia đình</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 5. Số lượng điểm dừng chân (1 HÀNG NGANG 3 NÚT RỘNG RÃI) -->
+              <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/90">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-xs font-bold text-slate-800">5. Số lượng điểm dừng chân mong muốn</label>
+                  <span id="aiStopsDisplay" class="text-xs font-black text-[#E11D48]">3 trạm (Tiêu chuẩn)</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-xs">
+                  <button type="button" onclick="selectAIStops(2)" id="aistops_2" class="companion-chip py-2 px-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">
+                    <span>2 trạm (Nhanh gọn)</span>
+                  </button>
+                  <button type="button" onclick="selectAIStops(3)" id="aistops_3" class="companion-chip active py-2 px-3 rounded-xl border-2 border-[#E11D48] bg-rose-50 font-bold text-[#E11D48] shadow-xs transition text-center cursor-pointer">
+                    <span>3 trạm (Tiêu chuẩn)</span>
+                  </button>
+                  <button type="button" onclick="selectAIStops(4)" id="aistops_4" class="companion-chip py-2 px-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">
+                    <span>4 trạm (Khám phá)</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 6. Ngân sách dự kiến (1 HÀNG NGANG 4 NÚT RỘNG RÃI) -->
+              <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/90">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-xs font-bold text-slate-800">6. Ngân sách dự kiến của chuyến đi</label>
+                  <span id="aiBudgetValueDisplay" class="text-xs font-black text-[#E11D48]">250.000đ / người</span>
+                </div>
+                <div class="grid grid-cols-4 gap-2 text-xs mb-2">
+                  <button type="button" onclick="selectAIBudget('free', 0)" id="aibudget_free" class="companion-chip py-2 px-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">
+                    <span>Miễn phí (0đ)</span>
+                  </button>
+                  <button type="button" onclick="selectAIBudget('under_100k', 100000)" id="aibudget_under_100k" class="companion-chip py-2 px-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">
+                    <span>Dưới 100k</span>
+                  </button>
+                  <button type="button" onclick="selectAIBudget('100k_250k', 250000)" id="aibudget_100k_250k" class="companion-chip active py-2 px-2 rounded-xl border-2 border-[#E11D48] bg-rose-50 font-bold text-[#E11D48] shadow-xs transition text-center cursor-pointer">
+                    <span>100k – 250k</span>
+                  </button>
+                  <button type="button" onclick="selectAIBudget('above_250k', 500000)" id="aibudget_above_250k" class="companion-chip py-2 px-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">
+                    <span>Trên 250k</span>
+                  </button>
+                </div>
+                <input type="hidden" id="aiCustomBudget" value="" />
+              </div>
+
+              <!-- 7. Ghi chú riêng (Take note) -->
+              <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/90">
+                <label class="block text-xs font-bold text-slate-800 mb-1.5">7. Ghi chú &amp; Yêu cầu riêng (Take note)</label>
+                <input type="text" id="aiTakeNote" value="" placeholder="VD: Ưu tiên máy lạnh mát mẻ; Không ăn cay; Gửi xe thuận tiện..." class="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl font-medium text-slate-900 outline-none focus:border-[#E11D48] transition" />
+                <div class="flex gap-1.5 mt-2 flex-wrap text-[11px]">
+                  <span class="text-slate-400 font-semibold self-center">Gợi ý:</span>
+                  <button type="button" onclick="appendTakeNote('Ưu tiên có máy lạnh')" class="px-2 py-0.5 rounded-lg bg-white hover:bg-rose-50 text-slate-600 hover:text-[#E11D48] border border-slate-200 text-[11px] transition font-medium">Máy lạnh</button>
+                  <button type="button" onclick="appendTakeNote('Không gian yên tĩnh')" class="px-2 py-0.5 rounded-lg bg-white hover:bg-rose-50 text-slate-600 hover:text-[#E11D48] border border-slate-200 text-[11px] transition font-medium">Yên tĩnh</button>
+                  <button type="button" onclick="appendTakeNote('Chỗ đậu xe rộng rãi')" class="px-2 py-0.5 rounded-lg bg-white hover:bg-rose-50 text-slate-600 hover:text-[#E11D48] border border-slate-200 text-[11px] transition font-medium">Đậu xe dễ</button>
+                  <button type="button" onclick="appendTakeNote('Check-in chụp ảnh đẹp')" class="px-2 py-0.5 rounded-lg bg-white hover:bg-rose-50 text-slate-600 hover:text-[#E11D48] border border-slate-200 text-[11px] transition font-medium">Sống ảo đẹp</button>
+                </div>
+              </div>
+
