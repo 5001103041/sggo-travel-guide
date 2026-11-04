@@ -428,3 +428,73 @@
 
             <!-- Mức giá ngân sách -->
             <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 pl-1">Ngân sách</label>
+              <select id="allPriceFilter" onchange="filterAllPlaces()" class="editorial-select text-xs truncate w-full">
+                <option value="all">Mọi mức giá</option>
+                <option value="free">Miễn phí vé vào (0đ)</option>
+                <option value="under_50k">Dưới 50.000đ</option>
+                <option value="50k_100k">50.000đ – 100.000đ</option>
+                <option value="100k_250k">100.000đ – 250.000đ</option>
+                <option value="above_250k">Trên 250.000đ</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hàng 2: Sắp Xếp Riêng Biệt (Sort by - G6-FR02) -->
+        <div class="flex items-center justify-between pt-2.5 border-t border-slate-100 flex-wrap gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-arrow-down-short-wide text-[#E11D48]"></i> Sắp xếp kết quả:
+            </span>
+            <select id="allSortFilter" onchange="handleSortFilterChange()" class="editorial-select text-xs font-bold py-1.5 px-3 bg-white border border-slate-200 rounded-xl cursor-pointer">
+              <option value="default">Độ phù hợp (Mặc định)</option>
+              <option value="rating_desc">Đánh giá sao: Cao nhất</option>
+              <option value="price_asc">Mức giá: Thấp đến cao</option>
+              <option value="price_desc">Mức giá: Cao đến thấp</option>
+              <option value="distance_asc">Khoảng cách: Gần tôi nhất</option>
+              <option value="admin_pick">Địa điểm Admin đề cử</option>
+            </select>
+          </div>
+          <span id="tab2PlacesCountBadge" class="text-[11px] font-extrabold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+            Đang hiển thị <span id="filteredPlacesCount" class="font-black text-[#E11D48]">0</span> địa điểm
+          </span>
+        </div>
+      </div>
+
+      <!-- Thông báo bán kính (nếu có lọc khoảng cách GPS) -->
+      <div id="allPlacesCountBar" class="mb-4">
+        <div id="activeRadiusNotice" class="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full font-bold inline-block hidden"></div>
+      </div>
+
+      <!-- Danh sách thẻ quán 3 cột dọc thanh lịch -->
+      <div id="allPlacesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Render động từ JS -->
+      </div>
+    </main>
+
+    <!-- 3. LẬP LỊCH TRÌNH THÔNG MINH (TAB 3: 2 CỘT CUỘN ĐỘC LẬP - FULL VIEWPORT) -->
+    <main id="viewAI" class="w-full py-0 hidden lg:h-[calc(100vh-84px)] lg:max-h-[calc(100vh-84px)]">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-stretch lg:h-full">
+        
+        <!-- CỘT TRÁI: BẢNG ĐIỀU KHIỂN & BỘ LỌC LỘ TRÌNH (CUỘN RIÊNG) -->
+        <div id="colLeftPlanner" class="lg:col-span-5 xl:col-span-5 flex flex-col lg:h-full lg:overflow-hidden transition-all duration-200">
+          <div class="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col lg:h-full lg:overflow-hidden">
+            
+            <!-- Header Rộng Rãi (Ghim cố định ở đầu cột trái) -->
+            <div class="mb-3.5 pb-3 border-b border-slate-100 flex items-center justify-between shrink-0">
+              <div>
+                <span class="badge-step text-[10px]">ĐỊNH TUYẾN THÔNG MINH</span>
+                <h2 class="text-xl font-black text-slate-900 tracking-tight">Thiết Lập Lộ Trình</h2>
+              </div>
+              <!-- Nút thu gọn bảng điều khiển sang trái -->
+              <button type="button" onclick="togglePlannerSidebar()" id="btnCollapseSidebar" class="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-[#E11D48] text-slate-500 font-bold text-xs transition cursor-pointer" title="Thu gọn bảng điều khiển để mở rộng kết quả sang toàn màn hình">
+                <i class="fa-solid fa-angles-left text-xs"></i> <span>Thu gọn</span>
+              </button>
+            </div>
+
+            <!-- FORM LẬP LỊCH TRÌNH THOÁNG ĐÃNG (CUỘN ĐỘC LẬP ÊM ÁI) -->
+            <div class="space-y-3.5 flex-1 text-xs lg:overflow-y-auto custom-scrollbar pr-2 -mr-1">
+              
+              <!-- 1. Điểm xuất phát -->
+              <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/90">
