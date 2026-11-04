@@ -78,3 +78,73 @@
           </span>
           <button type="button" onclick="toggleFlowGpsPriority()" id="btnFlowToggleGps" class="text-[11px] font-bold px-3 py-1 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition flex items-center gap-1.5 shadow-2xs cursor-pointer select-none" title="Bấm 1 lần dùng chung GPS cho cả 3 Tab (Ưu tiên quán gần bạn)">
             <i class="fa-solid fa-location-crosshairs text-slate-400 text-xs"></i>
+            <span>Ưu tiên gần tôi (GPS)</span>
+          </button>
+        </div>
+
+        <!-- Khối Stepper 3 Bước: Cực kỳ vuông vắn, 3 cột đều đặn 100%, không bị chèn ép -->
+        <div id="flowSelectionSummary" class="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 shadow-xs grid grid-cols-3 gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold">
+          <!-- Bước 1 -->
+          <div id="summaryCategory" onclick="goBackStep(1)" class="cursor-pointer py-1.5 px-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:border-[#E11D48] hover:bg-rose-50/60 transition flex items-center justify-center gap-1 text-center truncate" title="Bấm để chọn lại Mục đích">
+            <span class="truncate">1. Mục đích</span>
+          </div>
+
+          <!-- Bước 2 -->
+          <div id="summaryContext" onclick="goBackStep(2)" class="cursor-pointer py-1.5 px-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:border-[#E11D48] hover:bg-rose-50/60 transition flex items-center justify-center gap-1 text-center truncate" title="Bấm để chọn lại Đi cùng">
+            <span class="truncate">2. Đi cùng</span>
+          </div>
+
+          <!-- Bước 3 -->
+          <div id="summaryBudget" onclick="goBackStep(3)" class="cursor-pointer py-1.5 px-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:border-[#E11D48] hover:bg-rose-50/60 transition flex items-center justify-center gap-1 text-center truncate" title="Bấm để chọn lại Ngân sách">
+            <span class="truncate">3. Ngân sách</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BƯỚC 1: DẠNG FLASHCARD 2 BÊN [ĐI ĂN] VS [ĐI CHƠI] (TINH GỌN, TRỰC QUAN) -->
+      <div id="step1" class="step-card max-w-2xl mx-auto">
+        <div class="text-center mb-7">
+          <span class="badge-step">BƯỚC 1/3 • MỤC ĐÍCH HÔM NAY</span>
+          <h2 class="text-2xl md:text-3xl font-black text-slate-900 mt-2 tracking-tight">
+            Bạn muốn ra đường để...
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Flashcard ĐI ĂN -->
+          <div onclick="selectAnswer('category', 'an_uong', 2)" class="flashcard-binary group">
+            <div class="flashcard-icon-box bg-orange-50 text-[#E11D48]">
+              <i class="fa-solid fa-utensils"></i>
+            </div>
+            <h3 class="font-black text-xl text-slate-900 group-hover:text-[#E11D48] transition-colors">
+              ĐI ĂN
+            </h3>
+            <span class="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#E11D48] bg-orange-50 px-3.5 py-1.5 rounded-full group-hover:bg-[#E11D48] group-hover:text-white transition-all">
+              <span>Khám phá món ngon</span>
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </span>
+          </div>
+
+          <!-- Flashcard ĐI CHƠI -->
+          <div onclick="selectAnswer('category', 'di_choi', 2)" class="flashcard-binary group">
+            <div class="flashcard-icon-box bg-teal-50 text-teal-700">
+              <i class="fa-solid fa-compass"></i>
+            </div>
+            <h3 class="font-black text-xl text-slate-900 group-hover:text-[#E11D48] transition-colors">
+              ĐI CHƠI
+            </h3>
+            <span class="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 px-3.5 py-1.5 rounded-full group-hover:bg-teal-700 group-hover:text-white transition-all">
+              <span>Thưởng ngoạn cảnh sắc</span>
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BƯỚC 2: ĐỒNG HÀNH (DẠNG FLASHCARD TINH GIẢN) -->
+      <div id="step2" class="step-card hidden max-w-xl mx-auto">
+        <div class="text-center mb-6">
+          <button onclick="goBackStep(1)" class="back-link">
+            <i class="fa-solid fa-arrow-left text-[11px]"></i> Quay lại bước 1
+          </button>
+          <span class="badge-step block mt-2">BƯỚC 2/3 • ĐỒNG HÀNH</span>
