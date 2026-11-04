@@ -498,3 +498,73 @@
               
               <!-- 1. Điểm xuất phát -->
               <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/90">
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-xs font-bold text-slate-800">1. Điểm xuất phát của bạn</label>
+                  <button type="button" onclick="getCurrentGPSLocation()" id="btnGetGPS" class="text-[11px] font-bold text-[#E11D48] hover:text-[#BE123C] flex items-center gap-1 transition">
+                    <i class="fa-solid fa-location-crosshairs"></i> <span>Dùng GPS hiện tại</span>
+                  </button>
+                </div>
+                <div class="relative">
+                  <input type="text" id="aiStartLoc" value="280 An Dương Vương, TP.HCM" placeholder="VD: ĐH Sư Phạm TP.HCM, Chợ An Đông, Chợ Bến Thành..." class="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-[#E11D48] pr-8" />
+                  <span id="gpsStatusIcon" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-600 text-xs font-bold" title="Tọa độ GPS chính xác"><i class="fa-solid fa-circle-check"></i></span>
+                </div>
+                <div class="flex gap-2 mt-2 flex-wrap text-[11px]">
+                  <span class="text-slate-400 font-semibold self-center">Gợi ý mốc:</span>
+                  <button type="button" onclick="setStartLocation('Chợ Bến Thành, Quận 1')" class="text-slate-600 hover:text-[#E11D48] underline font-medium">Chợ Bến Thành</button>
+                  <button type="button" onclick="setStartLocation('Nhà Thờ Đức Bà, Quận 1')" class="text-slate-600 hover:text-[#E11D48] underline font-medium">Nhà Thờ Đức Bà</button>
+                  <button type="button" onclick="setStartLocation('280 An Dương Vương, TP.HCM')" class="text-slate-600 hover:text-[#E11D48] underline font-medium">ĐH Sư Phạm</button>
+                  <button type="button" onclick="setStartLocation('Chợ An Đông, TP.HCM')" class="text-slate-600 hover:text-[#E11D48] underline font-medium">Chợ An Đông</button>
+                </div>
+              </div>
+
+              <!-- 2. Khung giờ rảnh -->
+              <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/90">
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-xs font-bold text-slate-800">2. Khung giờ rảnh của bạn</label>
+                  <span class="text-[11px] text-slate-400 font-medium">Hệ thống tự tính thời lượng</span>
+                </div>
+                <div class="grid grid-cols-12 gap-2.5 items-center">
+                  <div class="col-span-4">
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Giờ xuất phát</label>
+                    <input type="time" id="aiStartTime" value="14:00" onchange="onTimePickerChange()" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-900 outline-none focus:border-[#E11D48]" />
+                  </div>
+                  <div class="col-span-4">
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Giờ kết thúc</label>
+                    <input type="time" id="aiEndTime" value="18:30" onchange="onTimePickerChange()" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-900 outline-none focus:border-[#E11D48]" />
+                  </div>
+                  <div class="col-span-4">
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Quỹ thời gian</label>
+                    <div class="px-2.5 py-1.5 bg-rose-50 border border-rose-200 rounded-xl text-xs font-black text-[#E11D48] truncate text-center">
+                      <span id="aiFreeTimeDisplay">4h 30p (270 phút)</span>
+                    </div>
+                  </div>
+                </div>
+                <input type="hidden" id="aiTime" value="14:00 - 18:30" />
+                <div class="flex gap-1.5 mt-2 flex-wrap text-[11px]">
+                  <span class="text-slate-400 font-semibold self-center">Chọn nhanh:</span>
+                  <button type="button" onclick="setFreeTimePreset('14:00', '18:30')" class="px-2.5 py-1 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-[#E11D48] border border-slate-200 transition font-medium">Chiều nay (14h-18h30)</button>
+                  <button type="button" onclick="setFreeTimePreset('18:30', '22:30')" class="px-2.5 py-1 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-[#E11D48] border border-slate-200 transition font-medium">Tối nay (18h30-22h30)</button>
+                  <button type="button" onclick="setFreeTimePreset('08:00', '12:30')" class="px-2.5 py-1 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-[#E11D48] border border-slate-200 transition font-medium">Sáng mai (8h-12h30)</button>
+                </div>
+              </div>
+
+              <!-- 3. Mục đích chuyến đi (1 HÀNG NGANG 3 NÚT RỘNG RÃI) -->
+              <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/90">
+                <label class="block text-xs font-bold text-slate-800 mb-2">3. Bạn muốn đi đâu hôm nay? (Mục đích chuyến đi)</label>
+                <div class="grid grid-cols-3 gap-2 text-xs">
+                  <button type="button" onclick="selectAIPurpose('an_uong')" id="purp_an_uong" class="purpose-chip py-2 px-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">
+                    <span>Ăn uống</span>
+                  </button>
+                  <button type="button" onclick="selectAIPurpose('di_choi')" id="purp_di_choi" class="purpose-chip py-2 px-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer">
+                    <span>Tham quan & Vui chơi</span>
+                  </button>
+                  <button type="button" onclick="selectAIPurpose('ca_hai')" id="purp_ca_hai" class="purpose-chip active py-2 px-3 rounded-xl border-2 border-[#E11D48] bg-rose-50 font-bold text-[#E11D48] shadow-xs transition text-center cursor-pointer">
+                    <span>Kết hợp cả hai</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 4. Bạn đi chơi với ai? (1 HÀNG NGANG 4 NÚT RỘNG RÃI) -->
+              <div class="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/90">
+                <label class="block text-xs font-bold text-slate-800 mb-2">4. Bạn đi chơi với ai? (Không gian phù hợp)</label>
+                <div class="grid grid-cols-4 gap-2 text-xs">
