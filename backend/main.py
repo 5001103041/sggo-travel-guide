@@ -1348,3 +1348,53 @@ QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
 
     # 6. Tạo đường link Google Maps Multi-stop dẫn đường xe máy liên hoàn
     lat0, lon0 = start_lat, start_lon
+    dest_p = optimized_places[-1]
+    if len(optimized_places) > 1:
+        waypoints_str = "|".join(f"{p['lat']},{p['lon']}" for p in optimized_places[:-1])
+        gmaps_multi_url = (
+            f"https://www.google.com/maps/dir/?api=1"
+            f"&origin={lat0},{lon0}"
+            f"&destination={dest_p['lat']},{dest_p['lon']}"
+            f"&waypoints={waypoints_str}"
+            f"&travelmode=two_wheeler"
+        )
+    else:
+        gmaps_multi_url = (
+            f"https://www.google.com/maps/dir/?api=1"
+            f"&origin={lat0},{lon0}"
+            f"&destination={dest_p['lat']},{dest_p['lon']}"
+            f"&travelmode=two_wheeler"
+        )
+
+    # 7. Xây dựng dữ liệu Timeline chi tiết & Phân bổ thời gian thực tế (Thời gian chạy xe biến thiên theo giờ cao điểm + Dừng chân theo quỹ thời gian)
+    time_matches = re.findall(r'(\d{1,2})[:hH](\d{0,2})', req.free_time)
+    if time_matches:
+        clock_cursor = int(time_matches[0][0]) * 60 + int(time_matches[0][1] or 0)
+    else:
+        clock_cursor = 14 * 60
+
+    # Bước 7.1: Định tuyến OSRM / Haversine chuẩn & Tính thời gian biến thiên theo giao thông TP.HCM
+    all_stop_coords = [(start_lat, start_lon)] + [(float(p.get("lat") or start_lat), float(p.get("lon") or start_lon)) for p in optimized_places]
+    osrm_legs = get_osrm_route_legs(all_stop_coords)
+    is_osrm_active = bool(osrm_legs and len(osrm_legs) == len(optimized_places))
+    routing_source = "osrm" if is_osrm_active else "haversine"
+    routing_warning = None
+    if not is_osrm_active:
+        routing_warning = "Không thể kết nối máy chủ định tuyến đường phố OpenStreetMap (OSRM). Hệ thống đã tự động chuyển sang đo khoảng cách Haversine chuẩn trắc địa."
+
+    temp_cursor = clock_cursor
+    travel_data = []
+    curr_lat, curr_lon = start_lat, start_lon
+    total_dist = 0.0
+    total_t_min = 0
+
+    for idx, spot in enumerate(optimized_places):
+        p_lat = float(spot.get("lat") or curr_lat)
+        p_lon = float(spot.get("lon") or curr_lon)
+        if is_osrm_active:
+            dist = osrm_legs[idx]
+        else:
+            raw_h_dist = calculate_haversine_distance(curr_lat, curr_lon, p_lat, p_lon)
+            dist = round(raw_h_dist, 2)  # Haversine chuẩn thuần túy, tuyệt đối KHÔNG nhân 1.25
+        t_min, traf_note, traf_badge = calculate_traffic_speed_model(dist, temp_cursor)
+        travel_data.append((dist, t_min, traf_note, traf_badge))
