@@ -1148,3 +1148,53 @@ QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
 
    Lý do lựa chọn lộ trình:
    • Vì sao chọn [Tên trạm 1]: [Nêu lý do đắt giá và cụ thể: không gian, phong cách, vibe hợp với {companion_str} ra sao và đáp ứng take note thế nào]
+   • Vì sao chọn [Tên trạm 2]: [Nêu lý do đắt giá và cụ thể về quán/điểm này]
+   (Nếu có trạm 3, 4 thì tiếp tục: • Vì sao chọn [Tên trạm X]: ...)
+   • Logic kết hợp lộ trình: [Giải thích logic dòng chảy trải nghiệm (flow): tại sao đi trạm này trước rồi sang trạm kia sau; sự chuyển tiếp nhịp điệu từ hoạt động này sang hoạt động kia tự nhiên thế nào; tiện đường xe máy mà không bị ngược hướng]
+
+   CÁC ĐIỀU CẤM KỴ KHI VIẾT `overall_advice`:
+   1. TUYỆT ĐỐI KHÔNG LẶP LẠI CHI PHÍ & THỜI LƯỢNG RẢNH (CẤM các câu như "chi phí tiết kiệm dưới Xđ", "hoàn toàn phù hợp ngân sách và thời lượng rảnh..."). Giao diện đã có bảng đo lường KPI riêng, không nhại lại!
+   2. TUYỆT ĐỐI KHÔNG DÙNG CÂU KHẨU HIỆU SÁO RỖNG, QUẢNG CÁO NGÔ NGHÊ như: "kết hợp hoàn hảo", "cực kỳ tiết kiệm", "văn hóa tâm linh về đêm", "thỏa mãn tuyệt đối", "hứa hẹn mang lại". Hãy dùng văn phong am hiểu, tự nhiên, sắc sảo của một người bạn Sài Gòn thực thụ!
+   3. KẾT THÚC NGAY SAU DÒNG '• Logic kết hợp lộ trình'. TUYỆT ĐỐI KHÔNG thêm bất kỳ mục nào khác như 'Cân đối chi phí', 'Chi phí' hay 'Thời lượng'.
+6. RÀNG BUỘC NGÂN SÁCH: Tổng chi phí ước tính các trạm PHẢI NẰM TRONG ngân sách {target_budget:,}đ.
+7. Chọn chính xác {num_stops} địa điểm từ danh sách trên theo thứ tự hợp lý và chia khung giờ cụ thể nằm trọn trong "{req.free_time}".
+8. Trả về ĐÚNG định dạng JSON sau (không dùng bất kỳ chữ nào ngoài JSON):
+{{
+  "selected_ids": [{", ".join(f"id{i+1}" for i in range(num_stops))}],
+  "overall_advice": "Văn bản phân tích lộ trình trình bày xuống dòng mạch lạc như hướng dẫn ở mục 5",
+  "stops": [
+    {{
+      "place_id": id1,
+      "time_slot": "hh:mm - hh:mm",
+      "action_title": "Tiêu đề chặng ngắn gọn",
+      "recommended_dwell_min": 60,
+      "must_try_tip": "Món ăn ruột trích xuất thật từ review (nếu là quán ăn) hoặc việc nên làm (nếu là điểm đi chơi)"
+    }}
+  ]
+}}
+"""
+        models_to_try = [model_choice] + [m for m in ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash", "gemini-flash-latest"] if m != model_choice]
+        for model_name in models_to_try:
+            try:
+                res = ai_client.models.generate_content(
+                    model=model_name,
+                    contents=prompt
+                )
+                if res and res.text:
+                    raw_text = res.text.strip()
+                    clean_json = raw_text
+                    if "```json" in clean_json:
+                        clean_json = clean_json.split("```json")[1].split("```")[0].strip()
+                    elif "```" in clean_json:
+                        clean_json = clean_json.split("```")[1].split("```")[0].strip()
+                    
+                    parsed = json.loads(clean_json)
+                    s_ids = parsed.get("selected_ids", [])
+                    if len(s_ids) >= num_stops and all(pid in places_by_id for pid in s_ids[:num_stops]) and len(set(s_ids[:num_stops])) == num_stops:
+                        chosen_cats = [places_by_id[pid].get("category") for pid in s_ids[:num_stops]]
+                        if req.purpose == "an_uong" and any(c != "an_uong" for c in chosen_cats):
+                            continue
+                        elif req.purpose == "di_choi" and any(c != "di_choi" for c in chosen_cats):
+                            continue
+                        elif req.purpose == "ca_hai" and ("an_uong" not in chosen_cats or "di_choi" not in chosen_cats):
+                            continue
