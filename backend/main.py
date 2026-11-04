@@ -1198,3 +1198,53 @@ QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
                             continue
                         elif req.purpose == "ca_hai" and ("an_uong" not in chosen_cats or "di_choi" not in chosen_cats):
                             continue
+                        selected_ids = s_ids[:num_stops]
+                        overall_advice = parsed.get("overall_advice", "")
+                        for st in parsed.get("stops", []):
+                            gemini_stops_info[st.get("place_id")] = st
+                        actual_model = model_name
+                        ai_status = "success"
+                        break
+            except Exception:
+                continue
+
+    # 4. Fallback phòng hộ nếu Gemini AI không kết nối được hoặc dùng Rule-Based Heuristic
+    if len(selected_ids) < num_stops:
+        ai_status = "fallback"
+        actual_model = "rule_based"
+        candidates = list(open_purpose_places)
+
+        # Lọc theo ngân sách (G6-FR05 MUST): Đảm bảo các trạm không có giá vượt quá ngân sách
+        if req.budget_level == "free" or target_budget == 0:
+            free_cands = [p for p in candidates if (p.get("min_price") or 0) == 0 and (p.get("max_price") or 0) == 0]
+            if len(free_cands) >= num_stops:
+                candidates = free_cands
+        elif target_budget > 0:
+            max_single_cost = int(target_budget * 0.65)
+            budget_filtered = [
+                p for p in candidates 
+                if (p.get("min_price") or 0) <= max_single_cost or ((p.get("min_price") or 0) == 0 and (p.get("max_price") or 0) == 0)
+            ]
+            if len(budget_filtered) >= num_stops:
+                candidates = budget_filtered
+
+        # Xáo trộn danh sách ứng viên theo shuffle_seed (G6-FR06: Xáo trộn/Đổi phương án khác)
+        if req.shuffle_seed and req.shuffle_seed > 0:
+            shift = (req.shuffle_seed * 4) % max(1, len(candidates))
+            candidates = candidates[shift:] + candidates[:shift]
+
+        # Lọc loại trừ theo Take note
+        if req.takenote:
+            tn_clean = remove_accent(req.takenote).lower()
+            filtered_cands = []
+            for p in candidates:
+                raw_name = p.get("name", "")
+                base_name = raw_name.split("(")[0].strip()
+                norm_full = remove_accent(raw_name).lower()
+                norm_base = remove_accent(base_name).lower()
+
+                is_excluded = False
+                if (norm_base and norm_base in tn_clean) or (norm_full and norm_full in tn_clean):
+                    is_excluded = True
+                else:
+                    words = [w for w in norm_base.split() if len(w) > 1]
