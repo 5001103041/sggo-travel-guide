@@ -2228,3 +2228,23 @@ def admin_toggle_tag(tag_id: int, payload: dict = Body(...)):
     if not success:
         raise HTTPException(status_code=404, detail="Không tìm thấy tag")
     return {"status": "success", "tag_id": tag_id, "is_active": is_active}
+
+
+
+
+@app.get("/api/itineraries")
+def api_get_user_itineraries(user_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM itineraries WHERE user_id = ? ORDER BY id DESC", (user_id,))
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return {"status": "ok", "itineraries": rows}
+
+# ==============================================================================
+# PHỤC VỤ GIAO DIỆN FRONTEND TĨNH (STATIC MOUNT)
+# ==============================================================================
+
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+if os.path.exists(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
