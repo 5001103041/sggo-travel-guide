@@ -538,3 +538,96 @@ select option {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
   outline: none;
+}
+
+.custom-dropdown-trigger:hover {
+  border-color: #CBD5E1;
+  background-color: #F8FAFC;
+}
+
+.custom-dropdown-trigger.is-active,
+.custom-dropdown-trigger:focus {
+  border-color: #E11D48;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
+  background-color: #FFFFFF;
+}
+
+.custom-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 16px;
+  box-shadow: 0 12px 28px -5px rgba(15, 23, 42, 0.14), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+  padding: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  animation: customDropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes customDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.custom-dropdown-item {
+  padding: 8.5px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.custom-dropdown-item:hover {
+  background-color: #FFF1F2;
+  color: #E11D48;
+}
+
+.custom-dropdown-item.is-selected {
+  background-color: #FFE4E6;
+  color: #BE123C;
+  font-weight: 800;
+}
+
+/* ==================== CUSTOM SLIM SCROLLBAR ==================== */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #E2E8F0;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #CBD5E1;
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #E2E8F0 transparent;
+}
+
+/* Khóa cuộn trang toàn cục trên màn hình desktop khi ở Tab Lập Lịch Trình */
+@media (min-width: 1024px) {
+  body.ai-tab-active {
+    overflow: hidden !important;
+    height: 100vh !important;
+  }
+}
