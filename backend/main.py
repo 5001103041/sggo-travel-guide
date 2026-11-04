@@ -1848,3 +1848,53 @@ def extract_real_place_chrome(target_url: str) -> dict:
                 try:
                     details["open_time"] = to_24h(m_time.group(1), m_time.group(2), m_time.group(3))
                     details["close_time"] = to_24h(m_time.group(4), m_time.group(5), m_time.group(6))
+                except Exception:
+                    pass
+
+        return details
+    except Exception:
+        pass
+    return {}
+
+@app.post("/api/admin/extract-gmaps", dependencies=[Depends(require_admin)])
+def extract_gmaps_info(req: ExtractGmapsRequest):
+    raw_input = req.url_or_query.strip()
+    if not raw_input:
+        raise HTTPException(status_code=400, detail="Vui lòng dán liên kết Google Maps vào ô nhập liệu.")
+
+    extracted_name = ""
+    extracted_address = ""
+    extracted_district = "TP.HCM"
+    extracted_lat = None
+    extracted_lon = None
+    extracted_image = ""
+    extracted_rating = None
+    extracted_reviews_count = None
+    extracted_open_time = ""
+    extracted_close_time = ""
+
+    target_url = raw_input
+    text_before = ""
+    m_url = re.search(r'https?://[^\s]+', raw_input)
+    if m_url:
+        target_url = m_url.group(0).rstrip(")>]\"'")
+        text_before = raw_input.replace(m_url.group(0), "").strip(" ·,-\n\t")
+    elif target_url.startswith("google.com") or target_url.startswith("www.google.com") or target_url.startswith("maps.google.com"):
+        target_url = "https://" + target_url
+
+    is_url = (target_url.startswith("http://") or 
+              target_url.startswith("https://") or 
+              "maps." in target_url or 
+              "goo.gl" in target_url or 
+              "google.com" in target_url)
+
+    if not is_url:
+        raise HTTPException(
+            status_code=400, 
+            detail="Hệ thống chỉ hỗ trợ bóc tách từ đường link Google Maps hợp lệ (đã ngừng chức năng nhập tên quán để tránh dữ liệu sai lệch). Quý Admin vui lòng dán đúng đường link Google Maps hoặc tự nhập thông tin vào form bên dưới."
+        )
+
+    # Nếu người dùng copy nguyên đoạn chia sẻ có sẵn tên và địa chỉ
+    if text_before:
+        parts = [p.strip() for p in re.split(r'[·–—|]|\s*-\s*', text_before) if p.strip()]
+        if len(parts) >= 2:
