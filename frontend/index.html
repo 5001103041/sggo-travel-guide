@@ -148,3 +148,73 @@
             <i class="fa-solid fa-arrow-left text-[11px]"></i> Quay lại bước 1
           </button>
           <span class="badge-step block mt-2">BƯỚC 2/3 • ĐỒNG HÀNH</span>
+          <h2 class="text-xl md:text-2xl font-black text-slate-900 mt-1.5 tracking-tight">
+            Đi cùng với ai hôm nay?
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3.5">
+          <div onclick="selectAnswer('context', 'di_1_minh', 3)" class="flashcard-option group text-center p-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-base mx-auto mb-2 group-hover:bg-orange-50 group-hover:text-[#E11D48] transition">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <h3 class="font-extrabold text-sm text-slate-900 group-hover:text-[#E11D48]">Đi một mình</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Yên tĩnh, chill phố</p>
+          </div>
+
+          <div onclick="selectAnswer('context', 'nguoi_yeu', 3)" class="flashcard-option group text-center p-4">
+            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-base mx-auto mb-2 group-hover:scale-110 transition">
+              <i class="fa-solid fa-heart"></i>
+            </div>
+            <h3 class="font-extrabold text-sm text-slate-900 group-hover:text-[#E11D48]">Hẹn hò cặp đôi</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Lãng mạn, ấm cúng</p>
+          </div>
+
+          <div onclick="selectAnswer('context', 'ban_be', 3)" class="flashcard-option group text-center p-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-base mx-auto mb-2 group-hover:scale-110 transition">
+              <i class="fa-solid fa-users"></i>
+            </div>
+            <h3 class="font-extrabold text-sm text-slate-900 group-hover:text-[#E11D48]">Nhóm bạn</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Rôm rả, ăn uống</p>
+          </div>
+
+          <div onclick="selectAnswer('context', 'gia_dinh', 3)" class="flashcard-option group text-center p-4">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base mx-auto mb-2 group-hover:scale-110 transition">
+              <i class="fa-solid fa-people-roof"></i>
+            </div>
+            <h3 class="font-extrabold text-sm text-slate-900 group-hover:text-[#E11D48]">Gia đình</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Rộng rãi, lịch sự</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BƯỚC 3: NGÂN SÁCH (DẠNG FLASHCARD TINH GIẢN) -->
+      <div id="step3" class="step-card hidden max-w-xl mx-auto">
+        <div class="text-center mb-6">
+          <button onclick="goBackStep(2)" class="back-link">
+            <i class="fa-solid fa-arrow-left text-[11px]"></i> Quay lại bước 2
+          </button>
+          <span class="badge-step block mt-2">BƯỚC 3/3 • NGÂN SÁCH</span>
+          <h2 class="text-xl md:text-2xl font-black text-slate-900 mt-1.5 tracking-tight">
+            Ngân sách mỗi người?
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+          <div onclick="selectAnswer('price_level', 'free', 'finish')" class="flashcard-option group p-3.5">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold flex-shrink-0 group-hover:bg-emerald-100">
+                <i class="fa-solid fa-gift"></i>
+              </div>
+              <div>
+                <h3 class="font-extrabold text-xs sm:text-sm text-slate-900 group-hover:text-[#E11D48]">Miễn phí (0đ)</h3>
+                <p class="text-[11px] text-slate-400">Check-in, ngắm cảnh</p>
+              </div>
+            </div>
+          </div>
+
+          <div onclick="selectAnswer('price_level', 'under_50k', 'finish')" class="flashcard-option group p-3.5">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-sm font-bold flex-shrink-0 group-hover:bg-orange-50 group-hover:text-[#E11D48]">
+                <i class="fa-solid fa-coins"></i>
+              </div>
