@@ -2148,3 +2148,53 @@ def import_csv_places(req: ImportCSVRequest):
 def import_excel_places(req: ImportCSVRequest):
     return import_csv_places(req)
 
+@app.get("/api/admin/import-logs", dependencies=[Depends(require_admin)])
+def admin_get_import_logs(limit: int = 10):
+    return get_import_logs(limit=limit)
+
+@app.get("/api/admin/stats", dependencies=[Depends(require_admin)])
+def get_admin_stats():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM places")
+    total_places = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM places WHERE is_verified = 1")
+    verified_places = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM users")
+    total_users = cursor.fetchone()[0]
+    conn.close()
+    return {
+        "total_places": total_places,
+        "verified_places": verified_places,
+        "total_users": total_users
+    }
+
+@app.get("/api/admin/users", dependencies=[Depends(require_admin)])
+def admin_get_users():
+    return get_all_users()
+
+@app.put("/api/admin/users/{user_id}/role", dependencies=[Depends(require_admin)])
+def admin_update_user_role(user_id: int, req: UserRoleUpdate):
+    ok, msg = update_user_role(user_id, req.role)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"status": "ok", "message": msg}
+
+@app.delete("/api/admin/users/{user_id}", dependencies=[Depends(require_admin)])
+def admin_delete_user(user_id: int):
+    ok, msg = delete_user(user_id)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"status": "ok", "message": msg}
+
+
+# ==========================================
+# API QUẢN LÝ TAG & BỘ LỌC (G6-FR08 & Section 5 ERD)
+# ==========================================
+@app.get("/api/admin/tags", dependencies=[Depends(require_admin)])
+def admin_get_tags():
+    """API lấy danh sách toàn bộ tag cùng số lượng quán sử dụng (G6-FR08)"""
+    return {"status": "success", "tags": get_all_tags()}
+
+@app.post("/api/admin/tags", dependencies=[Depends(require_admin)])
+def admin_add_tag(req: TagCreateRequest):
