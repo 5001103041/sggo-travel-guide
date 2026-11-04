@@ -1498,3 +1498,53 @@ QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
             "id": spot.get("id"),
             "name": spot.get("name"),
             "category": spot.get("category"),
+            "address": spot.get("address"),
+            "district": spot.get("district"),
+            "rating": spot.get("rating"),
+            "reviews_count": spot.get("reviews_count"),
+            "google_maps_url": spot.get("google_maps_url"),
+            "min_price": p_min_cost,
+            "max_price": p_max_cost,
+            "open_time": spot.get("open_time"),
+            "close_time": spot.get("close_time"),
+            "time": slot_time,
+            "action": action_title,
+            "location": f"{spot['name']} — {spot.get('address')} ⭐ {spot.get('rating')}".strip(),
+            "travel_info": f"Di chuyển ~{dist} km (~{t_min} phút xe máy, dừng ~{dwell_min} phút)",
+            "traffic_warning": traffic_warning,
+            "peak_hours": spot_peak,
+            "is_peak_hour": is_peak,
+            "peak_warning": peak_warning,
+            "ai_reason": ai_reason,
+            "rule_explanation": rule_explanation,
+            "academic_group": dwell_group_labels[idx] if idx < len(dwell_group_labels) else None,
+            "must_try_tip": must_try_tip,
+            "image_url": spot.get("image_url"),
+            "open_hours": f"{spot.get('open_time')} - {spot.get('close_time')}",
+            "price_range": f"{p_min_cost:,}đ - {p_max_cost:,}đ" if (p_min_cost > 0 or p_max_cost > 0) else "Miễn phí",
+            "lat": p_lat,
+            "lon": p_lon,
+            "dist": dist,
+            "t_min": t_min,
+            "dwell_min": dwell_min
+        }
+        steps.append(step_dict)
+        curr_lat, curr_lon = p_lat, p_lon
+
+        stops_db_data.append({
+            "place_id": spot.get("id"),
+            "stop_order": idx + 1,
+            "time_slot": slot_time,
+            "action_title": action_title,
+            "travel_distance_km": dist,
+            "travel_time_minutes": t_min,
+            "estimated_cost_min": p_min_cost,
+            "estimated_cost_max": p_max_cost
+        })
+
+    # Tính tổng ngân sách & tổng thời gian (G6-FR05 MUST)
+    total_min_cost = sum(spot.get("min_price", 0) for spot in optimized_places)
+    total_max_cost = sum(spot.get("max_price", 0) for spot in optimized_places)
+    total_dwell_mins = sum(proportional_dwells)
+    total_duration_minutes = total_t_min + total_dwell_mins
+
