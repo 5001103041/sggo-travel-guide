@@ -2198,3 +2198,33 @@ def admin_get_tags():
 
 @app.post("/api/admin/tags", dependencies=[Depends(require_admin)])
 def admin_add_tag(req: TagCreateRequest):
+    """API thêm tag mới vào hệ thống (G6-FR08)"""
+    res = add_tag(req.tag_key, req.name, req.tier_type)
+    if res.get("status") == "error":
+        raise HTTPException(status_code=400, detail=res.get("message"))
+    return res
+
+@app.put("/api/admin/tags/{tag_id}", dependencies=[Depends(require_admin)])
+def admin_update_tag(tag_id: int, req: TagUpdateRequest):
+    """API cập nhật thông tin tag (G6-FR08)"""
+    success = update_tag(tag_id, req.name, req.is_active)
+    if not success:
+        raise HTTPException(status_code=404, detail="Không tìm thấy tag")
+    return {"status": "success", "tag_id": tag_id}
+
+@app.delete("/api/admin/tags/{tag_id}", dependencies=[Depends(require_admin)])
+def admin_delete_tag(tag_id: int):
+    """API xóa tag khỏi hệ thống (G6-FR08)"""
+    success = delete_tag(tag_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Không tìm thấy tag")
+    return {"status": "success", "tag_id": tag_id}
+
+@app.post("/api/admin/tags/{tag_id}/toggle", dependencies=[Depends(require_admin)])
+def admin_toggle_tag(tag_id: int, payload: dict = Body(...)):
+    """API bật/tắt trạng thái tag (G6-FR08)"""
+    is_active = int(payload.get("is_active", 1))
+    success = toggle_tag_active(tag_id, is_active)
+    if not success:
+        raise HTTPException(status_code=404, detail="Không tìm thấy tag")
+    return {"status": "success", "tag_id": tag_id, "is_active": is_active}
