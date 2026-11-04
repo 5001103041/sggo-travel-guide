@@ -1048,3 +1048,53 @@ def generate_itinerary(req: ItineraryRequest, x_user_id: Optional[str] = Header(
             c_score += 25.0 - (dist_from_start / 3.0) * 5.0
         elif dist_from_start <= 7.0:
             c_score += 20.0 - ((dist_from_start - 3.0) / 4.0) * 8.0
+        else:
+            c_score += max(0.0, 12.0 - (dist_from_start - 7.0))
+
+        # 3. Điểm đánh giá sao & lượt review
+        rating = float(p.get("rating", 4.0))
+        reviews_count = int(p.get("reviews_count", 0))
+        c_score += (rating - 4.0) * 4.0 + math.log10(reviews_count + 1) * 2.0
+
+        scored_candidates.append((c_score, p))
+
+    scored_candidates.sort(key=lambda x: x[0], reverse=True)
+    if req.purpose == "ca_hai":
+        play_cands = [item[1] for item in scored_candidates if item[1].get("category") == "di_choi"]
+        eat_cands = [item[1] for item in scored_candidates if item[1].get("category") == "an_uong"]
+        if play_cands and eat_cands:
+            # Top 10 vui chơi + Top 10 ăn uống để đảm bảo Gemini có cả hai thể loại để lựa chọn
+            top_candidates = play_cands[:10] + eat_cands[:10]
+        else:
+            top_candidates = [item[1] for item in scored_candidates[:20]]
+    else:
+        top_candidates = [item[1] for item in scored_candidates[:20]]
+
+    if len(top_candidates) < num_stops:
+        top_candidates = open_purpose_places[:20]
+
+    # Tạo tóm tắt Top 20 quán để đưa vào Gemini AI (Kèm đầy đủ bình luận Khen / Chê thực tế)
+    places_lines = []
+    for p in top_candidates:
+        cat = "Ẩm thực" if p.get("category") == "an_uong" else "Đi chơi/Di tích"
+        best_c = (p.get("best_review") or "").replace("\n", " ").strip()
+        worst_c = (p.get("worst_review") or "").replace("\n", " ").strip()
+        if len(best_c) > 130:
+            best_c = best_c[:130] + "..."
+        if len(worst_c) > 100:
+            worst_c = worst_c[:100] + "..."
+        price_str = f"{p.get('min_price', 0):,}đ - {p.get('max_price', 0):,}đ"
+        peak_str = (p.get("peak_hours") or "").strip()
+        info = f"ID {p['id']}: {p['name']} | Thể loại: {cat} | Giá: {price_str} | Giờ mở: {p.get('open_time')}-{p.get('close_time')} | Đánh giá: {p.get('rating')}⭐ ({p.get('reviews_count', 0)} đánh giá)"
+        if peak_str:
+            info += f" | Giờ cao điểm quán: {peak_str}"
+        if best_c:
+            info += f" | Khách khen/Món ngon: \"{best_c}\""
+        if worst_c:
+            info += f" | Khách chê/Lưu ý: \"{worst_c}\""
+        places_lines.append(info)
+    places_context = "\n".join(places_lines)
+
+    selected_ids = []
+    overall_advice = ""
+    gemini_stops_info = {}
