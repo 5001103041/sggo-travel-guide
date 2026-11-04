@@ -1798,3 +1798,53 @@ def extract_real_place_chrome(target_url: str) -> dict:
                 addr = addr.replace("Bàn Cờ", "Phường Bàn Cờ, Quận 3")
             if not any(k in addr.lower() for k in ["tp", "hồ chí minh", "hcm", "saigon"]):
                 addr += ", TP.HCM"
+            elif "hồ chí minh" in addr.lower() and "tp" not in addr.lower():
+                addr = re.sub(r'Hồ Chí Minh', 'TP.HCM', addr, flags=re.IGNORECASE)
+            details["address"] = addr
+
+        # 2. Bóc tách số sao thật (nếu có trên Maps)
+        m_rating = re.search(r'aria-label="([0-9.,]+)\s*(?:stars?|sao)', html)
+        if not m_rating:
+            m_rating = re.search(r'<span class="ceNzKf"[^>]*aria-hidden="true">([0-9.,]+)</span>', html)
+        if m_rating:
+            try:
+                val = float(m_rating.group(1).replace(",", "."))
+                if 1.0 <= val <= 5.0:
+                    details["rating"] = val
+            except Exception:
+                pass
+
+        # 3. Bóc tách lượt review thật (nếu có trên Maps)
+        m_rev = re.search(r'aria-label="([0-9.,]+)\s*(?:bài đánh giá|reviews?)', html)
+        if not m_rev:
+            m_rev = re.search(r'\((\d+[\d.,]*)\s*(?:bài đánh giá|reviews?|\))\s*<', html)
+        if m_rev:
+            try:
+                clean_rev = re.sub(r'[.,]', '', m_rev.group(1))
+                details["reviews_count"] = int(clean_rev)
+            except Exception:
+                pass
+
+        # 4. Bóc tách giờ mở/đóng cửa thật (nếu có đăng ký trên Maps)
+        time_str = ""
+        for a in re.findall(r'aria-label="([^"]*?(?:to|–|-)\s*\d{1,2}(?::\d{2})?\s*(?:AM|PM|am|pm)?[^"]*?)"', html):
+            if any(w in a for w in ["AM", "PM", ":", "to", "–"]):
+                time_str = a
+                break
+
+        if time_str:
+            m_time = re.search(r'(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*(?:to|–|-)\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?', time_str, re.IGNORECASE)
+            if m_time:
+                def to_24h(h, m, ampm):
+                    h = int(h)
+                    m = int(m or 0)
+                    if ampm:
+                        ampm = ampm.upper()
+                        if ampm == "PM" and h < 12:
+                            h += 12
+                        elif ampm == "AM" and h == 12:
+                            h = 0
+                    return f"{h:02d}:{m:02d}"
+                try:
+                    details["open_time"] = to_24h(m_time.group(1), m_time.group(2), m_time.group(3))
+                    details["close_time"] = to_24h(m_time.group(4), m_time.group(5), m_time.group(6))
