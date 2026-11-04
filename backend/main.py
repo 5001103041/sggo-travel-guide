@@ -1548,3 +1548,53 @@ QUY TẮC BẮT BUỘC KHI LẬP LỘ TRÌNH:
     total_dwell_mins = sum(proportional_dwells)
     total_duration_minutes = total_t_min + total_dwell_mins
 
+    spare_time_minutes = max(0, free_duration - total_duration_minutes)
+    spare_time_message = None
+    if spare_time_minutes >= 20:
+        dep_clock = clock_cursor
+        end_h, end_m = (dep_clock // 60) % 24, dep_clock % 60
+        spare_time_message = f"Lộ trình dự kiến hoàn thành lúc {end_h:02d}:{end_m:02d}. Bạn còn dư ~{spare_time_minutes} phút thong thả dạo phố, ngắm cảnh hoặc về sớm nghỉ ngơi!"
+
+    is_within_budget = (target_budget == 0 and total_min_cost == 0) or (total_min_cost <= target_budget)
+    is_within_time = total_duration_minutes <= (free_duration + 30)
+
+    # Trạng thái AI minh bạch
+    ai_status_message = (
+        f"Được tối ưu bởi Google Gemini AI ({actual_model})" 
+        if ai_status == "success" 
+        else "Tối ưu tự động bởi Thuật toán Định tuyến SGGo (Chế độ dự phòng)"
+    )
+
+    # Lưu lịch trình vào CSDL SQLite (Section 5 ERD & Data Dictionary)
+    itin_id = None
+    target_user_id = req.user_id
+    if target_user_id is None and isinstance(x_user_id, str) and x_user_id.isdigit():
+        target_user_id = int(x_user_id)
+    try:
+        itin_id = save_itinerary({
+            "user_id": target_user_id,
+            "start_location": req.start_location,
+            "start_lat": start_lat,
+            "start_lon": start_lon,
+            "free_time": req.free_time,
+            "companion": req.companion,
+            "purpose": req.purpose,
+            "budget_level": req.budget_level or req.budget,
+            "target_budget": target_budget,
+            "total_estimated_budget_min": total_min_cost,
+            "total_estimated_budget_max": total_max_cost,
+            "total_duration_minutes": total_duration_minutes,
+            "summary": overall_advice
+        }, stops_db_data)
+    except Exception as e:
+        print(f"Lưu itinerary DB log: {e}")
+
+    return {
+        "feasible": True,
+        "itinerary_id": itin_id,
+        "summary": overall_advice,
+        "steps": steps,
+        "model_used": actual_model,
+        "ai_status": ai_status,
+        "ai_status_message": ai_status_message,
+        "routing_source": routing_source,
