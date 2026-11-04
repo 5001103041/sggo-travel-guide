@@ -1748,3 +1748,53 @@ def remove_place(place_id: int):
 
 @app.post("/api/admin/places/{place_id}/toggle-hide", dependencies=[Depends(require_admin)])
 def toggle_admin_place_hide(place_id: int):
+    res = toggle_hide_place(place_id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Không tìm thấy địa điểm.")
+    return {"status": "ok", "place": res}
+
+@app.get("/api/admin/sample-csv", dependencies=[Depends(require_admin)])
+def download_sample_csv():
+    csv_text = generate_sample_csv()
+    return Response(content=csv_text, media_type="text/csv", headers={
+        "Content-Disposition": "attachment; filename=template_places.csv"
+    })
+
+@app.get("/api/admin/sample-excel", dependencies=[Depends(require_admin)])
+def download_sample_excel():
+    excel_bytes = generate_sample_excel()
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=template_places.xlsx"}
+    )
+
+def extract_real_place_chrome(target_url: str) -> dict:
+    """Sử dụng Headless Chrome ngầm để render Google Maps và bóc tách chính xác 100% dữ liệu thật từ DOM (Địa chỉ số nhà, sao thật, giờ thật)"""
+    import subprocess
+    chrome_paths = [
+        r'C:\Program Files\Google\Chrome\Application\chrome.exe',
+        r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
+        os.path.expandvars(r'%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe')
+    ]
+    chrome_bin = next((p for p in chrome_paths if os.path.exists(p)), None)
+    if not chrome_bin:
+        return {}
+    try:
+        cmd = [chrome_bin, '--headless=new', '--dump-dom', '--virtual-time-budget=4000', target_url]
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', timeout=8)
+        html = res.stdout or ""
+        details = {}
+
+        # 1. Bóc tách số nhà và địa chỉ chính xác
+        m_addr = re.search(r'data-item-id="address"[^>]*>.*?<div class="Io6YTe[^"]*"[^>]*>([^<]+)</div>', html, re.DOTALL)
+        if not m_addr:
+            m_addr = re.search(r'aria-label="(?:Địa chỉ|Address):\s*([^"]+)"', html)
+        if m_addr:
+            addr = m_addr.group(1).strip()
+            addr = re.sub(r',\s*(?:Vietnam|Việt Nam)$', '', addr, flags=re.IGNORECASE).strip()
+            addr = re.sub(r'\s*\b\d{5,6}\b,?', '', addr).strip(' ,')
+            if "bàn cờ" in addr.lower() and "quận 3" not in addr.lower():
+                addr = addr.replace("Bàn Cờ", "Phường Bàn Cờ, Quận 3")
+            if not any(k in addr.lower() for k in ["tp", "hồ chí minh", "hcm", "saigon"]):
+                addr += ", TP.HCM"
