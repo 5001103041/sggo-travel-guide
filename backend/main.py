@@ -1998,3 +1998,53 @@ def extract_gmaps_info(req: ExtractGmapsRequest):
         if not extracted_address and chrome_details.get("address"):
             extracted_address = chrome_details["address"]
         if chrome_details.get("rating") is not None:
+            extracted_rating = chrome_details["rating"]
+        if chrome_details.get("reviews_count") is not None:
+            extracted_reviews_count = chrome_details["reviews_count"]
+        if chrome_details.get("open_time"):
+            extracted_open_time = chrome_details["open_time"]
+        if chrome_details.get("close_time"):
+            extracted_close_time = chrome_details["close_time"]
+
+    # 3. REVERSE GEOCODING TỪ TỌA ĐỘ GPS (CÓ FALLBACK CSDL CỰC KỲ AN TOÀN)
+    if extracted_lat is not None and extracted_lon is not None:
+        # 3a. Thử tra OpenStreetMap với timeout ngắn 2.0s (chỉ chạy nếu chưa có địa chỉ chính xác)
+        if not extracted_address:
+            try:
+                osm_res = requests.get(
+                    f"https://nominatim.openstreetmap.org/reverse?format=json&lat={extracted_lat}&lon={extracted_lon}&addressdetails=1",
+                    headers={"User-Agent": "SGGo-Travel-Guide/1.0"},
+                    timeout=2.0
+                )
+                if osm_res.ok:
+                    osm_data = osm_res.json()
+                    addr_data = osm_data.get("address", {})
+                    road = addr_data.get("road", "")
+                    suburb = addr_data.get("suburb", "")
+                    district_osm = addr_data.get("city_district") or addr_data.get("district") or ""
+                    parts = []
+                    for p in [road, suburb, district_osm, "TP.HCM"]:
+                        p_clean = p.strip()
+                        if p_clean and p_clean not in parts:
+                            parts.append(p_clean)
+                    if parts:
+                        extracted_address = ", ".join(parts)
+                    # Bóc tách quận từ dữ liệu OSM
+                    all_districts = ["Quận 1", "Quận 3", "Quận 4", "Quận 5", "Quận 6", "Quận 7", "Quận 8", "Quận 10", "Quận 11", "Quận 12", "Bình Thạnh", "Gò Vấp", "Phú Nhuận", "Tân Bình", "Tân Phú", "Bình Tân", "Thủ Đức", "TP. Thủ Đức", "Bình Chánh", "Hóc Môn", "Củ Chi", "Nhà Bè", "Cần Giờ"]
+                    for d in all_districts:
+                        if d.lower() in extracted_address.lower() or d.lower() in str(addr_data).lower() or ('bàn cờ' in extracted_address.lower() and d == 'Quận 3'):
+                            extracted_district = d
+                            break
+            except Exception:
+                pass
+
+        # 3b. FALLBACK CSDL NỘI BỘ (0ms, KHÔNG CẦN INTERNET, CHUẨN XÁC VỚI 201 ĐỊA ĐIỂM SÀI GÒN)
+        if extracted_district == "TP.HCM" or not extracted_address:
+            try:
+                conn_fb = get_connection()
+                cursor_fb = conn_fb.cursor()
+                cursor_fb.execute("SELECT name, district, address, lat, lon FROM places WHERE lat IS NOT NULL AND lon IS NOT NULL")
+                rows = cursor_fb.fetchall()
+                conn_fb.close()
+                if rows:
+                    import math
