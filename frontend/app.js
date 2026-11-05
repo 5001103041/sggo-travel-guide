@@ -218,3 +218,113 @@ async function handleLogin(e) {
     currentUser = data.user;
     localStorage.setItem("sggo_current_user", JSON.stringify(currentUser));
     updateAuthUI();
+    closeAuthModal();
+    alert(`Xin chào ${currentUser.full_name}! Bạn đã đăng nhập thành công.`);
+
+    if (currentUser.role === "admin") {
+      switchMode("admin");
+    } else {
+      switchMode("flow");
+    }
+  } catch (err) {
+    alert("Lỗi: " + err.message);
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById("regFullName").value.trim();
+  const u = document.getElementById("regUsername").value.trim();
+  const p = document.getElementById("regPassword").value.trim();
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: u, password: p, full_name: name })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Đăng ký thất bại");
+
+    currentUser = data.user;
+    localStorage.setItem("sggo_current_user", JSON.stringify(currentUser));
+    updateAuthUI();
+    closeAuthModal();
+    alert(`Đăng ký thành công! Chào mừng ${currentUser.full_name} đến với SGGo.`);
+  } catch (err) {
+    alert("Lỗi: " + err.message);
+  }
+}
+
+function handleLogout() {
+  if (confirm("Bạn có chắc chắn muốn đăng xuất tài khoản?")) {
+    currentUser = null;
+    localStorage.removeItem("sggo_current_user");
+    updateAuthUI();
+    switchMode("flow");
+  }
+}
+
+// ==============================================================================
+// 2. TẢI DỮ LIỆU & ĐIỀU HƯỚNG TABS
+// ==============================================================================
+
+async function preloadPlaces() {
+  try {
+    const res = await fetch(`${API_BASE}/places`);
+    allPlacesCache = await res.json();
+    const countEl = document.getElementById("totalPlacesCount");
+    if (countEl) countEl.innerText = allPlacesCache.length;
+  } catch (e) {
+    console.warn("Backend offline hoặc đang nạp CSDL.");
+  }
+}
+
+function switchMode(mode) {
+  const isAdmin = currentUser && currentUser.role === "admin";
+  if (mode === "admin" && !isAdmin) {
+    alert("Quyền truy cập bị từ chối: Khu vực này chỉ dành riêng cho Quản trị viên (Admin)!");
+    openAuthModal();
+    switchMode("flow");
+    return;
+  }
+
+  document.getElementById("viewFlow").classList.toggle("hidden", mode !== "flow");
+  document.getElementById("viewAI").classList.toggle("hidden", mode !== "ai");
+  document.getElementById("viewAll").classList.toggle("hidden", mode !== "all");
+  const viewAdmin = document.getElementById("viewAdmin");
+  if (viewAdmin) viewAdmin.classList.toggle("hidden", mode !== "admin");
+
+  // Khóa cuộn trang toàn cục trên màn hình desktop khi ở Tab 3 để chỉ cuộn độc lập 2 bên
+  document.body.classList.toggle("ai-tab-active", mode === "ai");
+
+  const standardTabs = {
+    flow: document.getElementById("navFlow"),
+    ai: document.getElementById("navAI"),
+    all: document.getElementById("navAll")
+  };
+
+  Object.keys(standardTabs).forEach(k => {
+    if (standardTabs[k]) {
+      standardTabs[k].className = (k === mode) ? "tab-pill active whitespace-nowrap" : "tab-pill whitespace-nowrap";
+    }
+  });
+
+  const navAdmin = document.getElementById("navAdmin");
+  if (navAdmin) {
+    if (isAdmin) {
+      navAdmin.classList.remove("hidden");
+      navAdmin.style.setProperty("display", "inline-flex", "important");
+      navAdmin.className = (mode === "admin")
+        ? "tab-pill active text-rose-600 font-extrabold whitespace-nowrap"
+        : "tab-pill text-rose-600 font-bold whitespace-nowrap";
+    } else {
+      navAdmin.classList.add("hidden");
+      navAdmin.style.setProperty("display", "none", "important");
+    }
+  }
+
+  if (mode === "flow") {
+    updateFlowGpsUI();
+  }
+  if (mode === "all") {
