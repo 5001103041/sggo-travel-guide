@@ -658,3 +658,113 @@ function selectAnswer(key, value, nextStep) {
 
 function handleCustomBudgetSubmit() {
   const input = document.getElementById("customBudgetInput");
+  const val = parseInt(input.value);
+  if (!val || val <= 0) {
+    alert("Vui lòng nhập một số tiền hợp lệ (ví dụ: 75000)!");
+    return;
+  }
+  // Nếu người dùng nhập số tiền quá nhỏ dưới 20.000đ
+  if (val < 20000) {
+    // Hỗ trợ trường hợp người dùng gõ tắt số tròn nghìn (ví dụ gõ 100 với ý 100.000đ)
+    if (val >= 20 && val <= 999) {
+      const suggestVal = val * 1000;
+      if (confirm(`Bạn vừa nhập "${val.toLocaleString()}đ". Có phải bạn muốn tìm quán với ngân sách "${suggestVal.toLocaleString()}đ" không?`)) {
+        input.value = suggestVal;
+        userChoices.price_level = "custom";
+        userChoices.custom_budget = suggestVal;
+        currentFlowOffset = 0;
+        updateSelectionSummaryUI();
+        initCustomSelects();
+        showFinishResults(0);
+        return;
+      }
+    }
+    alert("Ngân sách tự nhập tối thiểu cho ăn uống tại TP.HCM là 20.000đ (hoặc chọn '0đ' để xem địa điểm tham quan miễn phí). Vui lòng nhập số tiền từ 20.000đ trở lên nhé!");
+    return;
+  }
+  userChoices.price_level = "custom";
+  userChoices.custom_budget = val;
+  currentFlowOffset = 0;
+  updateSelectionSummaryUI();
+  initCustomSelects();
+  showFinishResults(0);
+}
+
+
+function goBackStep(step) {
+  document.querySelectorAll(".step-card").forEach(el => el.classList.add("hidden"));
+  document.getElementById(`step${step}`).classList.remove("hidden");
+}
+
+function restartFlow() {
+  userChoices = { category: null, context: null, price_level: null, custom_budget: null };
+  currentFlowOffset = 0;
+  const customInp = document.getElementById("customBudgetInput");
+  if (customInp) customInp.value = "";
+  updateSelectionSummaryUI();
+  initCustomSelects();
+  document.querySelectorAll(".step-card").forEach(el => el.classList.add("hidden"));
+  document.getElementById("step1").classList.remove("hidden");
+}
+
+async function showFinishResults(offset = 0) {
+  currentFlowOffset = Math.max(0, offset);
+  document.querySelectorAll(".step-card").forEach(el => el.classList.add("hidden"));
+  const finishContainer = document.getElementById("stepFinish");
+  finishContainer.classList.remove("hidden");
+
+  // Cập nhật trạng thái nút Quay lại 3 quán trước
+  const btnPrev = document.getElementById("btnPrevFlow");
+  if (btnPrev) {
+    btnPrev.disabled = (currentFlowOffset <= 0);
+  }
+
+  // Cập nhật badge tóm tắt tiêu chí khoa học
+  const criteriaBadge = document.getElementById("finishCriteriaBadge");
+  if (criteriaBadge) {
+    const catText = userChoices.category === "an_uong" ? "Ẩm thực" : (userChoices.category === "di_choi" ? "Điểm đến" : "Mục đích");
+    const ctxMap = { "di_1_minh": "Đi 1 mình", "nguoi_yeu": "Cặp đôi", "ban_be": "Bạn bè", "gia_dinh": "Gia đình" };
+    const bdgMap = { "under_50k": "< 50k", "50k_100k": "50k-100k", "100k_250k": "100k-250k", "above_250k": "> 250k" };
+    const ctxText = ctxMap[userChoices.context] || "Đồng hành";
+    let bdgText = bdgMap[userChoices.price_level] || "Ngân sách";
+    if (userChoices.price_level === "custom" && userChoices.custom_budget) {
+      bdgText = `${userChoices.custom_budget.toLocaleString()}đ`;
+    }
+    criteriaBadge.innerHTML = "";
+  }
+
+  const resultsBox = document.getElementById("flowResults");
+  resultsBox.innerHTML = `<div class="p-8 text-center text-xs text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tìm kiếm và chọn lọc địa điểm phù hợp nhất...</div>`;
+
+  try {
+    const activeCoords = globalUserCoords || exploreUserCoords || userGPSCoords;
+    const now = new Date();
+    const clientTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const payload = { 
+      ...userChoices, 
+      offset: currentFlowOffset,
+      user_lat: activeCoords ? activeCoords.lat : null,
+      user_lon: activeCoords ? activeCoords.lon : null,
+      prioritize_distance: Boolean(flowPrioritizeGps && activeCoords),
+      client_time: clientTimeStr
+    };
+    const res = await fetch(`${API_BASE}/quick-recommend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const places = await res.json();
+
+    const fallbackEl = document.getElementById("flowFallbackNotice");
+    if (fallbackEl) {
+      const closedItem = places.find(p => p.closed_warning);
+      const freeItem = places.find(p => p.free_fallback_notice);
+      if (closedItem && closedItem.closed_warning) {
+        fallbackEl.innerHTML = `<i class="fa-solid fa-moon text-indigo-600 mr-2 text-sm flex-shrink-0"></i><span>${closedItem.closed_warning}</span>`;
+        fallbackEl.classList.remove("hidden");
+      } else if (freeItem && freeItem.free_fallback_notice) {
+        fallbackEl.innerHTML = `<i class="fa-solid fa-circle-info text-amber-600 mr-2 text-sm flex-shrink-0"></i><span>${freeItem.free_fallback_notice}</span>`;
+        fallbackEl.classList.remove("hidden");
+      } else {
+        fallbackEl.classList.add("hidden");
+      }
