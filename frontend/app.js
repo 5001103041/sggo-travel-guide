@@ -108,3 +108,113 @@ function loadSavedUser() {
 function updateAuthUI() {
   const authContainer = document.getElementById("authContainer");
   const navAdmin = document.getElementById("navAdmin");
+  const viewAdmin = document.getElementById("viewAdmin");
+
+  if (currentUser && currentUser.role === "admin") {
+    // CHỈ TÀI KHOẢN ADMIN MỚI ĐƯỢC HIỆN NÚT ADMIN
+    authContainer.innerHTML = `
+      <div class="flex items-center gap-1.5 bg-rose-50 border border-rose-200/90 px-2.5 py-1 rounded-xl shadow-sm whitespace-nowrap">
+        <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse flex-shrink-0"></span>
+        <span class="text-xs font-black text-rose-700">Admin</span>
+        <button onclick="handleLogout()" title="Đăng xuất" class="ml-1 text-[11px] font-bold px-2 py-0.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 transition flex items-center gap-1">
+          <i class="fa-solid fa-arrow-right-from-bracket text-[10px]"></i> Thoát
+        </button>
+      </div>
+    `;
+    if (navAdmin) {
+      navAdmin.classList.remove("hidden");
+      navAdmin.style.setProperty("display", "inline-flex", "important");
+    }
+  } else if (currentUser) {
+    // NGƯỜI DÙNG THƯỜNG -> ẨN TUYỆT ĐỐI NÚT ADMIN
+    authContainer.innerHTML = `
+      <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl shadow-sm whitespace-nowrap">
+        <span class="text-xs font-bold text-slate-800 truncate max-w-[90px] flex items-center gap-1"><i class="fa-solid fa-user text-slate-400 text-[10px]"></i> ${currentUser.username || 'User'}</span>
+        <button onclick="handleLogout()" title="Đăng xuất" class="ml-1 text-[11px] font-bold px-2 py-0.5 rounded-lg bg-white hover:bg-rose-50 text-slate-600 hover:text-[#E11D48] border border-slate-200 transition flex items-center gap-1">
+          <i class="fa-solid fa-arrow-right-from-bracket text-[10px]"></i> Thoát
+        </button>
+      </div>
+    `;
+    if (navAdmin) {
+      navAdmin.classList.add("hidden");
+      navAdmin.style.setProperty("display", "none", "important");
+    }
+    if (viewAdmin && !viewAdmin.classList.contains("hidden")) {
+      switchMode("flow");
+    }
+  } else {
+    // CHƯA ĐĂNG NHẬP (KHÁCH VÃNG LAI) -> ẨN TUYỆT ĐỐI NÚT ADMIN
+    authContainer.innerHTML = `
+      <button onclick="openAuthModal()" id="btnAuth" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 shadow-sm transition flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
+        <i class="fa-regular fa-user text-slate-400"></i>
+        <span>Đăng nhập</span>
+      </button>
+    `;
+    if (navAdmin) {
+      navAdmin.classList.add("hidden");
+      navAdmin.style.setProperty("display", "none", "important");
+    }
+    if (viewAdmin && !viewAdmin.classList.contains("hidden")) {
+      switchMode("flow");
+    }
+  }
+
+  // Cập nhật lại danh sách quán để hiện / ẩn nút "Sửa quán (Admin)" ngay lập tức
+  if (allPlacesCache && allPlacesCache.length > 0) {
+    const gridEl = document.getElementById("allPlacesGrid");
+    if (gridEl && gridEl.children.length > 0) {
+      filterAllPlaces();
+    }
+  }
+}
+
+function openAuthModal() {
+  document.getElementById("modalAuth").classList.remove("hidden");
+}
+
+function closeAuthModal() {
+  document.getElementById("modalAuth").classList.add("hidden");
+}
+
+function setAuthTab(tab) {
+  const formLogin = document.getElementById("formLogin");
+  const formRegister = document.getElementById("formRegister");
+  const tabLogin = document.getElementById("tabLogin");
+  const tabRegister = document.getElementById("tabRegister");
+
+  if (tab === "login") {
+    formLogin.classList.remove("hidden");
+    formRegister.classList.add("hidden");
+    tabLogin.className = "flex-1 pb-3 text-xs font-bold border-b-2 border-[#E11D48] text-[#E11D48]";
+    tabRegister.className = "flex-1 pb-3 text-xs font-bold text-slate-400";
+  } else {
+    formLogin.classList.add("hidden");
+    formRegister.classList.remove("hidden");
+    tabRegister.className = "flex-1 pb-3 text-xs font-bold border-b-2 border-emerald-600 text-emerald-600";
+    tabLogin.className = "flex-1 pb-3 text-xs font-bold text-slate-400";
+  }
+}
+
+function fillDemoAccount(user, pass) {
+  setAuthTab("login");
+  document.getElementById("loginUsername").value = user;
+  document.getElementById("loginPassword").value = pass;
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const u = document.getElementById("loginUsername").value.trim();
+  const p = document.getElementById("loginPassword").value.trim();
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: u, password: p })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Đăng nhập thất bại");
+
+    currentUser = data.user;
+    localStorage.setItem("sggo_current_user", JSON.stringify(currentUser));
+    updateAuthUI();
