@@ -1758,3 +1758,113 @@ async function requestAIItinerary(isShuffle = false) {
     }
 
     // Vẽ bản đồ Leaflet
+    renderItineraryMap(result.start_coords, result.steps);
+
+    // Render Timeline
+    container.innerHTML = "";
+    result.steps.forEach((s, idx) => {
+      // 1. Chặng di chuyển nối tiếp giữa các trạm (Transit Stepper Connector)
+      let transitConnectorHTML = "";
+      if (idx === 0) {
+        const startName = result.start_location || document.getElementById("aiStartLoc")?.value.trim() || "Điểm xuất phát của bạn";
+        transitConnectorHTML = `
+          <div class="flex flex-col items-center mb-5 relative">
+            <!-- Thẻ điểm xuất phát ban đầu -->
+            <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-slate-900 text-white text-xs font-black shadow-xs mb-1.5">
+              <i class="fa-solid fa-location-crosshairs text-[#E11D48]"></i>
+              <span>Điểm xuất phát: ${startName}</span>
+            </div>
+
+            <!-- Nét đứt phía trên dẫn từ điểm xuất phát xuống -->
+            <div class="w-0.5 h-3.5 sm:h-4 border-l-2 border-dashed border-indigo-300"></div>
+            
+            <!-- Thẻ di chuyển xe máy từ Điểm xuất phát -> Chặng 1 -->
+            <div class="inline-flex items-center gap-3 py-2.5 px-4 sm:px-6 rounded-2xl bg-gradient-to-r from-indigo-50/90 via-white to-indigo-50/90 border border-indigo-200/90 shadow-2xs hover:shadow-xs transition-all text-left">
+              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-base shadow-xs shrink-0">
+                <i class="fa-solid fa-motorcycle"></i>
+              </div>
+              <div class="leading-tight">
+                <div class="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-indigo-900/80 flex items-center gap-1.5 mb-1">
+                  <span>Khởi hành</span>
+                  <i class="fa-solid fa-arrow-right text-[9px] text-indigo-400"></i>
+                  <span>Chặng 1</span>
+                </div>
+                <div class="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-2 flex-wrap">
+                  <span>Chạy xe máy: ~${s.dist || '1.0'} km</span>
+                  <span class="text-slate-300">•</span>
+                  <span class="text-indigo-600 font-extrabold flex items-center gap-1"><i class="fa-regular fa-clock text-xs"></i> ~${s.t_min || '5'} phút</span>
+                </div>
+              </div>
+              <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-indigo-200 text-indigo-600 flex items-center justify-center text-xs sm:text-sm shadow-2xs shrink-0 ml-1.5" title="Di chuyển đến Chặng 1">
+                <i class="fa-solid fa-arrow-down"></i>
+              </div>
+            </div>
+
+            <!-- Nét đứt phía dưới kèm mũi tên chỉ thẳng vào Chặng 1 -->
+            <div class="w-0.5 h-3.5 sm:h-4 border-l-2 border-dashed border-indigo-300"></div>
+            <i class="fa-solid fa-caret-down text-indigo-500 -mt-1 text-sm"></i>
+          </div>
+        `;
+      } else {
+        transitConnectorHTML = `
+          <div class="flex flex-col items-center my-4 sm:my-5 relative">
+            <!-- Nét đứt phía trên dẫn từ chặng trước xuống -->
+            <div class="w-0.5 h-4 sm:h-5 border-l-2 border-dashed border-indigo-300"></div>
+            
+            <!-- Thẻ di chuyển xe máy lớn & trực quan -->
+            <div class="inline-flex items-center gap-3 py-2.5 px-4 sm:px-6 rounded-2xl bg-gradient-to-r from-indigo-50/90 via-white to-indigo-50/90 border border-indigo-200/90 shadow-2xs hover:shadow-xs transition-all text-left">
+              <!-- Icon xe máy nổi bật -->
+              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-base shadow-xs shrink-0">
+                <i class="fa-solid fa-motorcycle"></i>
+              </div>
+              
+              <!-- Thông tin hành trình & thời lượng -->
+              <div class="leading-tight">
+                <div class="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-indigo-900/80 flex items-center gap-1.5 mb-1">
+                  <span>Chặng ${idx}</span>
+                  <i class="fa-solid fa-arrow-right text-[9px] text-indigo-400"></i>
+                  <span>Chặng ${idx + 1}</span>
+                </div>
+                <div class="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-2 flex-wrap">
+                  <span>Chạy xe máy: ~${s.dist || '1.0'} km</span>
+                  <span class="text-slate-300">•</span>
+                  <span class="text-indigo-600 font-extrabold flex items-center gap-1"><i class="fa-regular fa-clock text-xs"></i> ~${s.t_min || '5'} phút</span>
+                </div>
+              </div>
+              
+              <!-- Mũi tên chỉ hướng di chuyển từ trên xuống dưới -->
+              <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-indigo-200 text-indigo-600 flex items-center justify-center text-xs sm:text-sm shadow-2xs shrink-0 ml-1.5" title="Di chuyển tiếp theo theo chiều từ trên xuống dưới">
+                <i class="fa-solid fa-arrow-down"></i>
+              </div>
+            </div>
+
+            <!-- Nét đứt phía dưới kèm mũi tên chỉ thẳng vào trạm tiếp theo -->
+            <div class="w-0.5 h-4 sm:h-5 border-l-2 border-dashed border-indigo-300"></div>
+            <i class="fa-solid fa-caret-down text-indigo-500 -mt-1 text-sm"></i>
+          </div>
+        `;
+      }
+
+      const imgHtml = renderPlaceImage(s, "w-full", "h-full");
+      const gmapsLink = s.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((s.name || s.location) + ' ' + (s.address || ''))}`;
+      const isEat = s.category === "an_uong";
+      const venueName = s.name || (s.location ? s.location.split("—")[0].trim() : `Trạm ${idx + 1}`);
+      const venueRating = s.rating || 4.5;
+      const venueReviews = s.reviews_count ? `(${s.reviews_count} đánh giá)` : "";
+      const venueAddress = s.address || (s.location && s.location.includes("—") ? s.location.split("—")[1].split("⭐")[0].trim() : "");
+      const venueDistrict = s.district || "";
+
+      // Định dạng thời gian dừng chân trực quan (Ví dụ: 1h40p (~100 phút))
+      const dwellFormatted = s.dwell_min >= 60 
+        ? `${Math.floor(s.dwell_min / 60)}h${s.dwell_min % 60 > 0 ? (s.dwell_min % 60) + 'p' : ''} (~${s.dwell_min} phút)`
+        : `~${s.dwell_min} phút`;
+
+      container.innerHTML += `
+        ${transitConnectorHTML}
+        <div class="bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-slate-300 transition-all overflow-hidden mb-5">
+          <!-- KHỐI HEADER TRẠM: 3 DÒNG RIÊNG BIỆT RÕ RÀNG -->
+          <div class="bg-slate-50/95 px-4 sm:px-6 py-4 border-b border-slate-200/90 space-y-2.5">
+            <!-- DÒNG 1: THỨ TỰ CHẶNG & THỂ LOẠI / QUẬN -->
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <span class="text-xs font-black uppercase text-white bg-[#E11D48] px-3.5 py-1.5 rounded-xl shadow-xs tracking-wider">
+                CHẶNG ${idx + 1}
