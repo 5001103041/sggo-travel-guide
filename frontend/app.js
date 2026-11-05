@@ -988,3 +988,113 @@ function buildRecommendCardHTML(p, idx) {
 
               <!-- Khối Lưu ý / Góp ý -->
               <div class="review-card-luuy shadow-2xs">
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="font-black text-rose-950 uppercase text-xs tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-triangle-exclamation text-[#E11D48] text-sm"></i>
+                    <span>Lưu ý & phản hồi thực tế từ Google Maps:</span>
+                  </span>
+                </div>
+                <p class="font-medium italic text-slate-800 text-[13px] leading-relaxed">
+                  ${p.worst_review ? `"${p.worst_review}"` : '<span class="text-slate-400 not-italic">Chưa có lưu ý đặc biệt</span>'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hàng Nút Hành Động (Đáy cột phải) -->
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2.5">
+            <!-- Cụm trái: Chi tiết quán -->
+            <div class="flex items-center gap-2">
+              <button onclick="openPlaceDetailById(${p.id})" title="Xem đầy đủ thông tin" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+                <i class="fa-solid fa-circle-info text-slate-600"></i>
+                <span>Chi tiết quán</span>
+              </button>
+            </div>
+
+            <!-- Cụm phải: Nút Sửa quán (Admin) đặt ngay sát bên cạnh Nút Google Maps -->
+            <div class="flex items-center gap-2">
+              ${(currentUser && currentUser.role === 'admin') ? `
+                <button onclick="openEditPlaceModalById(${p.id})" title="Sửa dữ liệu quán" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                  <span>Sửa quán</span>
+                </button>
+              ` : ''}
+              <a href="${gmapsUrl}" target="_blank" title="Mở trang Google Maps chính thức của quán" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm whitespace-nowrap">
+                <i class="fa-brands fa-google text-sm"></i>
+                <span>Google Maps</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
+
+// Render 3 quán kết quả bước Finish (Sử dụng Thẻ Gợi Ý 2 Cột Cực Kỳ Nhấn Mạnh)
+function renderFinishCards(places) {
+  const resultsBox = document.getElementById("flowResults");
+  resultsBox.innerHTML = "";
+
+  if (!places || places.length === 0) {
+    resultsBox.innerHTML = `<div class="p-8 text-center text-xs text-slate-500 bg-white rounded-2xl border border-slate-200">Không tìm thấy địa điểm phù hợp, vui lòng thử lại tiêu chí khác.</div>`;
+    return;
+  }
+
+  places.forEach((p, idx) => {
+    resultsBox.innerHTML += buildRecommendCardHTML(p, currentFlowOffset + idx);
+  });
+}
+
+// ==============================================================================
+// 4. LẬP LỘ TRÌNH AI (ĐỊNH TUYẾN THÔNG MINH GPS & GEMINI AI)
+// ==============================================================================
+
+let leafletMap = null;
+let leafletMarkersGroup = null;
+
+function getCurrentGPSLocation() {
+  const btn = document.getElementById("btnGetGPS");
+  const input = document.getElementById("aiStartLoc");
+  const icon = document.getElementById("gpsStatusIcon");
+
+  if (!navigator.geolocation) {
+    alert("Trình duyệt của bạn không hỗ trợ định vị GPS Geolocation.");
+    return;
+  }
+
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Đang lấy GPS...</span>`;
+  btn.disabled = true;
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const label = `Vị trí GPS hiện tại (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+      flowPrioritizeGps = true;
+      setGlobalLocation(lat, lon, label, true);
+    },
+    (err) => {
+      alert("Không thể lấy vị trí GPS: " + err.message + ". Bạn có thể nhập địa chỉ hoặc bấm vào các nút gợi ý có sẵn.");
+      btn.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> <span>Dùng GPS hiện tại</span>`;
+      btn.disabled = false;
+    },
+    { timeout: 8000, enableHighAccuracy: true }
+  );
+}
+
+function setStartLocation(loc) {
+  document.getElementById("aiStartLoc").value = loc;
+  userGPSCoords = null;
+  const icon = document.getElementById("gpsStatusIcon");
+  if (icon) icon.classList.add("hidden");
+  const btn = document.getElementById("btnGetGPS");
+  if (btn) btn.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> <span>Dùng GPS hiện tại</span>`;
+}
+
+function setFreeTimePreset(timeStr) {
+  document.getElementById("aiTime").value = timeStr;
+}
+
