@@ -548,3 +548,113 @@ function toggleFlowGpsPriority() {
 
   if (!navigator.geolocation) {
     alert("Trình duyệt của bạn không hỗ trợ định vị GPS Geolocation.");
+    return;
+  }
+
+  if (btn) {
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-emerald-600 text-xs"></i> <span>Đang lấy GPS...</span>`;
+    btn.disabled = true;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      flowPrioritizeGps = true;
+      const label = `GPS (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+      setGlobalLocation(lat, lon, label, true);
+      // setGlobalLocation() tự động gọi updateFlowGpsUI() -> mở khóa nút và đổi ngay sang biểu tượng tích xanh (không còn quay)
+
+      const stepFinish = document.getElementById("stepFinish");
+      if (stepFinish && !stepFinish.classList.contains("hidden")) {
+        showFinishResults(0);
+      }
+    },
+    (err) => {
+      updateFlowGpsUI();
+      alert("Không thể lấy vị trí GPS: " + err.message + ". Bạn vẫn có thể trải nghiệm Khám phá nhanh 3 bước bình thường!");
+    },
+    { timeout: 8000, enableHighAccuracy: true }
+  );
+}
+
+// ==============================================================================
+// 3. KHÁM PHÁ NHANH & THANH TÓM TẮT LỰA CHỌN (BREADCRUMB)
+// ==============================================================================
+
+function updateSelectionSummaryUI() {
+  const catEl = document.getElementById("summaryCategory");
+  const ctxEl = document.getElementById("summaryContext");
+  const bdgEl = document.getElementById("summaryBudget");
+  if (!catEl || !ctxEl || !bdgEl) return;
+
+  // 1. Cập nhật Mục đích
+  if (userChoices.category === "an_uong") {
+    catEl.innerHTML = `<span class="truncate">1. Đi Ăn Uống</span>`;
+    catEl.className = "cursor-pointer py-1.5 px-2 rounded-xl border border-rose-300 bg-rose-50 text-[#E11D48] font-black shadow-xs transition flex items-center justify-center gap-1 text-center truncate";
+  } else if (userChoices.category === "di_choi") {
+    catEl.innerHTML = `<span class="truncate">1. Đi Vui Chơi</span>`;
+    catEl.className = "cursor-pointer py-1.5 px-2 rounded-xl border border-teal-300 bg-teal-50 text-teal-800 font-black shadow-xs transition flex items-center justify-center gap-1 text-center truncate";
+  } else {
+    catEl.innerHTML = `<span class="truncate">1. Mục đích</span>`;
+    catEl.className = "cursor-pointer py-1.5 px-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:border-[#E11D48] hover:bg-rose-50/60 transition flex items-center justify-center gap-1 text-center truncate";
+  }
+
+  // 2. Cập nhật Bối cảnh
+  const ctxMap = {
+    "di_1_minh": "2. Đi 1 mình",
+    "nguoi_yeu": "2. Cặp đôi",
+    "ban_be": "2. Nhóm bạn",
+    "gia_dinh": "2. Gia đình"
+  };
+  if (userChoices.context && userChoices.context in ctxMap) {
+    ctxEl.innerHTML = `<span class="truncate">${ctxMap[userChoices.context]}</span>`;
+    ctxEl.className = "cursor-pointer py-1.5 px-2 rounded-xl border border-rose-300 bg-rose-50 text-[#E11D48] font-black shadow-xs transition flex items-center justify-center gap-1 text-center truncate";
+  } else {
+    ctxEl.innerHTML = `<span class="truncate">2. Đi cùng</span>`;
+    ctxEl.className = "cursor-pointer py-1.5 px-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:border-[#E11D48] hover:bg-rose-50/60 transition flex items-center justify-center gap-1 text-center truncate";
+  }
+
+  // 3. Cập nhật Ngân sách
+  const bdgMap = {
+    "free": "3. Miễn phí (0đ)",
+    "under_50k": "3. < 50k",
+    "50k_100k": "3. 50k - 100k",
+    "100k_250k": "3. 100k - 250k",
+    "above_250k": "3. > 250k",
+    "all": "3. Tùy duyên"
+  };
+  if (userChoices.price_level === "custom" && userChoices.custom_budget) {
+    const formatted = userChoices.custom_budget >= 1000000 
+      ? (userChoices.custom_budget / 1000000).toFixed(1) + 'Tr' 
+      : (userChoices.custom_budget / 1000) + 'k';
+    bdgEl.innerHTML = `<span class="truncate">3. ${formatted}</span>`;
+    bdgEl.className = "cursor-pointer py-1.5 px-2 rounded-xl border border-rose-300 bg-rose-50 text-[#E11D48] font-black shadow-xs transition flex items-center justify-center gap-1 text-center truncate";
+  } else if (userChoices.price_level && userChoices.price_level in bdgMap) {
+    bdgEl.innerHTML = `<span class="truncate">${bdgMap[userChoices.price_level]}</span>`;
+    bdgEl.className = "cursor-pointer py-1.5 px-2 rounded-xl border border-rose-300 bg-rose-50 text-[#E11D48] font-black shadow-xs transition flex items-center justify-center gap-1 text-center truncate";
+  } else {
+    bdgEl.innerHTML = `<span class="truncate">3. Ngân sách</span>`;
+    bdgEl.className = "cursor-pointer py-1.5 px-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:border-[#E11D48] hover:bg-rose-50/60 transition flex items-center justify-center gap-1 text-center truncate";
+  }
+}
+
+function selectAnswer(key, value, nextStep) {
+  userChoices[key] = value;
+  currentFlowOffset = 0;
+  if (key === "price_level") {
+    userChoices.custom_budget = null;
+  }
+  updateSelectionSummaryUI();
+  initCustomSelects();
+
+  if (nextStep === "finish") {
+    showFinishResults(0);
+  } else {
+    document.querySelectorAll(".step-card").forEach(el => el.classList.add("hidden"));
+    document.getElementById(`step${nextStep}`).classList.remove("hidden");
+  }
+}
+
+function handleCustomBudgetSubmit() {
+  const input = document.getElementById("customBudgetInput");
