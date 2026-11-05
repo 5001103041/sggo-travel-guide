@@ -1098,3 +1098,113 @@ function setFreeTimePreset(timeStr) {
   document.getElementById("aiTime").value = timeStr;
 }
 
+function selectAICompanion(val) {
+  aiCompanion = val;
+  const map = {
+    di_1_minh: "comp_di_1_minh",
+    nguoi_yeu: "comp_nguoi_yeu",
+    ban_be: "comp_ban_be",
+    gia_dinh: "comp_gia_dinh"
+  };
+  Object.keys(map).forEach(k => {
+    const btn = document.getElementById(map[k]);
+    if (!btn) return;
+    if (k === val) {
+      btn.className = "companion-chip active py-2.5 px-3 rounded-xl border-2 border-[#E11D48] bg-rose-50 font-bold text-[#E11D48] shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer text-center";
+    } else {
+      btn.className = "companion-chip py-2.5 px-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition flex items-center justify-center gap-1.5 cursor-pointer text-center";
+    }
+  });
+}
+
+function selectAIPurpose(val) {
+  aiPurpose = val;
+  const map = {
+    an_uong: "purp_an_uong",
+    di_choi: "purp_di_choi",
+    ca_hai: "purp_ca_hai"
+  };
+  Object.keys(map).forEach(k => {
+    const btn = document.getElementById(map[k]);
+    if (!btn) return;
+    if (k === val) {
+      btn.className = "purpose-chip active py-2.5 px-3 rounded-xl border-2 border-[#E11D48] bg-rose-50 font-bold text-[#E11D48] shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer text-center";
+    } else {
+      btn.className = "purpose-chip py-2.5 px-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition flex items-center justify-center gap-1.5 cursor-pointer text-center";
+    }
+  });
+}
+
+function appendTakeNote(text) {
+  const input = document.getElementById("aiTakeNote");
+  if (!input) return;
+  if (!input.value.trim()) {
+    input.value = text;
+  } else if (!input.value.includes(text)) {
+    input.value = `${input.value.trim()}, ${text}`;
+  }
+}
+
+function setContextPreset(ctxStr) {
+  appendTakeNote(ctxStr);
+}
+
+function toggleItineraryMap() {
+  const wrapper = document.getElementById("itineraryMapWrapper");
+  const btn = document.getElementById("btnToggleMap");
+  if (!wrapper) return;
+  
+  if (wrapper.classList.contains("hidden")) {
+    wrapper.classList.remove("hidden");
+    if (btn) btn.innerHTML = `<i class="fa-solid fa-chevron-up"></i> <span>Thu gọn bản đồ</span>`;
+    setTimeout(() => {
+      if (leafletMap) leafletMap.invalidateSize();
+    }, 200);
+  } else {
+    wrapper.classList.add("hidden");
+    if (btn) btn.innerHTML = `<i class="fa-solid fa-map"></i> <span>Hiện bản đồ</span>`;
+  }
+}
+
+// Cấu hình các lớp bản đồ tương tác (Google Maps, OpenStreetMap, Vệ tinh) - Hoàn toàn không bị lỗi 'API key required'
+function initLeafletTileLayers(mapInstance) {
+  // 1. Google Maps Đường Phố (Mặc định: cực nét, 100% tiếng Việt chuẩn Sài Gòn, tốc độ cao, không cần API key)
+  const googleStreets = L.tileLayer("https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+    maxZoom: 20,
+    subdomains: ["mt0", "mt1", "mt2", "mt3"],
+    attribution: '&copy; <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer">Google Maps</a>'
+  });
+
+  // 2. OpenStreetMap Chuẩn (Nguồn mở quốc tế)
+  const osmStandard = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    subdomains: "abc",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
+  });
+
+  // 3. Google Maps Vệ Tinh Lai (Hybrid Satellite kèm tên đường)
+  const googleHybrid = L.tileLayer("https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+    maxZoom: 20,
+    subdomains: ["mt0", "mt1", "mt2", "mt3"],
+    attribution: '&copy; Google Satellite'
+  });
+
+  // Mặc định nạp lớp bản đồ Google Maps vào bản đồ
+  googleStreets.addTo(mapInstance);
+
+  const baseLayers = {
+    "Bản đồ đường phố (Google)": googleStreets,
+    "Bản đồ giao thông (OSM)": osmStandard,
+    "Ảnh vệ tinh Google": googleHybrid
+  };
+
+  // Tùy chọn: Nếu người dùng đã đăng ký key miễn phí tại carto.com/basemaps/apikey
+  const cartoApiKey = window.CARTO_API_KEY || localStorage.getItem("CARTO_API_KEY");
+  if (cartoApiKey) {
+    const cartoLayer = L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`, {
+      attribution: '&copy; CARTO',
+      subdomains: "abcd",
+      maxZoom: 20
+    });
+    baseLayers["Bản đồ CartoDB"] = cartoLayer;
+  }
