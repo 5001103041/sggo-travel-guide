@@ -1208,3 +1208,113 @@ function initLeafletTileLayers(mapInstance) {
     });
     baseLayers["Bản đồ CartoDB"] = cartoLayer;
   }
+
+  try {
+    L.control.layers(baseLayers, null, { position: "topright", collapsed: true }).addTo(mapInstance);
+  } catch (e) {
+    console.warn("Không thể khởi tạo bộ chọn lớp bản đồ:", e);
+  }
+
+  return googleStreets;
+}
+
+// Hàm hỗ trợ thiết lập hoặc xóa Carto API key tùy chọn
+window.setCartoApiKey = function(key) {
+  if (key && key.trim()) {
+    localStorage.setItem("CARTO_API_KEY", key.trim());
+    alert("Đã lưu CARTO API Key thành công! Vui lòng tải lại trang (F5) để hiển thị thêm lớp CartoDB.");
+  } else {
+    localStorage.removeItem("CARTO_API_KEY");
+    alert("Đã xóa CARTO API Key! Bản đồ tiếp tục dùng Google Maps mặc định.");
+  }
+};
+
+function renderItineraryMap(startCoords, steps) {
+  const mapContainer = document.getElementById("itineraryMap");
+  if (!mapContainer || typeof L === "undefined") return;
+
+  if (!leafletMap) {
+    leafletMap = L.map("itineraryMap", {
+      zoomControl: true,
+      scrollWheelZoom: false
+    });
+    initLeafletTileLayers(leafletMap);
+    leafletMarkersGroup = L.featureGroup().addTo(leafletMap);
+  } else {
+    leafletMarkersGroup.clearLayers();
+  }
+
+  const points = [];
+
+  // 1. Marker Điểm xuất phát
+  if (startCoords && startCoords.lat && startCoords.lon) {
+    const startLatLng = [startCoords.lat, startCoords.lon];
+    points.push(startLatLng);
+
+    const startIcon = L.divIcon({
+      className: "custom-leaflet-marker",
+      html: `<div style="background-color: #10B981; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 2.5px solid white;"><i class="fa-solid fa-location-dot"></i></div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32]
+    });
+
+    L.marker(startLatLng, { icon: startIcon })
+      .bindPopup(`<strong>Điểm xuất phát</strong><br>${document.getElementById("aiStartLoc").value}`)
+      .addTo(leafletMarkersGroup);
+  }
+
+  // 2. Markers cho các trạm
+  const colors = ["#E11D48", "#2563EB", "#059669", "#D97706"];
+  steps.forEach((s, idx) => {
+    if (s.lat && s.lon) {
+      const latLng = [s.lat, s.lon];
+      points.push(latLng);
+
+      const stepIcon = L.divIcon({
+        className: "custom-leaflet-marker",
+        html: `<div style="background-color: ${colors[idx] || '#E11D48'}; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 2.5px solid white;">${idx + 1}</div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+      });
+
+      const popupHtml = `
+        <div style="min-width: 170px; font-family: sans-serif; line-height: 1.4;">
+          <div style="font-weight: 800; font-size: 12px; color: #0F172A;">Trạm ${idx + 1}: ${s.action}</div>
+          <div style="font-weight: 700; color: #E11D48; margin-top: 3px;">${s.location}</div>
+          <div style="font-size: 11px; color: #64748B; margin-top: 2px;"><i class="fa-regular fa-clock" style="margin-right: 4px;"></i>${s.time}</div>
+          ${s.must_try_tip ? `<div style="font-size: 11px; color: #047857; margin-top: 3px; font-weight: 600;"><i class="fa-regular fa-lightbulb" style="margin-right: 4px;"></i>${s.must_try_tip}</div>` : ''}
+        </div>
+      `;
+
+      L.marker(latLng, { icon: stepIcon })
+        .bindPopup(popupHtml)
+        .addTo(leafletMarkersGroup);
+    }
+  });
+
+  // 3. Vẽ polyline nối các trạm
+  if (points.length >= 2) {
+    L.polyline(points, {
+      color: "#2563EB",
+      weight: 4,
+      opacity: 0.85,
+      dashArray: "6, 8"
+    }).addTo(leafletMarkersGroup);
+    leafletMap.fitBounds(leafletMarkersGroup.getBounds(), { padding: [40, 40] });
+  }
+
+  setTimeout(() => {
+    if (leafletMap) leafletMap.invalidateSize();
+  }, 350);
+}
+
+// ==============================================================================
+// 4.1 QUẢN LÝ NGÂN SÁCH, SỐ TRẠM & RÀNG BUỘC TAB 3 (G6-FR03, G6-FR05, G6-FR06)
+// ==============================================================================
+
+let aiBudgetLevel = "100k_250k";
+let aiTargetBudget = 250000;
+let aiShuffleSeed = 0;
+let aiNumStops = 3;
