@@ -878,3 +878,113 @@ function buildRecommendCardHTML(p, idx) {
                 <!-- TRẠNG THÁI MỞ CỬA: RÚT GỌN TINH TẾ, KHÔNG TRÀN LẤN -->
                 ${p.closed_warning ? `
                   <span class="bg-amber-600/95 backdrop-blur-xs text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1.5 uppercase tracking-wide shrink-0">
+                    <i class="fa-solid fa-clock text-xs"></i>
+                    <span>Mở lúc ${p.open_time} sáng mai</span>
+                  </span>
+                ` : (hasHours ? (isOpen ? `
+                  <span class="bg-emerald-600/95 backdrop-blur-xs text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1.5 uppercase tracking-wide shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                    <span>Đang mở cửa</span>
+                  </span>
+                ` : `
+                  <span class="bg-rose-600/95 backdrop-blur-xs text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1.5 uppercase tracking-wide shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-white"></span>
+                    <span>Đã đóng cửa</span>
+                  </span>
+                `) : '')}
+              </div>
+            </div>
+
+            <!-- Thể loại & Quận & Tag đề cử (Gom thành 1 hàng ngang tinh tế) -->
+            <div class="flex items-center gap-2 flex-wrap mb-2.5">
+              <span class="text-[11px] font-black uppercase text-[#E11D48] bg-[#FFE4E6] px-2.5 py-0.5 rounded-lg tracking-wider">
+                ${isEat ? 'Ẩm Thực Sài Gòn' : 'Điểm Đến & Vui Chơi'}
+              </span>
+              ${p.district ? `
+                <span class="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
+                  <i class="fa-solid fa-location-dot text-[#E11D48] text-[10px]"></i>
+                  <span>${p.district}</span>
+                </span>
+              ` : ''}
+              ${distanceHTML}
+              ${p.is_admin_choice === 1 ? '<span class="text-[10px] bg-amber-100 text-amber-900 font-extrabold px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1"><i class="fa-solid fa-crown text-amber-600"></i> Quán Đề Cử</span>' : ''}
+            </div>
+
+            ${p.closed_warning ? `
+              <div class="mb-2.5 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2">
+                <i class="fa-solid fa-moon text-amber-600 mt-0.5"></i>
+                <span><strong>Lưu ý:</strong> ${p.closed_warning}</span>
+              </div>
+            ` : ''}
+            <!-- Tên quán (Headline lớn, đậm nét) -->
+            <h3 onclick="openPlaceDetailById(${p.id})" class="font-black text-slate-900 text-xl sm:text-2xl tracking-tight leading-snug mb-2 hover:text-[#E11D48] transition cursor-pointer" title="Bấm để xem chi tiết quán">
+              ${p.name}
+            </h3>
+
+            <!-- SỐ SAO & ĐÁNH GIÁ (GỌN GÀNG, KHÔNG BAO GIỜ BỊ TRÀN HÀNG) -->
+            <div class="flex items-center gap-2.5 mb-4 flex-nowrap">
+              ${(p.rating && p.rating > 0) ? `
+              <div class="rating-pill-prominent shadow-2xs shrink-0">
+                <i class="fa-solid fa-star text-amber-500 text-sm"></i>
+                <span class="text-base font-black text-amber-950">${p.rating}</span>
+                <span class="text-xs text-amber-700 font-extrabold">/ 5.0</span>
+              </div>` : `
+              <div class="rating-pill-prominent shadow-2xs shrink-0 bg-slate-100 text-slate-500 border border-slate-200">
+                <i class="fa-regular fa-star text-slate-400 text-sm"></i>
+                <span class="text-xs font-bold text-slate-600">Chưa có sao</span>
+              </div>`}
+              <span class="text-xs font-bold text-slate-500 truncate">${(p.reviews_count && p.reviews_count > 0) ? `(${parseInt(p.reviews_count).toLocaleString()} đánh giá)` : '(Chưa có đánh giá)'}</span>
+            </div>
+          </div>
+
+          <!-- MỨC GIÁ: CỰC KỲ NHẤN MẠNH RIÊNG BIỆT Ở ĐÁY CỘT TRÁI -->
+          <div class="price-block-prominent">
+            <div class="flex items-center justify-between w-full mb-1">
+              <span class="text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-wallet text-[#E11D48] text-xs flex-shrink-0"></i>
+                <span class="whitespace-nowrap">Mức giá tham khảo</span>
+              </span>
+            </div>
+            <div class="flex items-baseline gap-1.5 whitespace-nowrap">
+              <span class="text-xl sm:text-2xl font-black text-emerald-800 tracking-tight whitespace-nowrap">
+                ${priceRangeFormatted}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== CỘT PHẢI (55% - EXPERIENCE, 2 REVIEWS & ACTIONS) ==================== -->
+        <div class="md:col-span-7 flex flex-col justify-between pl-0 md:pl-6 md:border-l md:border-slate-200/90 pt-5 md:pt-0 border-t md:border-t-0 border-slate-200/90">
+          <div>
+            <!-- Giờ Cao Điểm: Nhấn mạnh nổi bật tương tự Mức giá -->
+            <div class="peak-hours-prominent mb-4">
+              <div class="flex items-center justify-between w-full mb-1">
+                <span class="text-[11px] font-black uppercase text-amber-800 tracking-wider flex items-center gap-1.5 whitespace-nowrap">
+                  <i class="fa-solid fa-clock-rotate-left text-amber-600 text-xs flex-shrink-0"></i>
+                  <span>Giờ cao điểm</span>
+                </span>
+              </div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="${peakHoursFontSize} font-black text-amber-950 tracking-tight leading-tight">
+                  ${cleanPeakHoursText}
+                </span>
+              </div>
+            </div>
+
+            <!-- 2 KHỐI COMMENT KHEN & CHÊ: CỰC KỲ NHẤN MẠNH DẠNG REVIEW CARDS -->
+            <div class="space-y-3 mb-5">
+              <!-- Khối Khen 5 sao -->
+              <div class="review-card-khen shadow-2xs">
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="font-black text-emerald-950 uppercase text-xs tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-thumbs-up text-emerald-600 text-sm"></i>
+                    <span>Đánh giá tiêu biểu từ Google Maps (5★):</span>
+                  </span>
+                </div>
+                <p class="font-medium italic text-emerald-950 text-[13px] leading-relaxed">
+                  ${p.best_review ? `"${p.best_review}"` : '<span class="text-slate-400 not-italic">Chưa có nhận xét khen</span>'}
+                </p>
+              </div>
+
+              <!-- Khối Lưu ý / Góp ý -->
+              <div class="review-card-luuy shadow-2xs">
