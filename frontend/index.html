@@ -1278,3 +1278,103 @@
           <div class="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
             <i class="fa-solid fa-camera text-emerald-600"></i> 4. Hình Ảnh Thực Tế
           </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Link ảnh (Để trống nếu chưa có ảnh thật)</label>
+            <input type="text" id="formImageUrl" oninput="updateImagePreview(this.value)" class="pop-input" placeholder="Dán link ảnh thật từ Google Maps hoặc CDN..." />
+            <div class="mt-2.5 flex items-center gap-3">
+              <div id="formImagePreviewWrapper" class="w-20 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-xs flex-shrink-0 bg-slate-100 flex items-center justify-center">
+                <img id="formImagePreview" src="" class="w-full h-full object-cover hidden" />
+                <span id="formImageNoPreview" class="text-[10px] text-slate-400 font-bold flex flex-col items-center"><i class="fa-solid fa-camera text-slate-300 mb-0.5"></i> Chưa có ảnh</span>
+              </div>
+              <span class="text-[11px] text-slate-500 leading-relaxed">Xem trước ảnh hiển thị trên thẻ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KHỐI 5: CHỌN BỐI CẢNH 2-TIER (2-TIER FIT MODEL) -->
+        <div class="bg-slate-50/70 border border-slate-200/90 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-layer-group text-indigo-600"></i> 5. Bối Cảnh Phù Hợp (2-Tier Fit Model)
+            </div>
+                      </div>
+
+          <!-- Nhóm Tier 1: Cốt lõi -->
+          <div>
+            <div class="flex items-center gap-1.5 mb-1.5">
+              <span class="text-[11px] font-black text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <i class="fa-solid fa-crown text-amber-600"></i> Bối cảnh chính (Tier 1)
+              </span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <label class="cursor-pointer border border-slate-200 rounded-xl p-2 bg-white flex items-center gap-2 hover:border-[#E11D48] transition">
+                <input type="checkbox" id="chk_t1_di_1_minh" onchange="onAdminTagChange('di_1_minh', 1)" class="w-4 h-4 accent-[#E11D48]" />
+                <span class="font-bold text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-user text-slate-400 text-xs"></i> Đi 1 mình</span>
+              </label>
+              <label class="cursor-pointer border border-slate-200 rounded-xl p-2 bg-white flex items-center gap-2 hover:border-[#E11D48] transition">
+                <input type="checkbox" id="chk_t1_hen_ho" onchange="onAdminTagChange('hen_ho', 1)" class="w-4 h-4 accent-[#E11D48]" />
+                <span class="font-bold text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-heart text-rose-500 text-xs"></i> Hẹn hò</span>
+              </label>
+              <label class="cursor-pointer border border-slate-200 rounded-xl p-2 bg-white flex items-center gap-2 hover:border-[#E11D48] transition">
+                <input type="checkbox" id="chk_t1_nhom_ban" onchange="onAdminTagChange('nhom_ban', 1)" class="w-4 h-4 accent-[#E11D48]" />
+                <span class="font-bold text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-users text-sky-500 text-xs"></i> Nhóm bạn</span>
+              </label>
+              <label class="cursor-pointer border border-slate-200 rounded-xl p-2 bg-white flex items-center gap-2 hover:border-[#E11D48] transition">
+                <input type="checkbox" id="chk_t1_gia_dinh" onchange="onAdminTagChange('gia_dinh', 1)" class="w-4 h-4 accent-[#E11D48]" />
+                <span class="font-bold text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-house-chimney-window text-amber-500 text-xs"></i> Gia đình</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Nhóm Tier 2: Khả dụng -->
+          <div>
+            <div class="flex items-center gap-1.5 mb-1.5">
+              <span class="text-[11px] font-bold text-slate-700 bg-slate-200/80 border border-slate-300 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <i class="fa-solid fa-layer-group text-slate-500"></i> Bối cảnh phụ (Tier 2)
+              </span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <label class="cursor-pointer border border-slate-200 rounded-xl p-2 bg-white flex items-center gap-2 hover:border-slate-400 transition">
+                <input type="checkbox" id="chk_t2_di_1_minh" onchange="onAdminTagChange('di_1_minh', 2)" class="w-4 h-4 accent-slate-600" />
+                <span class="font-medium text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-user text-slate-400 text-xs"></i> Đi 1 mình</span>
+              </label>
+              <label class="cursor-pointer border border-slate-200 rounded-xl p-2 bg-white flex items-center gap-2 hover:border-slate-400 transition">
+                <input type="checkbox" id="chk_t2_hen_ho" onchange="onAdminTagChange('hen_ho', 2)" class="w-4 h-4 accent-slate-600" />
+                <span class="font-medium text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-heart text-rose-400 text-xs"></i> Hẹn hò</span>
+              </label>
+              <label class="cursor-pointer border border-slate-200 rounded-xl p-2 bg-white flex items-center gap-2 hover:border-slate-400 transition">
+                <input type="checkbox" id="chk_t2_nhom_ban" onchange="onAdminTagChange('nhom_ban', 2)" class="w-4 h-4 accent-slate-600" />
+                <span class="font-medium text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-users text-sky-400 text-xs"></i> Nhóm bạn</span>
+              </label>
+              <label class="cursor-pointer border border-slate-200 rounded-xl p-2 bg-white flex items-center gap-2 hover:border-slate-400 transition">
+                <input type="checkbox" id="chk_t2_gia_dinh" onchange="onAdminTagChange('gia_dinh', 2)" class="w-4 h-4 accent-slate-600" />
+                <span class="font-medium text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-house-chimney-window text-amber-400 text-xs"></i> Gia đình</span>
+              </label>
+            </div>
+          </div>
+
+          <input type="hidden" id="formTags" value="" />
+        </div>
+
+        <!-- KHỐI 6: ĐÁNH GIÁ & LƯU Ý THỰC TẾ (TINH GỌN, SẠCH CHỮ THỪA) -->
+        <div class="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4 sm:p-5 space-y-3">
+          <div class="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2 pb-2 border-b border-slate-200/70">
+            <i class="fa-solid fa-comments text-amber-600"></i> 6. Đánh Giá & Lưu Ý Thực Tế
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Cột trái: Đánh giá tiêu biểu 5 sao -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-2xs">
+              <label class="block font-bold text-slate-800 mb-2 flex items-center gap-1.5 text-xs">
+                <i class="fa-solid fa-star text-amber-500"></i> Đánh giá 5★ tiêu biểu
+              </label>
+              <textarea id="formBestReview" rows="5" class="w-full p-3 bg-slate-50/60 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-[#E11D48] focus:bg-white focus:ring-2 focus:ring-rose-100 transition resize-y leading-relaxed" placeholder="Nhận xét 5 sao thực tế..."></textarea>
+            </div>
+
+            <!-- Cột phải: Lưu ý / Góp ý thực tế -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-2xs">
+              <label class="block font-bold text-slate-800 mb-2 flex items-center gap-1.5 text-xs">
+                <i class="fa-solid fa-circle-exclamation text-amber-600"></i> Lưu ý & Góp ý thực tế
+              </label>
+              <textarea id="formWorstReview" rows="5" class="w-full p-3 bg-slate-50/60 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-[#E11D48] focus:bg-white focus:ring-2 focus:ring-rose-100 transition resize-y leading-relaxed" placeholder="Lưu ý về gửi xe, giờ đông, xếp hàng..."></textarea>
+            </div>
