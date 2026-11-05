@@ -328,3 +328,113 @@ function switchMode(mode) {
     updateFlowGpsUI();
   }
   if (mode === "all") {
+    if (!exploreUserCoords && (userGPSCoords || globalUserCoords)) {
+      const src = userGPSCoords || globalUserCoords;
+      setExploreLocationPreset(src.label || "Vị trí GPS của bạn", src.lat, src.lon);
+    } else {
+      filterAllPlaces();
+    }
+  }
+  if (mode === "admin" && isAdmin) loadAdminDashboard();
+}
+
+function parsePlaceTiers(tagsStr) {
+  if (!tagsStr || typeof tagsStr !== "string") return { tier1: [], tier2: [] };
+  const str = tagsStr.trim();
+  if (str.includes("tier1:") || str.includes("tier2:")) {
+    const parts = str.split("|");
+    let t1 = [], t2 = [];
+    parts.forEach(p => {
+      const trimmed = p.trim();
+      if (trimmed.startsWith("tier1:")) {
+        t1 = trimmed.replace("tier1:", "").split(",").map(x => x.trim()).filter(Boolean);
+      } else if (trimmed.startsWith("tier2:")) {
+        t2 = trimmed.replace("tier2:", "").split(",").map(x => x.trim()).filter(Boolean);
+      }
+    });
+    return { tier1: t1, tier2: t2 };
+  } else {
+    const all = str.split(",").map(x => x.trim()).filter(Boolean);
+    return { tier1: all.slice(0, 2), tier2: all.slice(2) };
+  }
+}
+
+function onAdminTagChange(tag, tier) {
+  const chkT1 = document.getElementById(`chk_t1_${tag}`);
+  const chkT2 = document.getElementById(`chk_t2_${tag}`);
+  if (tier === 1 && chkT1 && chkT1.checked) {
+    if (chkT2) chkT2.checked = false;
+  } else if (tier === 2 && chkT2 && chkT2.checked) {
+    if (chkT1) chkT1.checked = false;
+  }
+  syncAdminTagsInput();
+}
+
+function syncAdminTagsInput() {
+  const allTags = ['di_1_minh', 'hen_ho', 'nhom_ban', 'gia_dinh'];
+  const t1 = [];
+  const t2 = [];
+  allTags.forEach(t => {
+    const c1 = document.getElementById(`chk_t1_${t}`);
+    const c2 = document.getElementById(`chk_t2_${t}`);
+    if (c1 && c1.checked) t1.push(t);
+    if (c2 && c2.checked) t2.push(t);
+  });
+  const hiddenInp = document.getElementById("formTags");
+  if (hiddenInp) {
+    hiddenInp.value = `tier1:${t1.join(",")}|tier2:${t2.join(",")}`;
+  }
+}
+
+function isPlaceCurrentlyOpen(openStr, closeStr) {
+  if (!openStr || !closeStr || openStr === "Chưa rõ" || closeStr === "Chưa rõ") return true;
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const [oH, oM] = openStr.split(":").map(Number);
+  const [cH, cM] = closeStr.split(":").map(Number);
+  if (isNaN(oH) || isNaN(cH)) return true;
+  const openMinutes = oH * 60 + (oM || 0);
+  const closeMinutes = cH * 60 + (cM || 0);
+
+  if (openMinutes === closeMinutes) return true;
+
+  if (closeMinutes < openMinutes) {
+    // Mở xuyên đêm qua ngày hôm sau (ví dụ: 07:00 - 02:00, 10:00 - 04:00, 06:30 - 00:00)
+    // Quán đang mở nếu: Đã qua giờ mở hôm nay (>= openMinutes) HOẶC chưa tới giờ đóng sáng hôm sau (<= closeMinutes)
+    return currentMinutes >= openMinutes || currentMinutes <= closeMinutes;
+  } else {
+    // Mở trong ngày thông thường (ví dụ: 08:00 - 22:00)
+    return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
+  }
+}
+
+// ==============================================================================
+// 2.5 HỆ THỐNG ĐỒNG BỘ ĐỊNH VỊ GPS LIÊN THÔNG 3 TAB (TAB 1, TAB 2, TAB 3)
+// ==============================================================================
+
+function setGlobalLocation(lat, lon, labelText = "Vị trí GPS của bạn", syncTabs = true) {
+  const numLat = parseFloat(lat);
+  const numLon = parseFloat(lon);
+  if (isNaN(numLat) || isNaN(numLon)) return;
+
+  globalUserCoords = { lat: numLat, lon: numLon, label: labelText };
+  exploreUserCoords = { lat: numLat, lon: numLon };
+  userGPSCoords = { lat: numLat, lon: numLon };
+
+  try {
+    sessionStorage.setItem("sggo_global_coords", JSON.stringify(globalUserCoords));
+  } catch (e) {}
+
+  if (syncTabs) {
+    // 1. Đồng bộ sang Tab 2 (Tự chọn)
+    const expInput = document.getElementById("exploreLocationInput");
+    if (expInput) expInput.value = labelText;
+    const expBadge = document.getElementById("exploreGpsStatusBadge");
+    if (expBadge) expBadge.classList.remove("hidden");
+    const expClear = document.getElementById("btnClearExploreLoc");
+    if (expClear) expClear.classList.remove("hidden");
+    const expBtn = document.getElementById("btnExploreGPS");
+    if (expBtn) {
+      expBtn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-300"></i> <span>Đã nhận GPS</span>`;
+      expBtn.disabled = false;
