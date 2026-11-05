@@ -1078,3 +1078,103 @@
         <div>
           <label class="block text-[11px] font-bold text-slate-700 mb-1">Mật khẩu</label>
           <input type="password" id="regPassword" required placeholder="Tạo mật khẩu" class="pop-input" />
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm mt-2">
+          Tạo Tài Khoản
+        </button>
+      </form>
+
+      <!-- Phím tắt nhanh để thuyết trình / bảo vệ đồ án -->
+      <div class="mt-5 pt-4 border-t border-slate-100 text-center">
+        <p class="text-[10px] text-slate-400 font-semibold mb-2">PHÂN QUYỀN ĐỂ BẢO VỆ ĐỒ ÁN:</p>
+        <div class="grid grid-cols-2 gap-2 text-left">
+          <button type="button" onclick="fillDemoAccount('user1', '123456')" class="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition">
+            <span class="text-[11px] font-bold text-slate-700 block flex items-center gap-1.5"><i class="fa-solid fa-user text-slate-400 text-[10px]"></i> Người dùng (user1)</span>
+            <span class="text-[10px] text-slate-400 block mt-0.5">Không hiện tab Admin</span>
+          </button>
+          <button type="button" onclick="fillDemoAccount('admin', 'admin123')" class="p-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition">
+            <span class="text-[11px] font-bold text-rose-600 block flex items-center gap-1.5"><i class="fa-solid fa-gear text-rose-500 text-[10px]"></i> Quản trị viên (admin)</span>
+            <span class="text-[10px] text-rose-400 block mt-0.5">Mở quyền Quản trị hệ thống</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MODAL THÊM / SỬA ĐỊA ĐIỂM (CÓ BÓC TÁCH LINK GOOGLE MAPS & CHỈNH ẢNH) -->
+  <div id="modalPlaceForm" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative max-h-[92vh] overflow-y-auto">
+      <button onclick="closePlaceFormModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 transition cursor-pointer">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
+
+      <!-- Modal Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-8 pb-4 mb-4 border-b border-slate-100">
+        <div>
+          <h3 id="placeFormTitle" class="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">Thêm Địa Điểm Mới</h3>
+          <p id="placeFormSubtitle" class="text-xs text-slate-500 mt-0.5">Quản lý thông tin địa điểm tại Sài Gòn</p>
+        </div>
+        <a id="btnAdminOpenGmaps" target="_blank" href="#" class="hidden px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer self-start sm:self-auto" title="Mở trang quán này trên Google Maps để đối chiếu">
+          <i class="fa-brands fa-google text-emerald-600"></i>
+          <span>Xem trên Google Maps</span>
+          <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70"></i>
+        </a>
+      </div>
+
+      <!-- HỘP BÓC TÁCH TỰ ĐỘNG TỪ GOOGLE MAPS (ĐÃ BỎ CHỨC NĂNG NHẬP TÊN QUÁN) -->
+      <div id="gmapsExtractorBox" class="bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50/50 border border-orange-200 rounded-2xl p-3.5 mb-5 shadow-2xs">
+        <label class="block text-xs font-extrabold text-orange-900 mb-1.5 flex items-center gap-1.5">
+          <i class="fa-brands fa-google text-rose-500"></i> Hỗ trợ điền nhanh từ liên kết Google Maps:
+        </label>
+        <div class="flex gap-2">
+          <input type="text" id="gmapsExtractInput" placeholder="Dán link Google Maps (VD: https://www.google.com/maps/place/... hoặc https://maps.app.goo.gl/...)" class="pop-input flex-1 py-2 text-xs bg-white" />
+          <button type="button" onclick="handleExtractGmaps()" id="btnExtractGmaps" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 whitespace-nowrap shadow-sm cursor-pointer">
+            <i class="fa-solid fa-bolt"></i> Tự Động Điền
+          </button>
+        </div>
+        <div class="text-[11px] text-amber-900 mt-2.5 flex items-start gap-2 bg-amber-100/90 border border-amber-300 rounded-xl px-3 py-2 leading-relaxed">
+          <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 flex-shrink-0 text-xs"></i>
+          <span><strong>Lưu ý quan trọng cho Admin:</strong> Tính năng lấy link tự động chỉ mang tính chất <strong>tham khảo để hỗ trợ điền nhanh</strong> (Tên quán, Tọa độ GPS, Đường/Quận). Admin <strong>cần dò và kiểm tra lại thật kĩ</strong> địa chỉ cụ thể, đồng thời tự điền giờ hoạt động, khoảng giá, số sao và lượt review thực tế bên dưới để tránh nhầm lẫn!</span>
+        </div>
+      </div>
+
+      <!-- KHUNG CẢNH BÁO TRÙNG LẶP THÔNG MINH ĐA LỚP -->
+      <div id="formDuplicateWarning" class="hidden p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-xs text-amber-900 flex items-start gap-2.5 shadow-2xs mb-3">
+        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm mt-0.5 flex-shrink-0"></i>
+        <div class="flex-1" id="formDuplicateWarningText"></div>
+      </div>
+
+      <form id="placeAdminForm" onsubmit="handleSavePlace(event)" class="space-y-4 text-xs">
+        <input type="hidden" id="formPlaceId" value="" />
+
+        <!-- KHỐI 1: THÔNG TIN CƠ BẢN & ĐỊA CHỈ -->
+        <div class="bg-slate-50/70 border border-slate-200/90 rounded-2xl p-4 space-y-3">
+          <div class="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-store text-[#E11D48]"></i> 1. Thông Tin Cơ Bản & Địa Chỉ
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Tên địa điểm / Quán <span class="text-rose-500">*</span></label>
+            <input type="text" id="formName" oninput="updateDuplicateWarningUI()" required class="pop-input" placeholder="VD: Sủi Cảo Thiên Thiên" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Thể loại chính</label>
+              <select id="formCategory" class="pop-input font-bold text-slate-800">
+                <option value="an_uong">Ẩm thực Sài Gòn (Ăn uống)</option>
+                <option value="di_choi">Điểm đến & Vui chơi (Tham quan / Workshop)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Khu vực / Quận <span class="text-rose-500">*</span></label>
+              <select id="formDistrict" class="pop-input font-bold text-slate-800">
+                <option value="Quận 5">Quận 5 (Trọng tâm SGGo!)</option>
+                <option value="Quận 1">Quận 1</option>
+                <option value="Quận 3">Quận 3</option>
+                <option value="Quận 4">Quận 4</option>
+                <option value="Quận 6">Quận 6</option>
+                <option value="Quận 7">Quận 7</option>
+                <option value="Quận 8">Quận 8</option>
+                <option value="Quận 10">Quận 10</option>
+                <option value="Quận 11">Quận 11</option>
