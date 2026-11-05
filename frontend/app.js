@@ -438,3 +438,113 @@ function setGlobalLocation(lat, lon, labelText = "Vị trí GPS của bạn", sy
     if (expBtn) {
       expBtn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-300"></i> <span>Đã nhận GPS</span>`;
       expBtn.disabled = false;
+    }
+
+    // 2. Đồng bộ sang Tab 3 (Lộ trình AI)
+    const aiInput = document.getElementById("aiStartLoc");
+    if (aiInput) aiInput.value = labelText;
+    const aiIcon = document.getElementById("gpsStatusIcon");
+    if (aiIcon) aiIcon.classList.remove("hidden");
+    const aiBtn = document.getElementById("btnGetGPS");
+    if (aiBtn) {
+      aiBtn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> <span class="text-emerald-700">Đã nhận GPS</span>`;
+      aiBtn.disabled = false;
+    }
+  }
+
+  updateFlowGpsUI();
+}
+
+function clearGlobalLocation() {
+  globalUserCoords = null;
+  exploreUserCoords = null;
+  userGPSCoords = null;
+  flowPrioritizeGps = false;
+
+  try {
+    sessionStorage.removeItem("sggo_global_coords");
+  } catch (e) {}
+
+  // 1. Reset Tab 1
+  updateFlowGpsUI();
+  const stepFinish = document.getElementById("stepFinish");
+  if (stepFinish && !stepFinish.classList.contains("hidden")) {
+    showFinishResults(0);
+  }
+
+  // 2. Reset Tab 2
+  const expInput = document.getElementById("exploreLocationInput");
+  const expBadge = document.getElementById("exploreGpsStatusBadge");
+  const expClear = document.getElementById("btnClearExploreLoc");
+  const expBtn = document.getElementById("btnExploreGPS");
+  const radiusSelect = document.getElementById("allRadiusFilter");
+  if (expInput) expInput.value = "";
+  if (expBadge) expBadge.classList.add("hidden");
+  if (expClear) expClear.classList.add("hidden");
+  if (expBtn) expBtn.innerHTML = `<i class="fa-solid fa-crosshairs"></i> <span>Dùng GPS hiện tại</span>`;
+  if (radiusSelect) radiusSelect.value = "all";
+
+  const sortSelect = document.getElementById("allSortFilter");
+  if (sortSelect && sortSelect.value === "distance_asc") {
+    sortSelect.value = "default";
+  }
+
+  // 3. Reset Tab 3
+  const aiInput = document.getElementById("aiStartLoc");
+  const aiIcon = document.getElementById("gpsStatusIcon");
+  const aiBtn = document.getElementById("btnGetGPS");
+  if (aiInput) aiInput.value = "";
+  if (aiIcon) aiIcon.classList.add("hidden");
+  if (aiBtn) {
+    aiBtn.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> <span>Dùng GPS hiện tại</span>`;
+    aiBtn.disabled = false;
+  }
+}
+
+function updateFlowGpsUI() {
+  const btn = document.getElementById("btnFlowToggleGps");
+  if (!btn) return;
+  btn.disabled = false;
+
+  if (globalUserCoords && flowPrioritizeGps) {
+    btn.className = "text-[11px] font-extrabold px-3 py-1 rounded-full border border-emerald-400 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition flex items-center gap-1.5 shadow-2xs cursor-pointer select-none";
+    btn.setAttribute("title", `Vị trí: ${globalUserCoords.label} - Bấm để tắt ưu tiên khoảng cách`);
+    btn.innerHTML = `
+      <i class="fa-solid fa-circle-check text-emerald-600 text-xs"></i>
+      <span>Đang ưu tiên gần tôi</span>
+      <span onclick="event.stopPropagation(); clearGlobalLocation();" class="text-slate-400 hover:text-rose-600 ml-0.5 p-0.5 rounded cursor-pointer" title="Hủy vị trí GPS">
+        <i class="fa-solid fa-xmark text-[10px]"></i>
+      </span>
+    `;
+  } else if (globalUserCoords && !flowPrioritizeGps) {
+    btn.className = "text-[11px] font-bold px-3 py-1 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition flex items-center gap-1.5 shadow-2xs cursor-pointer select-none";
+    btn.setAttribute("title", `Đã nhận vị trí: ${globalUserCoords.label} - Bấm để bật ưu tiên gần bạn`);
+    btn.innerHTML = `
+      <i class="fa-solid fa-location-dot text-emerald-600 text-xs"></i>
+      <span>Bật ưu tiên gần tôi</span>
+      <span onclick="event.stopPropagation(); clearGlobalLocation();" class="text-slate-400 hover:text-rose-600 ml-0.5 p-0.5 rounded cursor-pointer" title="Hủy vị trí GPS">
+        <i class="fa-solid fa-xmark text-[10px]"></i>
+      </span>
+    `;
+  } else {
+    btn.className = "text-[11px] font-bold px-3 py-1 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition flex items-center gap-1.5 shadow-2xs cursor-pointer select-none";
+    btn.setAttribute("title", "Bấm 1 lần dùng chung GPS cho cả 3 Tab (Ưu tiên quán gần bạn)");
+    btn.innerHTML = `<i class="fa-solid fa-location-crosshairs text-slate-400 text-xs"></i><span>Ưu tiên gần tôi (GPS)</span>`;
+  }
+}
+
+function toggleFlowGpsPriority() {
+  const btn = document.getElementById("btnFlowToggleGps");
+  if (globalUserCoords) {
+    flowPrioritizeGps = !flowPrioritizeGps;
+    updateFlowGpsUI();
+    // Nếu đang mở danh sách kết quả của Khám phá nhanh thì tính toán lại ngay
+    const stepFinish = document.getElementById("stepFinish");
+    if (stepFinish && !stepFinish.classList.contains("hidden")) {
+      showFinishResults(0);
+    }
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    alert("Trình duyệt của bạn không hỗ trợ định vị GPS Geolocation.");
