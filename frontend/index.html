@@ -1378,3 +1378,103 @@
               </label>
               <textarea id="formWorstReview" rows="5" class="w-full p-3 bg-slate-50/60 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-[#E11D48] focus:bg-white focus:ring-2 focus:ring-rose-100 transition resize-y leading-relaxed" placeholder="Lưu ý về gửi xe, giờ đông, xếp hàng..."></textarea>
             </div>
+          </div>
+        </div>
+
+        <!-- KHỐI 7: TRẠNG THÁI HIỂN THỊ -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="bg-amber-50/80 border border-amber-200/80 p-3 rounded-2xl flex items-center justify-between">
+            <div>
+              <span class="block text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                <span>Địa Điểm Admin Đề Cử</span>
+                <span class="text-[10px] bg-amber-200 text-amber-800 font-extrabold px-1.5 py-0.5 rounded">Nổi bật</span>
+              </span>
+              <span class="text-[10px] text-amber-700">Hiển thị huy hiệu đề cử trên thẻ</span>
+            </div>
+            <label class="cursor-pointer flex items-center gap-1.5 flex-shrink-0 ml-2">
+              <input type="checkbox" id="formIsAdminChoice" class="w-4 h-4 accent-amber-600 rounded" />
+              <span class="text-xs font-bold text-amber-900">Đề cử</span>
+            </label>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 p-3 rounded-2xl flex items-center justify-between">
+            <div>
+              <span class="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <span>Trạng thái hiển thị</span>
+              </span>
+              <span class="text-[10px] text-slate-500">Ẩn quán khỏi trang tìm kiếm công khai</span>
+            </div>
+            <label class="cursor-pointer flex items-center gap-1.5 flex-shrink-0 ml-2">
+              <input type="checkbox" id="formIsHidden" class="w-4 h-4 accent-slate-800 rounded" />
+              <span class="text-xs font-bold text-slate-700">Ẩn quán</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-3">
+          <button type="submit" id="btnSubmitPlaceForm" class="w-full py-3.5 bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-2xl font-bold transition shadow-md shadow-[#E11D48]/20 text-xs sm:text-sm cursor-pointer">
+            Lưu Địa Điểm
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. MODAL NHẬP HÀNG LOẠT CSV / EXCEL (G6-FR09 SHOULD) -->
+  <div id="modalImportCSV" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative">
+      <button onclick="closeImportModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center bg-slate-50">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h3 class="text-base font-black text-slate-900 mb-1">Nhập Hàng Loạt CSV / Excel</h3>
+      <p class="text-xs text-slate-500 mb-3 leading-relaxed">Chọn file <strong>.CSV</strong> hoặc <strong>.XLSX</strong> có cấu trúc chuẩn để nạp hàng loạt địa điểm.</p>
+
+      <div class="flex items-center justify-center gap-3 mb-3 text-[11px] bg-slate-50 p-2 rounded-xl border border-slate-200">
+        <button type="button" onclick="downloadCSVTemplate()" class="text-rose-700 hover:underline font-bold flex items-center gap-1">
+          <i class="fa-solid fa-file-csv text-rose-600"></i> Tải CSV Mẫu
+        </button>
+        <span class="text-slate-300">|</span>
+        <button type="button" onclick="downloadExcelTemplate()" class="text-emerald-700 hover:underline font-bold flex items-center gap-1">
+          <i class="fa-solid fa-file-excel text-emerald-600"></i> Tải Excel Mẫu (.xlsx)
+        </button>
+      </div>
+
+      <div class="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-emerald-500 transition cursor-pointer mb-4 bg-slate-50/50" onclick="document.getElementById('csvFileInput').click()">
+        <i class="fa-solid fa-file-arrow-up text-3xl text-emerald-600 mb-2"></i>
+        <p class="text-xs font-bold text-slate-700">Bấm vào đây để chọn file .CSV hoặc .XLSX</p>
+        <p id="csvFileName" class="text-[11px] text-slate-400 mt-1">Hỗ trợ định dạng .csv, .xlsx, .xls</p>
+        <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls" onchange="handleCSVFileSelected(event)" class="hidden" />
+      </div>
+
+      <!-- Báo cáo lỗi dữ liệu CSV/Excel (G6-FR09, Business Rule 4 & Luồng Demo 3) -->
+      <div id="csvValidationReport" class="hidden mb-4 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-[11px]">
+        <div class="flex items-center gap-1.5 font-bold text-rose-800 mb-1.5">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span id="csvValidationTitle">Phát hiện dòng lỗi trong dữ liệu</span>
+        </div>
+        <div class="max-h-36 overflow-y-auto pr-1">
+          <ul id="csvErrorList" class="space-y-1 text-slate-700 pl-4 list-disc font-medium"></ul>
+        </div>
+      </div>
+
+      <button onclick="submitCSVImport()" id="btnUploadCSV" disabled class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer">
+        Tiến Hành Nạp Dữ Liệu
+      </button>
+    </div>
+  </div>
+
+  <!-- 4. SIDE DRAWER: XEM CHI TIẾT ĐỊA ĐIỂM CHUẨN GOOGLE MAPS (ẢNH, THÔNG TIN, COMMENT, BẢN ĐỒ) -->
+  <div id="placeDetailBackdrop" onclick="closePlaceDetail()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-50 hidden transition-opacity"></div>
+  
+  <aside id="placeDetailDrawer" class="fixed top-0 right-0 bottom-0 w-full sm:w-[500px] md:w-[560px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col border-l border-slate-200">
+    <!-- Header Drawer -->
+    <div class="p-3.5 px-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+      <div class="flex items-center gap-2 min-w-0 pr-2">
+        <span id="detailCategoryBadge" class="text-xs font-black uppercase text-[#E11D48] bg-orange-50 px-2.5 py-1 rounded-lg flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
+          <i class="fa-solid fa-store"></i> <span id="detailCategoryLabel">Ẩm thực</span>
+        </span>
+        <span id="detailAdminChoiceBadge" class="hidden text-[10px] bg-amber-100 text-amber-900 font-extrabold px-2 py-0.5 rounded-md border border-amber-300 items-center gap-1 whitespace-nowrap">
+          <i class="fa-solid fa-crown text-amber-600"></i> Quán Admin Yêu Thích
+        </span>
+      </div>
