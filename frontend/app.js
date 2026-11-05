@@ -1318,3 +1318,113 @@ let aiBudgetLevel = "100k_250k";
 let aiTargetBudget = 250000;
 let aiShuffleSeed = 0;
 let aiNumStops = 3;
+let aiRadiusKm = null;
+
+function selectAIStops(stops) {
+  aiNumStops = stops;
+  [2, 3, 4].forEach(s => {
+    const btn = document.getElementById(`aistops_${s}`);
+    if (btn) {
+      if (s === stops) {
+        btn.className = "companion-chip active py-2.5 px-3 rounded-xl border-2 border-[#E11D48] bg-rose-50 font-bold text-[#E11D48] shadow-xs transition text-center cursor-pointer";
+      } else {
+        btn.className = "companion-chip py-2.5 px-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer";
+      }
+    }
+  });
+  const displayEl = document.getElementById("aiStopsDisplay");
+  if (displayEl) {
+    if (stops === 2) displayEl.innerText = "2 trạm (Nhanh gọn - 1 đến 2 tiếng)";
+    else if (stops === 3) displayEl.innerText = "3 trạm (Tiêu chuẩn - 2 đến 3.5 tiếng)";
+    else if (stops === 4) displayEl.innerText = "4 trạm (Khám phá trọn vẹn - 3.5 đến 5 tiếng)";
+  }
+}
+
+function onTimePickerChange() {
+  const startEl = document.getElementById("aiStartTime");
+  const endEl = document.getElementById("aiEndTime");
+  const displayEl = document.getElementById("aiFreeTimeDisplay");
+  const hiddenTimeEl = document.getElementById("aiTime");
+
+  if (!startEl || !endEl) return;
+
+  const startVal = startEl.value || "14:00";
+  const endVal = endEl.value || "18:30";
+
+  const [h1, m1] = startVal.split(":").map(Number);
+  const [h2, m2] = endVal.split(":").map(Number);
+
+  let startMins = h1 * 60 + m1;
+  let endMins = h2 * 60 + m2;
+
+  if (endMins < startMins) {
+    endMins += 24 * 60; // Trường hợp đi qua nửa đêm
+  }
+
+  const durationMins = endMins - startMins;
+  const hours = Math.floor(durationMins / 60);
+  const minutes = durationMins % 60;
+
+  if (displayEl) {
+    displayEl.innerText = `${hours}h ${minutes > 0 ? minutes + 'p ' : ''}(${durationMins} phút)`;
+  }
+
+  if (hiddenTimeEl) {
+    hiddenTimeEl.value = `${startVal} - ${endVal}`;
+  }
+}
+
+function setFreeTimePreset(startTime, endTime) {
+  const startEl = document.getElementById("aiStartTime");
+  const endEl = document.getElementById("aiEndTime");
+  if (startEl && endEl) {
+    if (!endTime && startTime && startTime.includes("-")) {
+      const parts = startTime.split("-").map(s => s.trim());
+      startEl.value = parts[0];
+      endEl.value = parts[1];
+    } else {
+      startEl.value = startTime;
+      endEl.value = endTime || "18:30";
+    }
+    onTimePickerChange();
+  }
+}
+
+function selectAIRadius(radius, label) {
+  aiRadiusKm = radius;
+  ["all", "3", "5", "10", "20"].forEach(r => {
+    const btn = document.getElementById(`airadius_${r}`);
+    if (btn) {
+      const match = (r === "all" && radius === null) || (parseFloat(r) === radius);
+      if (match) {
+        btn.className = "companion-chip active py-2 px-2.5 rounded-xl border-2 border-[#E11D48] bg-rose-50 font-bold text-[#E11D48] shadow-xs transition text-center cursor-pointer";
+      } else {
+        btn.className = "companion-chip py-2 px-2.5 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer";
+      }
+    }
+  });
+  const displayEl = document.getElementById("aiRadiusDisplay");
+  if (displayEl) {
+    displayEl.innerText = label || (radius ? `Trong vòng ${radius} km` : "Toàn thành phố");
+  }
+}
+
+function selectAIBudget(level, amount) {
+  aiBudgetLevel = level;
+  aiTargetBudget = amount;
+
+  ["free", "under_100k", "100k_250k", "above_250k"].forEach(l => {
+    const btn = document.getElementById(`aibudget_${l}`);
+    if (btn) {
+      if (l === level) {
+        btn.className = "companion-chip active py-2 px-3 rounded-xl border-2 border-[#E11D48] bg-rose-50 font-bold text-[#E11D48] shadow-xs transition text-center cursor-pointer";
+      } else {
+        btn.className = "companion-chip py-2 px-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer";
+      }
+    }
+  });
+
+  const customInput = document.getElementById("aiCustomBudget");
+  if (customInput) customInput.value = "";
+
+  const displayEl = document.getElementById("aiBudgetValueDisplay");
