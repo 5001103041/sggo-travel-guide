@@ -1648,3 +1648,113 @@ async function requestAIItinerary(isShuffle = false) {
         window._currentRelaxAction = {
           time: result.recommended_time || "14:00 - 18:30",
           budget: result.recommended_budget || null
+        };
+        constraintAlert.scrollIntoView({ behavior: "smooth" });
+      }
+      return;
+    }
+
+    // NẾU THỎA MÃN RÀNG BUỘC
+    if (constraintAlert) constraintAlert.classList.add("hidden");
+    const placeholderArea = document.getElementById("aiPlaceholderArea");
+    if (placeholderArea) placeholderArea.classList.add("hidden");
+    if (resultArea) resultArea.classList.remove("hidden");
+
+    // Cập nhật nhãn trạng thái công nghệ minh bạch (Gemini & OpenStreetMap)
+    const aiBadge = document.getElementById("aiModelBadge");
+    const aiText = document.getElementById("aiModelText");
+    if (aiBadge && aiText) {
+      if (result.ai_status === "success") {
+        aiBadge.className = "inline-flex items-center gap-1.5 text-[11px] font-black px-3 py-1 rounded-full bg-purple-50 text-purple-800 border border-purple-200 shadow-2xs";
+        aiText.innerText = "Google Gemini";
+      } else {
+        aiBadge.className = "inline-flex items-center gap-1.5 text-[11px] font-black px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs";
+        aiText.innerText = "Thuật toán SGGo (Dự phòng)";
+      }
+    }
+
+    const routeBadge = document.getElementById("routingEngineBadge");
+    const routeText = document.getElementById("routingEngineText");
+    if (routeBadge && routeText) {
+      if (result.routing_source === "osrm") {
+        routeBadge.className = "inline-flex items-center gap-1.5 text-[11px] font-black px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200 shadow-2xs";
+        routeText.innerText = "OpenStreetMap";
+      } else {
+        routeBadge.className = "inline-flex items-center gap-1.5 text-[11px] font-black px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs";
+        routeText.innerText = "Haversine (Dự phòng)";
+      }
+    }
+
+    const routeWarnEl = document.getElementById("routingWarningBanner");
+    const routeWarnText = document.getElementById("routingWarningText");
+    if (routeWarnEl && routeWarnText) {
+      if (result.routing_warning) {
+        routeWarnText.innerText = result.routing_warning;
+        routeWarnEl.classList.remove("hidden");
+      } else {
+        routeWarnEl.classList.add("hidden");
+      }
+    }
+
+    const spareBanner = document.getElementById("spareTimeBanner");
+    const spareText = document.getElementById("spareTimeText");
+    if (spareBanner && spareText) {
+      if (result.spare_time_message) {
+        spareText.innerText = result.spare_time_message;
+        spareBanner.classList.remove("hidden");
+      } else {
+        spareBanner.classList.add("hidden");
+      }
+    }
+
+    // Cập nhật số trạm trên các nút và tiêu đề
+    const stopCount = result.steps ? result.steps.length : (result.num_stops || aiNumStops);
+    const timelineTitle = document.getElementById("aiTimelineTitle");
+    if (timelineTitle) {
+      timelineTitle.innerHTML = `<i class="fa-solid fa-route text-[#E11D48]"></i> Dòng Thời Gian Hành Trình (Timeline ${stopCount} Chặng)`;
+    }
+    const gmapsBtnText = document.getElementById("btnGmapsMultiRouteText");
+    if (gmapsBtnText) {
+      gmapsBtnText.innerText = `MỞ TOÀN BỘ LỘ TRÌNH ${stopCount} TRẠM TRÊN GOOGLE MAPS (CHẾ ĐỘ DẪN ĐƯỜNG XE MÁY)`;
+    }
+
+    // Cập nhật KPI thẻ ngân sách & thời gian (G6-FR05 MUST)
+    if (result.kpi) {
+      const kpi = result.kpi;
+      const budgetEl = document.getElementById("aiKpiBudget");
+      const budgetBadge = document.getElementById("aiKpiBudgetBadge");
+      if (budgetEl) budgetEl.innerText = `${kpi.total_min_cost.toLocaleString()}đ – ${kpi.total_max_cost.toLocaleString()}đ`;
+      if (budgetBadge) {
+        if (kpi.is_within_budget) {
+          budgetBadge.className = "inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md mt-1";
+          budgetBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>Nằm trong ngân sách dự kiến</span>`;
+        } else {
+          budgetBadge.className = "inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md mt-1";
+          budgetBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <span>Hơi vượt ngân sách</span>`;
+        }
+      }
+
+      const durEl = document.getElementById("aiKpiDuration");
+      const durBadge = document.getElementById("aiKpiDurationBadge");
+      const h = Math.floor(kpi.total_duration_minutes / 60);
+      const m = kpi.total_duration_minutes % 60;
+      if (durEl) durEl.innerText = `${h > 0 ? h + ' giờ ' : ''}${m} phút (~${kpi.total_duration_minutes} phút)`;
+      if (durBadge) {
+        if (kpi.is_within_time) {
+          durBadge.className = "inline-flex items-center gap-1 text-[10px] font-extrabold text-sky-700 bg-sky-100/80 px-2 py-0.5 rounded-md mt-1";
+          durBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>Vừa vặn khung giờ rảnh</span>`;
+        } else {
+          durBadge.className = "inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md mt-1";
+          durBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <span>Dài hơn giờ rảnh ban đầu</span>`;
+        }
+      }
+    }
+
+    let summaryContent = result.summary || `Lộ trình ${result.steps ? result.steps.length : ''} trạm thuận đường tối ưu do hệ thống sắp xếp.`;
+    summary.innerHTML = formatAiSummaryHTML(summaryContent);
+
+    if (btnGmaps && result.gmaps_multi_url) {
+      btnGmaps.href = result.gmaps_multi_url;
+    }
+
+    // Vẽ bản đồ Leaflet
