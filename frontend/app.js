@@ -1428,3 +1428,113 @@ function selectAIBudget(level, amount) {
   if (customInput) customInput.value = "";
 
   const displayEl = document.getElementById("aiBudgetValueDisplay");
+  if (displayEl) {
+    if (level === "free") displayEl.innerText = "0đ (Miễn phí hoàn toàn)";
+    else if (level === "under_100k") displayEl.innerText = "Dưới 100.000đ / người";
+    else if (level === "100k_250k") displayEl.innerText = "100.000đ – 250.000đ / người";
+    else if (level === "above_250k") displayEl.innerText = "Trên 250.000đ / người";
+  }
+}
+
+function onCustomAIBudgetInput() {
+  const customInput = document.getElementById("aiCustomBudget");
+  if (!customInput) return;
+  const val = parseInt(customInput.value.replace(/\D/g, ""), 10);
+  if (!isNaN(val) && val > 0) {
+    aiTargetBudget = val;
+    aiBudgetLevel = "custom";
+    ["free", "under_100k", "100k_250k", "above_250k"].forEach(l => {
+      const btn = document.getElementById(`aibudget_${l}`);
+      if (btn) {
+        btn.className = "companion-chip py-2 px-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:border-slate-300 transition text-center cursor-pointer";
+      }
+    });
+    const displayEl = document.getElementById("aiBudgetValueDisplay");
+    if (displayEl) displayEl.innerText = `${val.toLocaleString()}đ / người (Tự nhập)`;
+  }
+}
+
+let isPlannerSidebarCollapsed = false;
+
+function togglePlannerSidebar() {
+  const colLeft = document.getElementById("colLeftPlanner");
+  const colRight = document.getElementById("colRightContent");
+  const barExpand = document.getElementById("barExpandSidebar");
+  if (!colLeft || !colRight) return;
+
+  isPlannerSidebarCollapsed = !isPlannerSidebarCollapsed;
+  if (isPlannerSidebarCollapsed) {
+    colLeft.classList.add("hidden");
+    colRight.classList.remove("lg:col-span-7", "xl:col-span-7");
+    colRight.classList.add("lg:col-span-12", "xl:col-span-12");
+    if (barExpand) barExpand.classList.remove("hidden");
+  } else {
+    colLeft.classList.remove("hidden");
+    colRight.classList.remove("lg:col-span-12", "xl:col-span-12");
+    colRight.classList.add("lg:col-span-7", "xl:col-span-7");
+    if (barExpand) barExpand.classList.add("hidden");
+  }
+
+  // Cập nhật lại kích thước bản đồ Leaflet
+  setTimeout(() => {
+    if (typeof leafletMap !== "undefined" && leafletMap) {
+      leafletMap.invalidateSize();
+    }
+  }, 300);
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatAiSummaryHTML(rawText) {
+  if (!rawText) return "";
+  const lines = rawText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  let html = `<div class="space-y-2.5">`;
+
+  lines.forEach(line => {
+    const lower = line.toLowerCase();
+    // Bỏ qua các dòng nhại lại chi phí / ngân sách / thời lượng rảnh
+    if (lower.startsWith("cân đối chi phí") || lower.includes("hạn mức ngân sách") || lower.includes("tổng chi phí dự kiến")) {
+      return;
+    }
+    if (lower.startsWith("tiếp nhận tiêu chí") || lower.startsWith("tiêu chí tiếp nhận")) {
+      html += `
+        <div class="text-xs font-black uppercase text-indigo-900 tracking-wider flex items-center gap-1.5 pt-1">
+          <i class="fa-solid fa-clipboard-check text-indigo-600 text-sm"></i>
+          <span>Tiếp nhận tiêu chí của bạn:</span>
+        </div>
+      `;
+    } else if (lower.includes("lý do lựa chọn") || lower.includes("khi kết hợp") || lower.includes("sggo chọn") || lower.includes("đề xuất lộ trình")) {
+      html += `
+        <div class="text-xs font-black uppercase text-slate-900 tracking-wider flex items-center gap-1.5 pt-2 border-t border-slate-100">
+          <i class="fa-solid fa-compass text-[#E11D48] text-sm"></i>
+          <span>Lý do lựa chọn lộ trình:</span>
+        </div>
+      `;
+    } else if (lower.includes("take note") || lower.includes("ghi chú riêng") || lower.startsWith("• ghi chú")) {
+      let content = line.replace(/^[•\-\*]\s*(Ghi chú riêng \(Take note\):|Ghi chú riêng:|Ghi chú:)?\s*/i, "");
+      html += `
+        <div class="px-3.5 py-2.5 rounded-2xl bg-amber-50 border border-amber-200/90 text-amber-950 text-xs sm:text-[13px] flex items-start gap-2.5 font-medium shadow-2xs">
+          <i class="fa-solid fa-note-sticky text-amber-600 text-sm mt-0.5 shrink-0"></i>
+          <div class="leading-relaxed"><strong class="font-black text-amber-900">Ghi chú riêng của bạn:</strong> ${escapeHtml(content)}</div>
+        </div>
+      `;
+    } else if (line.startsWith("•") || line.startsWith("-") || line.startsWith("*")) {
+      let clean = line.replace(/^[•\-\*]\s*/, "");
+      const colonIdx = clean.indexOf(":");
+      if (colonIdx > 0 && lower.includes("logic kết hợp")) {
+        const title = clean.substring(0, colonIdx).trim();
+        const desc = clean.substring(colonIdx + 1).trim();
+        html += `
+          <div class="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50/90 via-sky-50/70 to-indigo-50/90 border border-indigo-200/90 text-xs sm:text-[13px] shadow-2xs">
+            <div class="font-black text-indigo-950 flex items-center gap-2 mb-1">
+              <span class="w-5 h-5 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-[10px] shrink-0 font-black"><i class="fa-solid fa-arrows-split-up-and-left"></i></span>
+              <span class="text-indigo-950 font-black">${escapeHtml(title)}</span>
+            </div>
