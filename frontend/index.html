@@ -1578,3 +1578,79 @@
             </div>
           </div>
         </div>
+
+        <!-- 5. Bình luận & Đánh giá chi tiết (Google Maps Style) -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-black text-slate-900 flex items-center gap-2">
+              <i class="fa-brands fa-google text-[#4285F4] text-base"></i> Đánh Giá Từ Google Maps
+            </h3>
+          </div>
+
+          <!-- Bình luận 5 sao tiêu biểu -->
+          <div class="bg-gradient-to-br from-emerald-50/70 to-teal-50/50 border border-emerald-200/80 rounded-2xl p-4 mb-3 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                  5★
+                </div>
+                <div>
+                  <h4 class="font-black text-slate-800 text-xs">Đánh giá nổi bật</h4>
+                  <div class="flex text-amber-400 text-[10px] mt-0.5">
+                    <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p id="detailBestReview" class="text-xs text-slate-700 leading-relaxed pl-2.5 border-l-2 border-emerald-500 font-medium">
+            </p>
+          </div>
+
+          <!-- Lưu ý / Góp ý thực tế -->
+          <div class="bg-gradient-to-br from-rose-50/70 to-amber-50/50 border border-rose-200/80 rounded-2xl p-4 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-full bg-rose-500 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                  <h4 class="font-black text-slate-800 text-xs">Lưu ý khi trải nghiệm</h4>
+                  <span class="text-[10px] text-slate-400 font-medium">Kinh nghiệm thực tế</span>
+                </div>
+              </div>
+            </div>
+            <p id="detailWorstReview" class="text-xs text-slate-700 leading-relaxed pl-2.5 border-l-2 border-rose-500 font-medium">
+            </p>
+          </div>
+        </div>
+
+        <!-- 6. Vị trí trên Bản Đồ Trực Quan -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-black text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-map-location-dot text-blue-600"></i> Bản Đồ Vị Trí Trực Quan
+            </h3>
+          </div>
+          <div id="drawerLeafletMap" class="w-full h-52 rounded-2xl overflow-hidden border border-slate-200 shadow-xs relative bg-slate-100 z-0"></div>
+          <a id="detailExternalMapLink" href="#" target="_blank" class="w-full mt-2.5 py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition">
+            <i class="fa-solid fa-location-arrow text-[11px]"></i>
+            <span>Mở chỉ đường trên Google Maps</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer Drawer -->
+    <div class="p-3 px-5 bg-white border-t border-slate-100 flex items-center justify-between text-xs sticky bottom-0 z-10">
+      <div id="detailFooterAdminEditBtn"></div>
+      <button onclick="closePlaceDetail()" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer">
+        Đóng chi tiết
+      </button>
+    </div>
+  </aside>
+
+  <script src="app.js?v=10.7"></script>
+</body>
+</html>
