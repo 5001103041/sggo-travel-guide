@@ -878,3 +878,103 @@
             </button>
             <button onclick="openAddPlaceModal()" class="px-3.5 py-2 bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
               <i class="fa-solid fa-plus"></i> Thêm Quán Mới
+            </button>
+          </div>
+        </div>
+
+        <!-- 2 Ô Thống Kê Tổng Quan Hệ Thống -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+          <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center justify-between">
+            <div>
+              <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">Tổng địa điểm trong hệ thống</div>
+              <div id="statTotalPlaces" class="text-3xl font-black text-slate-900 mt-1">--</div>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-rose-100 text-[#E11D48] flex items-center justify-center text-xl">
+              <i class="fa-solid fa-map-location-dot"></i>
+            </div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center justify-between">
+            <div>
+              <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">Tổng tài khoản người dùng</div>
+              <div id="statTotalUsers" class="text-3xl font-black text-slate-900 mt-1">--</div>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl">
+              <i class="fa-solid fa-users-gear"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ẩn giữ chỗ tương thích id cũ nếu có hàm gọi đến -->
+        <div class="hidden">
+          <span id="statVerifiedPlaces">--</span>
+          <span id="statTotalFavorites">--</span>
+        </div>
+
+        <!-- THANH CHUYỂN SUB-TAB: QUẢN LÝ ĐỊA ĐIỂM VS QUẢN LÝ TÀI KHOẢN -->
+        <div class="mt-7 flex items-center justify-between border-b border-slate-200 pb-3 flex-wrap gap-3">
+          <div class="admin-tab-nav">
+            <button type="button" onclick="switchAdminSubTab('places')" id="adminSubTabPlaces" class="admin-subtab-btn active">
+              <i class="fa-solid fa-store mr-1.5"></i> Quản Lý Địa Điểm
+            </button>
+            <button type="button" onclick="switchAdminSubTab('users')" id="adminSubTabUsers" class="admin-subtab-btn">
+              <i class="fa-solid fa-user-shield mr-1.5"></i> Quản Lý Tài Khoản (<span id="adminUserCountBadge">--</span>)
+            </button>
+          </div>
+          <span id="adminFilteredCount" class="text-[11px] text-slate-500 font-bold">Đang tải danh sách địa điểm...</span>
+        </div>
+
+        <!-- SECTION 1: QUẢN LÝ ĐỊA ĐIỂM -->
+        <div id="adminSectionPlaces">
+          <!-- BỘ LỌC TỪ A ĐẾN Z CHO ADMIN (BAO GỒM LỌC THEO TAG BỐI CẢNH) -->
+          <div class="mt-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+            <div class="flex flex-col gap-2.5">
+              <!-- HÀNG 1: 2 Ô TÌM KIẾM RIÊNG BIỆT (TÌM THEO ID & TÌM THEO TÊN / ĐỊA CHỈ) -->
+              <div class="flex flex-col sm:flex-row gap-2.5">
+                <div class="w-full sm:w-40 flex-shrink-0 relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs select-none">#</span>
+                  <input type="text" id="adminSearchIdInput" onkeyup="filterAdminTable()" placeholder="ID (VD: 18)..." class="pop-input py-2 pl-7 pr-2.5 bg-white font-semibold text-xs" title="Tìm theo mã ID địa điểm (ví dụ: 18, 5, 145...)" />
+                </div>
+                
+                <div class="flex-1 relative">
+                  <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                  <input type="text" id="adminSearchInput" onkeyup="filterAdminTable()" placeholder="Tìm theo tên quán, địa chỉ, tên đường..." class="pop-input py-2 pl-8 pr-3 bg-white font-medium text-xs" />
+                </div>
+              </div>
+
+              <!-- HÀNG 2: 5 BỘ LỌC ĐA CHIỀU (THỂ LOẠI, TAG BỐI CẢNH, SAO, GIÁ, TRẠNG THÁI) -->
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                <select id="adminCategoryFilter" onchange="filterAdminTable()" class="pop-input py-2 bg-white font-semibold text-xs">
+                  <option value="all">Tất cả thể loại</option>
+                  <option value="an_uong">Ẩm thực Sài Gòn</option>
+                  <option value="di_choi">Điểm đến & Vui chơi</option>
+                </select>
+
+                <select id="adminTagFilter" onchange="filterAdminTable()" class="pop-input py-2 bg-white font-semibold text-xs">
+                  <option value="all">Mọi thẻ bối cảnh (Tag)</option>
+                  <option value="di_1_minh">Đi 1 mình</option>
+                  <option value="hen_ho">Hẹn hò cặp đôi</option>
+                  <option value="nhom_ban">Tụ tập nhóm bạn</option>
+                  <option value="gia_dinh">Gia đình & Người thân</option>
+                </select>
+
+                <select id="adminRatingFilter" onchange="filterAdminTable()" class="pop-input py-2 bg-white font-semibold text-xs">
+                  <option value="all">Mọi số sao</option>
+                  <option value="4.5">Từ 4.5 sao trở lên</option>
+                  <option value="4.0">Từ 4.0 sao trở lên</option>
+                </select>
+
+                <select id="adminPriceFilter" onchange="filterAdminTable()" class="pop-input py-2 bg-white font-semibold text-xs">
+                  <option value="all">Mọi mức giá</option>
+                  <option value="free">Miễn phí (0đ)</option>
+                  <option value="50000">Dưới 50k</option>
+                  <option value="100000">Dưới 100k</option>
+                  <option value="above_100k">Trên 100k</option>
+                </select>
+
+                <select id="adminStatusFilter" onchange="filterAdminTable()" class="pop-input py-2 bg-white font-semibold text-xs">
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="visible">Đang hiển thị</option>
+                  <option value="hidden">Đã ẩn</option>
+                </select>
+              </div>
+            </div>
