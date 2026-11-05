@@ -768,3 +768,113 @@ async function showFinishResults(offset = 0) {
       } else {
         fallbackEl.classList.add("hidden");
       }
+    }
+
+    renderFinishCards(places);
+  } catch (e) {
+    resultsBox.innerHTML = `<div class="p-4 bg-red-50 text-red-600 rounded-xl text-xs">Chưa thể kết nối CSDL Backend.</div>`;
+  }
+}
+
+function prevFlowResults() {
+  if (currentFlowOffset >= 3) {
+    currentFlowOffset -= 3;
+    showFinishResults(currentFlowOffset);
+    document.getElementById("stepFinish")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function rotateFlowResults() {
+  currentFlowOffset += 3;
+  showFinishResults(currentFlowOffset);
+  document.getElementById("stepFinish")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// HÀM HIỂN THỊ ẢNH CHÂN THỰC: 1 LÀ ẢNH THẬT, 2 LÀ HIỂN THỊ "CHƯA CÓ ẢNH" (KHÔNG DÙNG ẢNH ẢO)
+function renderPlaceImage(p, widthClass = "w-full", heightClass = "h-full", customClass = "") {
+  const imgSrc = p.image_url;
+  if (imgSrc && imgSrc.trim()) {
+    return `
+      <img src="${imgSrc}" onerror="this.outerHTML='<div class=\'${widthClass} ${heightClass} bg-slate-100 rounded-2xl flex flex-col items-center justify-center text-slate-400 border border-slate-200 select-none\'><i class=\'fa-solid fa-camera text-slate-300 text-xl mb-1\'></i><span class=\'text-[11px] font-bold text-slate-400\'>Chưa có ảnh</span></div>';" class="${widthClass} ${heightClass} object-cover rounded-2xl shadow-inner ${customClass}" alt="${p.name}" />
+    `;
+  }
+  return `
+    <div class="${widthClass} ${heightClass} bg-slate-100 border border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 select-none ${customClass}">
+      <i class="fa-solid fa-camera text-slate-300 text-2xl mb-1"></i>
+      <span class="text-[11px] font-bold text-slate-400">Chưa có ảnh</span>
+    </div>
+  `;
+}
+
+// ==============================================================================
+// TAB 1: THẺ GỢI Ý KẾT QUẢ 2 CỘT RỘNG RÃI (DÀNH RIÊNG CHO TAB KHÁM PHÁ NHANH)
+// CỰC KỲ NHẤN MẠNH: TÊN QUÁN, SỐ SAO (NGAY DƯỚI TÊN), GIÁ TIỀN, MỞ CỬA, 2 COMMENT
+// ==============================================================================
+function buildRecommendCardHTML(p, idx) {
+  const isEat = p.category === "an_uong";
+  const hasHours = Boolean(p.hours_display || (p.open_time && p.close_time));
+  const isOpen = (typeof p.is_currently_open === "boolean")
+    ? p.is_currently_open
+    : isPlaceCurrentlyOpen(p.open_time, p.close_time);
+  const gmapsUrl = p.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + p.address)}`;
+
+  const isFree = (p.min_price === 0 && p.max_price === 0);
+  const cleanPrice = p.price_display ? p.price_display.replace(/Khoảng\s*/gi, "").replace(/\(.*?\)/g, "").trim() : null;
+  const priceRangeFormatted = cleanPrice
+    ? cleanPrice
+    : (isFree
+      ? "Miễn phí vé vào cổng"
+      : `${p.min_price ? p.min_price.toLocaleString() + 'đ' : ''} – ${p.max_price ? p.max_price.toLocaleString() + 'đ' : ''}`);
+
+  // Làm sạch và định dạng Giờ cao điểm (Nhấn mạnh nổi bật đồng điệu với Mức giá)
+  const rawPeak = (p.peak_hours && p.peak_hours !== 'Chưa rõ') ? p.peak_hours : '';
+  const cleanPeakHours = rawPeak.replace(/\s*\([^\)]*đông[^\)]*\)/gi, '').trim();
+  const hasPeak = Boolean(cleanPeakHours && cleanPeakHours !== 'Chưa rõ');
+  const cleanPeakHoursText = hasPeak ? cleanPeakHours : 'Chưa rõ (quán chưa cập nhật)';
+  const peakHoursFontSize = !hasPeak 
+    ? 'text-xs font-semibold text-amber-800/80 italic' 
+    : (cleanPeakHours.length > 20 ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl');
+
+  // Khoảng cách: CHỈ HIỂN THỊ KHI NGƯỜI DÙNG CÓ BẬT ĐỊNH VỊ GPS VÀ CÓ KHOẢNG CÁCH
+  let distanceHTML = "";
+  const distVal = (typeof p.distance_km === "number" && !isNaN(p.distance_km)) 
+    ? p.distance_km 
+    : ((typeof p.distanceKm === "number" && !isNaN(p.distanceKm)) ? p.distanceKm : null);
+  const userHasCoords = Boolean(globalUserCoords || exploreUserCoords || userGPSCoords);
+
+  if (distVal !== null && userHasCoords) {
+    const isWalk = distVal <= 0.6;
+    const walkTime = Math.max(1, Math.round(distVal * 12));
+    const bikeTime = Math.max(1, Math.round(distVal * 2.5));
+    const distStr = distVal < 1 ? `${Math.round(distVal * 1000)}m` : `${distVal.toFixed(1)} km`;
+
+    distanceHTML = `
+      <span class="ml-2 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${isWalk ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-blue-100 text-blue-900 border border-blue-300'} whitespace-nowrap inline-flex items-center gap-1">
+        <i class="fa-solid ${isWalk ? 'fa-person-walking' : 'fa-motorcycle'} text-[11px]"></i>
+        <span>Cách bạn ${distStr}</span>
+        <span class="font-normal opacity-85">(${isWalk ? `~${walkTime}p đi bộ` : `~${bikeTime}p xe máy`})</span>
+      </span>
+    `;
+  }
+
+  const imageHtml = renderPlaceImage(p, "w-full", "h-full");
+
+  return `
+    <div class="recommend-card-2col">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-7 items-stretch">
+        
+        <!-- ==================== CỘT TRÁI (45% - FACTS & THÔNG TIN CỐT LÕI) ==================== -->
+        <div class="md:col-span-5 flex flex-col justify-between">
+          <div>
+            <!-- Ảnh Quán Lớn + Badge Thứ Hạng + Trạng Thái Mở Cửa Nhấn Mạnh Ngay Trên Ảnh (KHÔNG CLICK VÀO ẢNH) -->
+            <div class="relative w-full h-52 sm:h-56 rounded-2xl overflow-hidden mb-3.5 border border-slate-200/90 shadow-xs select-none">
+              ${imageHtml}
+              <!-- Container 2 Badge Tránh Đè Lẫn Nhau -->
+              <div class="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
+                <!-- Badge Thứ hạng -->
+                <span class="text-xs font-black uppercase text-white bg-[#E11D48] px-3 py-1 rounded-xl shadow-md shrink-0">
+                  GỢI Ý #${idx + 1}
+                </span>
+                <!-- TRẠNG THÁI MỞ CỬA: RÚT GỌN TINH TẾ, KHÔNG TRÀN LẤN -->
+                ${p.closed_warning ? `
+                  <span class="bg-amber-600/95 backdrop-blur-xs text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1.5 uppercase tracking-wide shrink-0">
