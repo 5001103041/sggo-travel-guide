@@ -1538,3 +1538,113 @@ function formatAiSummaryHTML(rawText) {
               <span class="w-5 h-5 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-[10px] shrink-0 font-black"><i class="fa-solid fa-arrows-split-up-and-left"></i></span>
               <span class="text-indigo-950 font-black">${escapeHtml(title)}</span>
             </div>
+            <p class="text-indigo-900 leading-relaxed font-medium pl-7">${escapeHtml(desc)}</p>
+          </div>
+        `;
+      } else if (colonIdx > 0 && lower.includes("vì sao chọn")) {
+        const title = clean.substring(0, colonIdx).trim();
+        const desc = clean.substring(colonIdx + 1).trim();
+        html += `
+          <div class="p-3.5 rounded-2xl bg-slate-50/95 border border-slate-200/90 text-xs sm:text-[13px] shadow-2xs">
+            <div class="font-black text-slate-900 flex items-center gap-2 mb-1">
+              <span class="w-5 h-5 rounded-lg bg-rose-100 text-[#E11D48] flex items-center justify-center text-[10px] shrink-0 font-black"><i class="fa-solid fa-location-dot"></i></span>
+              <span class="text-slate-950 font-black">${escapeHtml(title)}</span>
+            </div>
+            <p class="text-slate-700 leading-relaxed font-medium pl-7">${escapeHtml(desc)}</p>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="flex items-start gap-2.5 text-xs sm:text-[13px] text-slate-800 font-medium pl-1 leading-relaxed">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#E11D48] mt-2 shrink-0"></span>
+            <span>${escapeHtml(clean)}</span>
+          </div>
+        `;
+      }
+    } else {
+      html += `<p class="text-xs sm:text-[13px] text-slate-800 leading-relaxed font-medium">${escapeHtml(line)}</p>`;
+    }
+  });
+
+  html += `</div>`;
+  return html;
+}
+
+async function requestAIItinerary(isShuffle = false) {
+  if (!isShuffle) {
+    aiShuffleSeed = 0;
+  }
+  const btn = document.getElementById("btnSubmitAI");
+  const resultArea = document.getElementById("aiResultArea");
+  const constraintAlert = document.getElementById("aiConstraintAlert");
+  const container = document.getElementById("aiTimeline");
+  const summary = document.getElementById("aiSummary");
+  const btnGmaps = document.getElementById("btnGmapsMultiRoute");
+
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Đang tính toán & tối ưu lịch trình...`;
+  btn.disabled = true;
+
+  const startLoc = document.getElementById("aiStartLoc")?.value.trim();
+  if (!startLoc && !userGPSCoords) {
+    alert("Vui lòng nhập điểm xuất phát hoặc bấm 'Dùng GPS hiện tại'!");
+    document.getElementById("aiStartLoc")?.focus();
+    btn.innerHTML = `<i class="fa-solid fa-route"></i> <span>Tạo Lịch Trình Khám Phá</span>`;
+    btn.disabled = false;
+    return;
+  }
+
+  const selectedModel = document.getElementById("aiModelSelect")?.value || "gemini-3.5-flash-lite";
+  const takeNoteEl = document.getElementById("aiTakeNote");
+  const takeNoteVal = takeNoteEl ? takeNoteEl.value.trim() : "";
+
+  const startVal = document.getElementById("aiStartTime")?.value || "14:00";
+  const endVal = document.getElementById("aiEndTime")?.value || "18:30";
+  const freeTimeStr = `${startVal} - ${endVal}`;
+
+  const payload = {
+    user_id: currentUser ? currentUser.id : null,
+    start_location: document.getElementById("aiStartLoc").value,
+    start_lat: userGPSCoords ? userGPSCoords.lat : null,
+    start_lon: userGPSCoords ? userGPSCoords.lon : null,
+    free_time: freeTimeStr,
+    companion: aiCompanion,
+    purpose: aiPurpose,
+    takenote: takeNoteVal,
+    context: takeNoteVal,
+    budget: aiBudgetLevel,
+    budget_level: aiBudgetLevel,
+    target_budget: aiTargetBudget,
+    num_stops: aiNumStops,
+    radius_km: aiRadiusKm,
+    shuffle_seed: aiShuffleSeed,
+    ai_model: selectedModel
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/ai-itinerary`, {
+      method: "POST",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.detail || "Không thể lập lộ trình");
+
+    // XỬ LÝ VI PHẠM RÀNG BUỘC (BUSINESS RULE 3 & KIỂM THỬ BẮT BUỘC)
+    if (result.feasible === false) {
+      if (resultArea) resultArea.classList.add("hidden");
+      if (constraintAlert) {
+        constraintAlert.classList.remove("hidden");
+        let constraintTitle = "Điều kiện không thể đáp ứng";
+        if (result.error_code === "TIME_TOO_SHORT") {
+          constraintTitle = "Thời gian rảnh quá ngắn";
+        } else if (result.error_code === "ALL_PLACES_CLOSED") {
+          constraintTitle = "Địa điểm đã đóng cửa trong khung giờ này";
+        } else if (result.error_code === "BUDGET_TOO_LOW") {
+          constraintTitle = "Ngân sách không đủ cho lộ trình";
+        }
+        document.getElementById("aiConstraintTitle").innerText = constraintTitle;
+        document.getElementById("aiConstraintMessage").innerText = result.message;
+        document.getElementById("aiConstraintSuggestionText").innerText = result.suggestion;
+        window._currentRelaxAction = {
+          time: result.recommended_time || "14:00 - 18:30",
+          budget: result.recommended_budget || null
