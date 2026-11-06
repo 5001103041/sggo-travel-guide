@@ -2748,3 +2748,113 @@ function renderAdminPlacesTable(places) {
   if (!places || places.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Không có địa điểm nào khớp với bộ lọc.</td></tr>`;
     return;
+  }
+
+  places.forEach(p => {
+    const isEat = p.category === "an_uong";
+    const isHidden = (p.is_hidden === 1);
+    const imageHtml = renderPlaceImage(p, "w-12", "h-10");
+
+    tbody.innerHTML += `
+      <tr class="hover:bg-blue-50/40 transition border-b border-slate-100 ${isHidden ? 'bg-slate-50/80 opacity-75' : ''}">
+        <td class="p-3 font-mono font-bold text-slate-400 whitespace-nowrap">#${p.id}</td>
+        <td class="p-3 whitespace-nowrap">
+          <div class="w-12 h-10 flex-shrink-0">
+            ${imageHtml}
+          </div>
+        </td>
+        <td class="p-3 min-w-[190px] max-w-[260px]">
+          <div class="font-extrabold text-slate-900 truncate flex items-center gap-1.5" title="${p.name}">
+            <span class="truncate">${p.name}</span>
+            ${p.is_admin_choice === 1 ? '<span class="text-[9px] bg-amber-100 text-amber-900 font-extrabold px-1.5 py-0.5 rounded border border-amber-300 whitespace-nowrap flex items-center gap-0.5"><i class="fa-solid fa-crown text-amber-600"></i> Pick</span>' : ''}
+            ${isHidden ? '<span class="text-[9px] bg-rose-100 text-rose-700 font-extrabold px-1.5 py-0.5 rounded border border-rose-200 whitespace-nowrap flex items-center gap-0.5"><i class="fa-solid fa-eye-slash"></i> Đã ẩn</span>' : '<span class="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-200 whitespace-nowrap flex items-center gap-0.5"><i class="fa-solid fa-eye"></i> Hiện</span>'}
+          </div>
+          <div class="text-[11px] text-slate-400 truncate" title="${p.address}">${p.address}</div>
+        </td>
+        <td class="p-3 whitespace-nowrap">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isEat ? 'bg-rose-50 text-[#E11D48]' : 'bg-teal-50 text-teal-700'}">
+            ${isEat ? 'Ẩm thực' : 'Đi chơi'}
+          </span>
+        </td>
+        <td class="p-3 font-medium whitespace-nowrap text-slate-600">${(p.min_price === 0 && p.max_price === 0) ? 'Miễn phí' : `${p.min_price.toLocaleString()}đ - ${p.max_price.toLocaleString()}đ`}</td>
+        <td class="p-3 whitespace-nowrap">
+          <span class="font-bold text-amber-700 inline-flex items-center gap-1"><i class="fa-solid fa-star text-amber-500 text-[10px]"></i> ${p.rating}</span>
+          <div class="text-[10px] text-slate-400 font-normal">${p.open_time} - ${p.close_time}</div>
+        </td>
+        <td class="p-3 text-center whitespace-nowrap bg-blue-50/30 border-l border-blue-100">
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="handleToggleHidePlace(${p.id}, ${isHidden ? 0 : 1})" class="px-2.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition shadow-xs cursor-pointer ${isHidden ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}" title="${isHidden ? 'Hiện lại quán này trên trang người dùng' : 'Ẩn quán này khỏi trang người dùng'}">
+              <i class="fa-solid ${isHidden ? 'fa-eye' : 'fa-eye-slash'}"></i> <span>${isHidden ? 'Hiện lại' : 'Ẩn quán'}</span>
+            </button>
+            <button onclick="openEditPlaceModalById(${p.id})" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 transition shadow-xs cursor-pointer" title="Chỉnh sửa toàn bộ thông tin quán này">
+              <i class="fa-solid fa-pen-to-square"></i> <span>Sửa</span>
+            </button>
+            <button onclick="handleDeletePlaceById(${p.id})" class="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-xs flex items-center gap-1 transition cursor-pointer" title="Xóa địa điểm">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function handleToggleHidePlace(placeId, targetHidden) {
+  try {
+    const res = await fetch(`${API_BASE}/admin/places/${placeId}/toggle-hide`, {
+      method: "POST",
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Không thể thay đổi trạng thái ẩn.");
+    }
+    const data = await res.json();
+    const p = allPlacesCache.find(x => Number(x.id) === Number(placeId));
+    if (p) p.is_hidden = data.place.is_hidden;
+    filterAdminTable();
+  } catch (err) {
+    alert("Lỗi: " + err.message);
+  }
+}
+
+// ==============================================================================
+// SẮP XẾP VÀ BỘ LỌC TỪ A ĐẾN Z CHO ADMIN (TÌM THEO ID, TÊN, ĐỊA CHỈ & XẾP THEO ID)
+// ==============================================================================
+
+let adminSortOrderId = "asc"; // "asc": Tăng dần (1 -> 201 chuẩn theo 7 nhóm học phần), "desc": Mới nhất (201 -> 1)
+
+function toggleAdminSortOrder() {
+  adminSortOrderId = (adminSortOrderId === "desc") ? "asc" : "desc";
+  const icon = document.getElementById("adminSortIdIcon");
+  if (icon) {
+    if (adminSortOrderId === "desc") {
+      icon.className = "fa-solid fa-arrow-down-9-1 text-[#E11D48] ml-1";
+      if (icon.parentElement) icon.parentElement.setAttribute("title", "Đang xếp ID: Mới nhất đến cũ nhất (Bấm để đổi tăng dần)");
+    } else {
+      icon.className = "fa-solid fa-arrow-up-1-9 text-blue-600 ml-1";
+      if (icon.parentElement) icon.parentElement.setAttribute("title", "Đang xếp ID: Cũ nhất đến mới nhất (Bấm để đổi giảm dần)");
+    }
+  }
+  filterAdminTable();
+}
+
+function filterAdminTable() {
+  const idQ = document.getElementById("adminSearchIdInput")?.value.trim() || "";
+  const q = document.getElementById("adminSearchInput")?.value.trim() || "";
+  const cat = document.getElementById("adminCategoryFilter")?.value || "all";
+  const tag = document.getElementById("adminTagFilter")?.value || "all";
+  const rating = document.getElementById("adminRatingFilter")?.value || "all";
+  const price = document.getElementById("adminPriceFilter")?.value || "all";
+  const status = document.getElementById("adminStatusFilter")?.value || "all";
+
+  // 1. Xử lý ô tìm kiếm chuyên biệt theo ID (Tìm chính xác ID địa điểm)
+  const cleanIdQ = idQ.replace(/^#/, "").replace(/^id\s*:?\s*/i, "").trim();
+
+  // 2. Xử lý ô tìm kiếm theo Tên quán & Địa chỉ
+  const normQ = removeVietnameseTones(q);
+
+  const filtered = allPlacesCache.filter(p => {
+    // A. Lọc chính xác theo ID quán (khi có nhập ô ID)
+    if (cleanIdQ) {
+      if (String(p.id) !== cleanIdQ) return false;
