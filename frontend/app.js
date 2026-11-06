@@ -2858,3 +2858,113 @@ function filterAdminTable() {
     // A. Lọc chính xác theo ID quán (khi có nhập ô ID)
     if (cleanIdQ) {
       if (String(p.id) !== cleanIdQ) return false;
+    }
+
+    // B. Lọc theo Tên quán & Địa chỉ (nếu ô tìm kiếm chung có nhập)
+    if (normQ) {
+      // Dự phòng: nếu người dùng vẫn quen gõ #ID vào ô tên quán
+      if (normQ.startsWith("#") && normQ.slice(1).trim().length > 0 && !isNaN(normQ.slice(1).trim())) {
+        if (String(p.id) !== normQ.slice(1).trim()) return false;
+      } else {
+        const normName = removeVietnameseTones(p.name || "");
+        const normAddr = removeVietnameseTones(p.address || "");
+        if (!normName.includes(normQ) && !normAddr.includes(normQ)) return false;
+      }
+    }
+
+    // C. Lọc theo Thể loại
+    if (cat !== "all" && p.category !== cat) return false;
+    
+    // D. Lọc theo Thẻ bối cảnh (Context Tag - Tier 1 & Tier 2)
+    if (tag !== "all") {
+      const pTiers = parsePlaceTiers(p.tags || "");
+      const matchTag = pTiers.tier1.includes(tag) || pTiers.tier2.includes(tag) || (p.tags && p.tags.includes(tag));
+      if (!matchTag) return false;
+    }
+
+    // E. Lọc theo Đánh giá sao
+    if (rating !== "all" && p.rating < parseFloat(rating)) return false;
+    
+    // F. Lọc theo Mức giá
+    if (price === "free" && !checkPlacePriceMatch(p, "free")) return false;
+    else if (price === "50000" && !checkPlacePriceMatch(p, "under_50k")) return false;
+    else if (price === "100000" && (!checkPlacePriceMatch(p, "50k_100k") && !checkPlacePriceMatch(p, "under_50k"))) return false;
+    else if (price === "above_100k" && p.max_price < 100000) return false;
+
+    // G. Lọc theo Trạng thái ẩn/hiện
+    if (status === "visible" && (p.is_hidden && p.is_hidden === 1)) return false;
+    else if (status === "hidden" && (!p.is_hidden || p.is_hidden === 0)) return false;
+
+    return true;
+  });
+
+  // Sắp xếp danh sách bảng Admin theo ID (Tăng dần hoặc Giảm dần)
+  filtered.sort((a, b) => {
+    // Nếu có nhập ô tìm ID, luôn ưu tiên quán khớp chính xác ID (VD: 18) lên vị trí đầu tiên
+    if (cleanIdQ) {
+      const isExactA = (String(a.id) === cleanIdQ);
+      const isExactB = (String(b.id) === cleanIdQ);
+      if (isExactA && !isExactB) return -1;
+      if (!isExactA && isExactB) return 1;
+    }
+    const idA = Number(a.id) || 0;
+    const idB = Number(b.id) || 0;
+    return adminSortOrderId === "asc" ? (idA - idB) : (idB - idA);
+  });
+
+  renderAdminPlacesTable(filtered);
+}
+
+// KIỂM TRA VÀ CẢNH BÁO TRÙNG LẶP ĐỊA ĐIỂM TRONG FORM ADMIN (ĐA LỚP)
+// ==============================================================================
+// KIỂM TRA VÀ CHỐNG TRÙNG LẶP ĐỊA ĐIỂM THÔNG MINH ĐA LỚP TRÊN GIAO DIỆN ADMIN
+// ==============================================================================
+
+const CLIENT_COMPLEX_KEYWORDS = [
+  "mall", "plaza", "center", "centre", "tttm", "bitexco", "landmark",
+  "tầng ", "tang ", "lầu ", "lau ", "food court", "parkson", "takashimaya",
+  "vincom", "aeon", "crescent", "gigamall", "nowzone", "sc vivocity",
+  "lotte mart", "vạn hạnh mall", "van hanh mall", "chợ ", "cho ",
+  "bạch đằng", "bach dang", "công viên", "cong vien", "thảo cầm viên", "thao cam vien", "bảo tàng", "bao tang"
+];
+
+const CLIENT_BRAND_STOPWORDS = new Set([
+  "quan", "nha", "hang", "tiem", "ca", "phe", "cafe", "tra", "sua", "buffet", "vietnam", "am", "thuc", "food", "coffee", "tea",
+  "van", "hanh", "mall", "plaza", "center", "centre", "tttm", "vincom", "aeon", "hung", "vuong", "bitexco", "landmark", "crescent",
+  "gigamall", "nowzone", "takashimaya", "parkson", "lotte", "bach", "dang", "cho", "ben", "thanh"
+]);
+
+function isClientCommercialComplex(addr, name) {
+  const text = ((addr || "") + " " + (name || "")).toLowerCase();
+  return CLIENT_COMPLEX_KEYWORDS.some(k => text.includes(k));
+}
+
+function normalizeClientText(s) {
+  const expanded = expandClientAddressAbbreviations(s || "");
+  return expanded.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9\s,]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function splitClientHouseNumberAndStreet(text) {
+  if (!text) return { num: "", street: "" };
+  const norm = normalizeClientText(text);
+  const part = norm.split(",")[0].trim();
+  const m = part.match(/^([0-9]+[a-z0-9\/\-]*)(\s+)(.*)$/);
+  if (m) {
+    return { num: m[1].trim(), street: m[3].trim() };
+  }
+  return { num: "", street: part };
+}
+
+function extractClientFloorNumber(text) {
+  if (!text) return "";
+  const norm = normalizeClientText(text);
+  const m = norm.match(/(tang\s*[0-9]+|lau\s*[0-9]+|floor\s*[0-9]+|tang\s*tret|lau\s*tret|tang\s*lung|l[0-9]{1,2})/);
+  if (m) {
+    return m[1].replace(/\s+/g, "");
+  }
+  return "";
+}
+
+function checkClientAddressesMatch(addr1, addr2) {
+  const c1 = normalizeClientText(addr1).replace(/[\s,]/g, "");
+  const c2 = normalizeClientText(addr2).replace(/[\s,]/g, "");
