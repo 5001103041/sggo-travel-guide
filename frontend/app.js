@@ -2088,3 +2088,113 @@ function getExploreGPSLocation() {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
       const label = `Vị trí GPS hiện tại (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+      flowPrioritizeGps = true;
+      setGlobalLocation(lat, lon, label, true);
+
+      // Tự động sắp xếp gần nhất trước
+      const sortSelect = document.getElementById("allSortFilter");
+      if (sortSelect && sortSelect.value === "default") {
+        sortSelect.value = "distance_asc";
+      }
+
+      filterAllPlaces();
+    },
+    (err) => {
+      alert("Không thể lấy vị trí GPS: " + err.message + ". Bạn có thể điền địa chỉ hoặc bấm vào các mốc gợi ý bên dưới!");
+      if (btn) {
+        btn.innerHTML = `<i class="fa-solid fa-crosshairs"></i> <span>Dùng GPS hiện tại</span>`;
+        btn.disabled = false;
+      }
+    },
+    { timeout: 8000, enableHighAccuracy: true }
+  );
+}
+
+// 2. Chọn mốc vị trí gợi ý nhanh (tự động đồng bộ sang Tab 1 & Tab 3)
+function setExploreLocationPreset(label, lat, lon) {
+  flowPrioritizeGps = true;
+  setGlobalLocation(lat, lon, label, true);
+
+  const btn = document.getElementById("btnExploreGPS");
+  if (btn) btn.innerHTML = `<i class="fa-solid fa-location-dot"></i> <span>Đã chọn mốc</span>`;
+
+  const sortSelect = document.getElementById("allSortFilter");
+  if (sortSelect && sortSelect.value === "default") {
+    sortSelect.value = "distance_asc";
+  }
+
+  filterAllPlaces();
+}
+
+// 3. Xử lý khi người dùng tự gõ địa chỉ
+async function onExploreLocationInputChange() {
+  const input = document.getElementById("exploreLocationInput");
+  const val = input ? input.value.trim() : "";
+  if (!val) {
+    clearExploreLocation();
+    return;
+  }
+
+  const norm = removeVietnameseTones(val);
+  let foundCoords = null;
+
+  for (const k of Object.keys(KNOWN_SG_LANDMARKS)) {
+    if (norm.includes(k)) {
+      foundCoords = { lat: KNOWN_SG_LANDMARKS[k].lat, lon: KNOWN_SG_LANDMARKS[k].lon };
+      break;
+    }
+  }
+
+  if (!foundCoords) {
+    try {
+      const q = encodeURIComponent(`${val}, Ho Chi Minh City, Vietnam`);
+      const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
+        headers: { "Accept-Language": "vi" }
+      });
+      const data = await resp.json();
+      if (data && data.length > 0) {
+        foundCoords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      }
+    } catch (e) {
+      console.warn("Geocoding address error:", e);
+    }
+  }
+
+  if (!foundCoords) {
+    alert("Không thể xác định vị trí cho địa chỉ này trên bản đồ. Vui lòng nhập địa chỉ cụ thể hơn hoặc chọn một mốc có sẵn.");
+    return;
+  }
+
+  flowPrioritizeGps = true;
+  setGlobalLocation(foundCoords.lat, foundCoords.lon, val, true);
+
+  const sortSelect = document.getElementById("allSortFilter");
+  if (sortSelect && sortSelect.value === "default") {
+    sortSelect.value = "distance_asc";
+  }
+
+  filterAllPlaces();
+}
+
+// 4. Hủy vị trí định vị (đồng bộ hủy cho toàn hệ thống)
+function clearExploreLocation() {
+  clearGlobalLocation();
+  filterAllPlaces();
+}
+
+// Hàm thông báo nhắc nhở khi chức năng yêu cầu vị trí GPS/điểm mốc
+function showLocationRequiredNotice(actionType) {
+  const isSort = (actionType === "sort");
+  const msg = isSort
+    ? "Bạn chưa chọn vị trí!\n\nĐể sắp xếp các quán theo 'Khoảng cách: Gần nhất', bạn hãy bấm 'Dùng GPS hiện tại' hoặc bấm chọn một điểm mốc (Hồ Con Rùa, Chợ An Đông,...) ở khung định vị phía trên nhé!"
+    : "Bạn chưa chọn vị trí!\n\nĐể lọc các quán trong bán kính mong muốn, bạn hãy bấm 'Dùng GPS hiện tại' hoặc nhập vị trí của bạn ở khung định vị phía trên nhé!";
+
+  alert(msg);
+
+  // Cuộn mượt và highlight khung định vị để người dùng bắt mắt ngay
+  const locInput = document.getElementById("exploreLocationInput");
+  const locCard = locInput ? locInput.closest(".bg-white") : null;
+  if (locCard) {
+    locCard.scrollIntoView({ behavior: "smooth", block: "center" });
+    locCard.classList.add("ring-4", "ring-[#E11D48]/40", "transition-all", "duration-500");
+    setTimeout(() => {
