@@ -1978,3 +1978,113 @@ async function requestAIItinerary(isShuffle = false) {
                       <span>Google Maps</span>
                       <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                     </a>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    if (window.innerWidth < 1024) {
+      resultArea.scrollIntoView({ behavior: "smooth" });
+    } else {
+      document.getElementById("viewAI")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  } catch (err) {
+    alert("Lỗi: " + err.message);
+  } finally {
+    btn.innerHTML = `<i class="fa-solid fa-route"></i> <span>Tạo Lịch Trình Khám Phá</span>`;
+    btn.disabled = false;
+  }
+}
+
+function shuffleAIItinerary() {
+  aiShuffleSeed++;
+  requestAIItinerary(true);
+}
+
+function handleAutoRelaxConstraint() {
+  if (window._currentRelaxAction) {
+    if (window._currentRelaxAction.time) {
+      setFreeTimePreset(window._currentRelaxAction.time);
+    }
+    if (window._currentRelaxAction.budget) {
+      selectAIBudget("100k_250k", window._currentRelaxAction.budget);
+    }
+  } else {
+    setFreeTimePreset("14:00", "18:30");
+    selectAIBudget("100k_250k", 250000);
+  }
+  requestAIItinerary(false);
+}
+
+// ==============================================================================
+// 5. TỰ CHỌN ĐỊA ĐIỂM (TAB 2: 40 QUÁN CHUẨN XÁC, ĐỊNH VỊ GPS, BỘ LỌC BÁN KÍNH & A-Z)
+// ==============================================================================
+
+// Bảng tọa độ các địa danh nổi tiếng tại Sài Gòn để nhận diện tức thì (0ms)
+const KNOWN_SG_LANDMARKS = {
+  "su pham": { name: "ĐH Sư Phạm TP.HCM (280 An Dương Vương)", lat: 10.7601, lon: 106.6823 },
+  "280 an duong vuong": { name: "280 An Dương Vương, TP.HCM", lat: 10.7601, lon: 106.6823 },
+  "an duong vuong": { name: "280 An Dương Vương, TP.HCM", lat: 10.7601, lon: 106.6823 },
+  "an dong": { name: "Chợ An Đông, TP.HCM", lat: 10.7573, lon: 106.6713 },
+  "cho an dong": { name: "Chợ An Đông, TP.HCM", lat: 10.7573, lon: 106.6713 },
+  "thuan kieu": { name: "Thuận Kiều Plaza (190 Hồng Bàng)", lat: 10.7554, lon: 106.6577 },
+  "binh tay": { name: "Chợ Bình Tây, TP.HCM", lat: 10.7497, lon: 106.6515 },
+  "cho binh tay": { name: "Chợ Bình Tây, TP.HCM", lat: 10.7497, lon: 106.6515 },
+  "ben thanh": { name: "Chợ Bến Thành, TP.HCM", lat: 10.7725, lon: 106.6980 },
+  "cho ben thanh": { name: "Chợ Bến Thành, TP.HCM", lat: 10.7725, lon: 106.6980 },
+  "nha tho duc ba": { name: "Nhà Thờ Đức Bà, TP.HCM", lat: 10.7798, lon: 106.6990 },
+  "pho di bo": { name: "Phố Đi Bộ Nguyễn Huệ, TP.HCM", lat: 10.7744, lon: 106.7032 },
+  "ho con rua": { name: "Hồ Con Rùa, TP.HCM", lat: 10.7828, lon: 106.6958 },
+  "cho ray": { name: "Bệnh viện Chợ Rẫy (Nguyễn Chí Thanh)", lat: 10.7577, lon: 106.6596 },
+  "benh vien cho ray": { name: "Bệnh viện Chợ Rẫy", lat: 10.7577, lon: 106.6596 },
+  "y duoc": { name: "ĐH Y Dược TP.HCM (Hồng Bàng)", lat: 10.7562, lon: 106.6589 },
+  "dai hoc y duoc": { name: "ĐH Y Dược TP.HCM", lat: 10.7562, lon: 106.6589 },
+  "van lang": { name: "Công viên Văn Lang, TP.HCM", lat: 10.7585, lon: 106.6705 },
+  "cong vien van lang": { name: "Công viên Văn Lang, TP.HCM", lat: 10.7585, lon: 106.6705 },
+  "hung vuong": { name: "Hùng Vương Plaza (Hồng Bàng)", lat: 10.7570, lon: 106.6625 },
+  "dai the gioi": { name: "Công viên Nước Đại Thế Giới", lat: 10.7530, lon: 106.6690 }
+};
+
+function removeVietnameseTones(str) {
+  if (!str) return "";
+  str = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  str = str.replace(/[đĐ]/g, "d");
+  return str.toLowerCase().trim();
+}
+
+function calculateHaversineDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Bán kính Trái Đất (km)
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// 1. Lấy vị trí GPS hiện tại cho Tab Tự Chọn (tự động đồng bộ sang Tab 1 & Tab 3)
+function getExploreGPSLocation() {
+  const btn = document.getElementById("btnExploreGPS");
+
+  if (!navigator.geolocation) {
+    alert("Trình duyệt của bạn không hỗ trợ định vị GPS Geolocation.");
+    return;
+  }
+
+  if (btn) {
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Đang lấy GPS...</span>`;
+    btn.disabled = true;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const label = `Vị trí GPS hiện tại (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
