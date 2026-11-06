@@ -3408,3 +3408,113 @@ function openEditPlaceModal(p) {
   document.getElementById("modalPlaceForm").classList.remove("hidden");
 }
 
+function closePlaceFormModal() {
+  document.getElementById("modalPlaceForm").classList.add("hidden");
+}
+
+async function handleSavePlace(e) {
+  e.preventDefault();
+  syncAdminTagsInput();
+  const placeId = document.getElementById("formPlaceId").value;
+  const isEdit = placeId !== "";
+  const chkRev = document.getElementById("formIsVerifiedReview");
+  const isRealReview = chkRev ? (chkRev.checked ? 1 : 0) : 1;
+  const chkAdmin = document.getElementById("formIsAdminChoice");
+  const isAdminChoice = chkAdmin ? (chkAdmin.checked ? 1 : 0) : 0;
+  const chkHidden = document.getElementById("formIsHidden");
+  const isHidden = chkHidden ? (chkHidden.checked ? 1 : 0) : 0;
+
+  const rawName = document.getElementById("formName").value.trim();
+  const rawCategory = document.getElementById("formCategory").value;
+  const rawAddress = document.getElementById("formAddress").value.trim();
+  const rawDistrict = document.getElementById("formDistrict").value.trim() || "TP.HCM";
+  const rawImg = document.getElementById("formImageUrl").value.trim();
+  const rawGmapsUrl = document.getElementById("formGoogleMapsUrl")?.value.trim() || null;
+  const latVal = document.getElementById("formLat")?.value?.trim();
+  const lonVal = document.getElementById("formLon")?.value?.trim();
+  const ratingVal = document.getElementById("formRating")?.value?.trim();
+  const revCountVal = document.getElementById("formReviewsCount")?.value?.trim();
+  const minPriceVal = document.getElementById("formMinPrice")?.value?.trim();
+  const maxPriceVal = document.getElementById("formMaxPrice")?.value?.trim();
+
+  // 1. RÀNG BUỘC DỮ LIỆU CHẶT CHẼ TRÊN GIAO DIỆN
+  if (rawName.length < 2) {
+    alert("Tên địa điểm phải có ít nhất 2 ký tự!");
+    document.getElementById("formName").focus();
+    return;
+  }
+
+  if (!["an_uong", "di_choi"].includes(rawCategory)) {
+    alert("Thể loại địa điểm không hợp lệ (phải là 'an_uong' hoặc 'di_choi')!");
+    return;
+  }
+
+  if (rawAddress.length < 5) {
+    alert("Địa chỉ phải cụ thể (ít nhất 5 ký tự, bao gồm số nhà hoặc tên đường)!");
+    document.getElementById("formAddress").focus();
+    return;
+  }
+
+  const latNum = parseFloat(latVal);
+  const lonNum = parseFloat(lonVal);
+  if (isNaN(latNum) || isNaN(lonNum) || latNum < 10.3 || latNum > 11.2 || lonNum < 106.3 || lonNum > 107.2) {
+    alert("Tọa độ GPS không hợp lệ hoặc nằm ngoài phạm vi TP.HCM!\nVui lòng nhập: Vĩ độ (Lat: 10.3 - 11.2), Kinh độ (Lon: 106.3 - 107.2).");
+    document.getElementById("formLat").focus();
+    return;
+  }
+
+  const minPriceNum = (minPriceVal && !isNaN(parseInt(minPriceVal))) ? parseInt(minPriceVal) : 0;
+  const maxPriceNum = (maxPriceVal && !isNaN(parseInt(maxPriceVal))) ? parseInt(maxPriceVal) : 0;
+  if (minPriceNum < 0 || maxPriceNum < 0) {
+    alert("Mức giá không được là số âm!");
+    return;
+  }
+  if (maxPriceNum > 0 && maxPriceNum < minPriceNum) {
+    alert("Mức giá tối đa không được nhỏ hơn mức giá tối thiểu!");
+    document.getElementById("formMaxPrice").focus();
+    return;
+  }
+
+  const ratingNum = (ratingVal && !isNaN(parseFloat(ratingVal))) ? parseFloat(ratingVal) : 0.0;
+  if (ratingNum < 0.0 || ratingNum > 5.0) {
+    alert("Điểm đánh giá phải từ 0.0 đến 5.0 sao!");
+    document.getElementById("formRating").focus();
+    return;
+  }
+
+  const reviewsCountNum = (revCountVal && !isNaN(parseInt(revCountVal))) ? parseInt(revCountVal) : 0;
+  if (reviewsCountNum < 0) {
+    alert("Số lượt đánh giá không được là số âm!");
+    document.getElementById("formReviewsCount").focus();
+    return;
+  }
+
+  // 2. CHẶN LƯU NẾU PHÁT HIỆN TRÙNG LẶP DỮ LIỆU ĐA LỚP (Tên, Địa chỉ, Link Maps, GPS)
+  const dup = findClientDuplicate(rawName, rawAddress, latNum, lonNum, rawGmapsUrl, rawCategory, placeId);
+  if (dup) {
+    const rawReason = dup.reason.replace(/<[^>]*>/g, "");
+    alert(`KHÔNG THỂ LƯU ĐỊA ĐIỂM:\n\n${rawReason}\n\nHệ thống chống trùng lặp đã chặn thao tác này để bảo vệ tính toàn vẹn của cơ sở dữ liệu!`);
+    return;
+  }
+
+  const payload = {
+    name: rawName,
+    google_maps_url: rawGmapsUrl,
+    category: rawCategory,
+    address: rawAddress,
+    district: rawDistrict,
+    lat: latNum,
+    lon: lonNum,
+    reviews_count: reviewsCountNum,
+    open_time: document.getElementById("formOpenTime").value.trim(),
+    close_time: document.getElementById("formCloseTime").value.trim(),
+    min_price: minPriceNum,
+    max_price: maxPriceNum,
+    rating: ratingNum,
+    peak_hours: document.getElementById("formPeakHours").value.trim(),
+    tags: document.getElementById("formTags").value.trim(),
+    price_display: document.getElementById("formPriceDisplay")?.value.trim() || null,
+    best_review: document.getElementById("formBestReview").value.trim(),
+    worst_review: document.getElementById("formWorstReview").value.trim(),
+    image_url: rawImg ? rawImg : null,
+    is_verified: 1,
