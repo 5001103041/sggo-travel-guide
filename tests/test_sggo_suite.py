@@ -798,3 +798,103 @@ Quán Sai Mức Giá,di_choi,222 Lương Nhữ Học,Quận 5,10.75,106.66,khong
         self.assertIn("chỉ hỗ trợ bóc tách từ đường link Google Maps", res_text.json().get("detail", ""))
 
         # 2. Bóc tách link Google Maps không sinh dữ liệu giá, giờ, rating ảo
+        valid_map_url = "https://www.google.com/maps/place/Quan+An+Thu+Nghiem/@10.7725,106.6980,17z"
+        res = self.client.post("/api/admin/extract-gmaps", json={"url_or_query": valid_map_url})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn("place", data)
+        p = data["place"]
+        self.assertEqual(p["name"], "Quan An Thu Nghiem")
+        self.assertEqual(p["lat"], 10.7725)
+        self.assertEqual(p["lon"], 106.6980)
+        # Giá, giờ hoạt động và rating không được gán số ảo (để trống cho admin tự nhập)
+        self.assertIsNone(p["min_price"])
+        self.assertIsNone(p["max_price"])
+        self.assertIsNone(p["rating"])
+        self.assertIsNone(p["reviews_count"])
+        self.assertEqual(p["open_time"], "")
+        self.assertEqual(p["close_time"], "")
+
+    def test_rtm_fr01_07_prevent_duplicate_street_address_with_different_name(self):
+        """[TEST-FR01-07] Chống trùng lặp địa chỉ nhà phố: Ngăn chặn thêm địa điểm mới nếu trùng địa chỉ mặt phố dù tên hoàn toàn khác."""
+        places = db.get_all_places()
+        self.assertGreater(len(places), 0)
+        # Tìm quán mặt phố không phải TTTM
+        p = None
+        for item in places:
+            if not db.is_commercial_complex(item["address"], item["name"]):
+                p = item
+                break
+        self.assertIsNotNone(p)
+
+        # Thử thêm quán với tên hoàn toàn khác nhưng trùng đúng địa chỉ nhà phố của p
+        fake_payload = {
+            "name": "Quán Trà Sữa Tự Phát Hoàn Toàn Mới 999",
+            "category": "an_uong",
+            "address": p["address"],
+            "district": p.get("district", "Quận 1"),
+            "lat": 10.7735,
+            "lon": 106.6980,
+            "open_time": "08:00",
+            "close_time": "22:00",
+            "min_price": 25000,
+            "max_price": 50000
+        }
+        res = self.client.post("/api/admin/places", json=fake_payload)
+        self.assertEqual(res.status_code, 400)
+        detail = res.json().get("detail", "")
+        self.assertIn("đã tồn tại trong CSDL", detail)
+        self.assertIn("Trùng hoàn toàn địa chỉ", detail)
+
+    def test_rtm_fr01_08_strict_data_constraints_validation(self):
+        """[TEST-FR01-08] Ràng buộc dữ liệu chặt chẽ: kiểm tra giá tối đa < tối thiểu, tọa độ ngoài TP.HCM, số sao ngoài 0-5."""
+        # 1. max_price < min_price
+        bad_price = {
+            "name": "Quán Kiểm Tra Ràng Buộc Giá",
+            "category": "an_uong",
+            "address": "999 Đường Kiểm Tra Ràng Buộc, Quận 5",
+            "district": "Quận 5",
+            "lat": 10.7550,
+            "lon": 106.6650,
+            "min_price": 80000,
+            "max_price": 30000 # nhỏ hơn min_price
+        }
+        res_price = self.client.post("/api/admin/places", json=bad_price)
+        self.assertEqual(res_price.status_code, 400)
+        self.assertIn("Mức giá tối đa không được nhỏ hơn mức giá tối thiểu", res_price.json().get("detail", ""))
+
+        # 2. Tọa độ ngoài TP.HCM (ví dụ tọa độ Hà Nội lat=21.0, lon=105.8)
+        bad_gps = {
+            "name": "Quán Kiểm Tra Ràng Buộc GPS",
+            "category": "an_uong",
+            "address": "999 Đường Kiểm Tra Ràng Buộc, Quận 5",
+            "district": "Quận 5",
+            "lat": 21.0285, # Hà Nội
+            "lon": 105.8542,
+            "min_price": 30000,
+            "max_price": 50000
+        }
+        res_gps = self.client.post("/api/admin/places", json=bad_gps)
+        self.assertEqual(res_gps.status_code, 400)
+        self.assertIn("phạm vi TP.HCM", res_gps.json().get("detail", ""))
+
+        # 3. Đánh giá sao không hợp lệ (ví dụ: 6.5 sao)
+        bad_star = {
+            "name": "Quán Kiểm Tra Ràng Buộc Sao",
+            "category": "an_uong",
+            "address": "999 Đường Kiểm Tra Ràng Buộc, Quận 5",
+            "district": "Quận 5",
+            "lat": 10.7550,
+            "lon": 106.6650,
+            "min_price": 30000,
+            "max_price": 50000,
+            "rating": 6.5 # vượt quá 5.0
+        }
+        res_star = self.client.post("/api/admin/places", json=bad_star)
+        self.assertEqual(res_star.status_code, 400)
+        self.assertIn("0.0 đến 5.0", res_star.json().get("detail", ""))
+
+    def test_rtm_fr01_09_prevent_duplicate_mall_floor_address(self):
+        """[TEST-FR01-09] Chống trùng lặp địa chỉ trong TTTM: Nhập địa chỉ cụ thể của Haidilao ở Vạn Hạnh Mall với tên khác vẫn bị chặn."""
+        mall_payload = {
+            "name": "Quán Trà Sữa Thử Nghiệm Tầng 4",
