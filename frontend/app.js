@@ -4048,3 +4048,58 @@ function initCustomSelects() {
         
         menu.appendChild(item);
       });
+    }
+    
+    renderItems();
+    
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isClosed = menu.classList.contains("hidden");
+      
+      // Đóng các dropdown khác
+      document.querySelectorAll(".custom-dropdown-menu").forEach(m => {
+        if (m !== menu) {
+          m.classList.add("hidden");
+          m.parentElement?.querySelector(".custom-dropdown-trigger")?.classList.remove("is-active");
+          m.parentElement?.querySelector(".custom-dropdown-arrow")?.classList.remove("rotate-180");
+        }
+      });
+      
+      if (isClosed) {
+        menu.classList.remove("hidden");
+        trigger.classList.add("is-active");
+        arrowIcon.classList.add("rotate-180");
+      } else {
+        menu.classList.add("hidden");
+        trigger.classList.remove("is-active");
+        arrowIcon.classList.remove("rotate-180");
+      }
+    });
+    
+    // Tự động đồng bộ khi code JS ngoài thay đổi select.value
+    sel.addEventListener("change", () => {
+      const curOpt = sel.options[sel.selectedIndex];
+      if (curOpt) {
+        labelSpan.textContent = curOpt.text;
+        renderItems();
+      }
+    });
+    
+    container.appendChild(trigger);
+    container.appendChild(menu);
+    sel.parentNode.insertBefore(container, sel.nextSibling);
+  });
+}
+
+// Đóng dropdown khi bấm ra ngoài
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".custom-dropdown-container")) {
+    document.querySelectorAll(".custom-dropdown-menu").forEach(m => {
+      m.classList.add("hidden");
+      m.parentElement?.querySelector(".custom-dropdown-trigger")?.classList.remove("is-active");
+      m.parentElement?.querySelector(".custom-dropdown-arrow")?.classList.remove("rotate-180");
+    });
+  }
+});
+
+
