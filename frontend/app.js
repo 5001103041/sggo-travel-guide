@@ -3078,3 +3078,113 @@ function findClientDuplicate(nameInput, addrInput, latInput, lonInput, mapsInput
           return { place: p, reason: `Tọa độ GPS trùng sát (~${Math.round(distM)}m) và cùng địa chỉ với quán <strong>"${p.name}"</strong> (ID: #${p.id})` };
         }
         if (distM < 5.0 && !newIsComplex && !pIsComplex) {
+          const { num: n1 } = splitClientHouseNumberAndStreet(addrInput);
+          const { num: n2 } = splitClientHouseNumberAndStreet(p.address);
+          if (!(n1 && n2 && n1 !== n2)) {
+            return { place: p, reason: `Tọa độ GPS trùng sát (~${Math.round(distM)}m) với quán <strong>"${p.name}"</strong> (ID: #${p.id}) tại "${p.address}"` };
+          }
+        }
+      }
+    }
+
+    // Lớp 5: Tên chứa nhau và trùng địa chỉ / đường
+    if (checkClientBrandOverlap(nameInput, p.name) && cleanAddr && pAddr) {
+      if (cleanAddr.includes(pAddr) || pAddr.includes(cleanAddr) || cleanAddr.slice(0, 15) === pAddr.slice(0, 15)) {
+        return { place: p, reason: `Tên và địa chỉ rất tương đồng với quán <strong>"${p.name}"</strong> (${p.address})` };
+      }
+    }
+  }
+
+  return null;
+}
+
+function updateDuplicateWarningUI() {
+  const warnBox = document.getElementById("formDuplicateWarning");
+  const warnText = document.getElementById("formDuplicateWarningText");
+  if (!warnBox || !warnText) return;
+
+  const currentId = document.getElementById("formPlaceId")?.value;
+  const nameInput = document.getElementById("formName")?.value?.trim() || "";
+  const addrInput = document.getElementById("formAddress")?.value?.trim() || "";
+  const latInput = parseFloat(document.getElementById("formLat")?.value);
+  const lonInput = parseFloat(document.getElementById("formLon")?.value);
+  const mapsInput = document.getElementById("formGoogleMapsUrl")?.value?.trim() || "";
+  const catInput = document.getElementById("formCategory")?.value || "an_uong";
+
+  // Nếu cả tên và địa chỉ đều chưa nhập hoặc quá ngắn thì ẩn
+  if ((!nameInput || nameInput.length < 2) && (!addrInput || addrInput.length < 5)) {
+    warnBox.classList.add("hidden");
+    warnText.innerHTML = "";
+    return;
+  }
+
+  const dup = findClientDuplicate(nameInput, addrInput, latInput, lonInput, mapsInput, catInput, currentId);
+  if (dup) {
+    warnText.innerHTML = `<strong>⚠️ CẢNH BÁO TRÙNG LẶP:</strong> ${dup.reason}. Vui lòng kiểm tra lại để tránh lưu trùng dữ liệu vào hệ thống!`;
+    warnBox.classList.remove("hidden");
+  } else {
+    warnBox.classList.add("hidden");
+    warnText.innerHTML = "";
+  }
+}
+
+// BÓC TÁCH LINK GOOGLE MAPS (ĐÃ BỎ CHỨC NĂNG NHẬP TÊN QUÁN)
+async function handleExtractGmaps() {
+  const input = document.getElementById("gmapsExtractInput");
+  const raw = input.value.trim();
+  if (!raw) {
+    alert("Vui lòng dán link Google Maps vào ô bên trên!");
+    return;
+  }
+  const isUrl = raw.startsWith("http://") || raw.startsWith("https://") || raw.includes("maps.") || raw.includes("goo.gl") || raw.includes("google.com");
+  if (!isUrl) {
+    alert("Vui lòng dán đúng đường link Google Maps (bắt đầu bằng https://... hoặc https://maps.app.goo.gl/)!\n\n(Lưu ý: Chức năng này chỉ nhận liên kết Google Maps để định vị và lấy thông tin cơ bản, đã bỏ chức năng nhập tên quán để tránh dữ liệu sai lệch)");
+    return;
+  }
+
+  const btn = document.getElementById("btnExtractGmaps");
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang bóc tách...`;
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/extract-gmaps`, {
+      method: "POST",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ url_or_query: raw })
+    });
+    
+    if (!res.ok) {
+      let errDetail = "Không thể bóc tách link này.";
+      try {
+        const errJson = await res.json();
+        errDetail = errJson.detail || errDetail;
+      } catch (e) {}
+      throw new Error(errDetail);
+    }
+    
+    const data = await res.json();
+    const p = data.place || {};
+    let extractedCount = 0;
+
+    // Tự động điền dữ liệu bóc tách THỰC TẾ từ URL vào form (Tên, Thể loại, Địa chỉ số nhà, Tọa độ GPS)
+    if (p.name) {
+      document.getElementById("formName").value = p.name;
+      extractedCount++;
+    }
+    if (p.category) document.getElementById("formCategory").value = p.category;
+    if (p.address && !p.address.includes("Mặc định")) {
+      document.getElementById("formAddress").value = p.address;
+      extractedCount++;
+    }
+    if (p.district) {
+      document.getElementById("formDistrict").value = p.district;
+      extractedCount++;
+    }
+    if (p.lat != null && p.lat !== "" && !isNaN(p.lat) && p.lat !== 0) {
+      document.getElementById("formLat").value = p.lat;
+      extractedCount++;
+    }
+    if (p.lon != null && p.lon !== "" && !isNaN(p.lon) && p.lon !== 0) {
+      document.getElementById("formLon").value = p.lon;
+      extractedCount++;
+    }
