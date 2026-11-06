@@ -38,3 +38,10 @@ class TestRouting(unittest.TestCase):
         self.assertEqual(len(route_4), 4)
 
     def test_estimate_dwell_time(self):
+        self.assertEqual(estimate_dwell_time({"category": "di_choi", "name": "Bảo tàng"}), 40)
+        self.assertEqual(estimate_dwell_time({"category": "an_uong", "name": "Cà phê Cheo Leo"}), 30)
+        self.assertEqual(estimate_dwell_time({"category": "an_uong", "name": "Quán Ốc Đào"}), 60)
+        self.assertEqual(estimate_dwell_time({"category": "an_uong", "name": "Cơm tấm Ba Ghiền"}), 45)
+
+if __name__ == "__main__":
+    unittest.main()
