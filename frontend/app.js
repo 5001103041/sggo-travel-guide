@@ -3738,3 +3738,113 @@ function openPlaceDetailById(id) {
           <span class="text-[11px] text-slate-400 font-normal">Hình ảnh đang được cập nhật</span>
         </div>
       `;
+    }
+  }
+
+  // 3. Tên, Số sao & Mức giá
+  const titleEl = document.getElementById("detailTitle");
+  if (titleEl) titleEl.innerText = p.name;
+
+  const ratingBadge = document.getElementById("detailRatingBadge");
+  if (ratingBadge) {
+    if (p.rating && p.rating > 0) {
+      ratingBadge.innerHTML = `<i class="fa-solid fa-star text-amber-500 mr-1 text-xs"></i><span class="font-black text-amber-900">${p.rating}</span>`;
+      ratingBadge.classList.remove("hidden");
+    } else {
+      ratingBadge.innerHTML = `<span class="text-xs text-slate-500 font-bold">Chưa có sao</span>`;
+    }
+  }
+
+  // Đổ bóng sao vàng
+  const starContainer = document.getElementById("detailStarIcons");
+  if (starContainer) {
+    if (p.rating && p.rating > 0) {
+      const fullStars = Math.floor(p.rating);
+      const halfStar = (p.rating % 1) >= 0.3;
+      let starsHtml = "";
+      for (let i = 0; i < fullStars; i++) starsHtml += `<i class="fa-solid fa-star"></i>`;
+      if (halfStar) starsHtml += `<i class="fa-solid fa-star-half-stroke"></i>`;
+      const emptyStars = 5 - Math.ceil(p.rating);
+      for (let i = 0; i < emptyStars; i++) starsHtml += `<i class="fa-regular fa-star text-slate-300"></i>`;
+      starContainer.innerHTML = starsHtml;
+    } else {
+      starContainer.innerHTML = "";
+    }
+  }
+
+  const reviewsCountEl = document.getElementById("detailReviewsCount");
+  if (reviewsCountEl) {
+    reviewsCountEl.innerText = (p.reviews_count && p.reviews_count > 0)
+      ? `${parseInt(p.reviews_count).toLocaleString()} đánh giá Google`
+      : "Chưa có đánh giá Google";
+  }
+
+  const priceRangeEl = document.getElementById("detailPriceRange");
+  if (priceRangeEl) {
+    if (p.price_display && p.price_display.trim()) {
+      priceRangeEl.innerText = p.price_display;
+    } else if (p.min_price === 0 && p.max_price === 0) {
+      priceRangeEl.innerText = "Miễn phí vé vào cổng";
+    } else if (p.min_price != null && p.max_price != null && (p.min_price > 0 || p.max_price > 0)) {
+      priceRangeEl.innerText = `${p.min_price.toLocaleString()}đ - ${p.max_price.toLocaleString()}đ`;
+    } else {
+      priceRangeEl.innerText = "Chưa cập nhật giá";
+    }
+  }
+
+  // 4. Link Google Maps
+  const queryEnc = encodeURIComponent(`${p.name} ${p.address}`);
+  const gmapsRouteUrl = p.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${queryEnc}`;
+
+  const realPageBtn = document.getElementById("detailGmapsRealPageBtn");
+  if (realPageBtn) realPageBtn.href = gmapsRouteUrl;
+
+  const routeBtn = document.getElementById("detailGmapsRouteBtn");
+  if (routeBtn) routeBtn.href = gmapsRouteUrl;
+
+  const extMapLink = document.getElementById("detailExternalMapLink");
+  if (extMapLink) extMapLink.href = gmapsRouteUrl;
+
+  // 5. Địa chỉ cụ thể
+  const addrEl = document.getElementById("detailAddress");
+  if (addrEl) addrEl.innerText = p.address;
+
+  // 6. Trạng thái hoạt động
+  const isOpen = (typeof p.is_currently_open === "boolean")
+    ? p.is_currently_open
+    : isPlaceCurrentlyOpen(p.open_time, p.close_time);
+  const statusBadge = document.getElementById("detailStatusBadge");
+  if (statusBadge) {
+    statusBadge.className = isOpen
+      ? "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800"
+      : "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800";
+    statusBadge.innerText = isOpen ? "🟢 Đang mở cửa" : "🔴 Đã đóng cửa";
+  }
+
+  const openHoursEl = document.getElementById("detailOpenHours");
+  if (openHoursEl) openHoursEl.innerText = p.hours_display || `${p.open_time} - ${p.close_time}`;
+
+  // 7. Giờ cao điểm
+  const peakHoursEl = document.getElementById("detailPeakHours");
+  if (peakHoursEl) {
+    const rawPeak = (p.peak_hours && p.peak_hours !== 'Chưa rõ') ? p.peak_hours : '';
+    const cleanPeak = rawPeak.replace(/\s*\([^\)]*đông[^\)]*\)/gi, '').trim();
+    peakHoursEl.innerText = cleanPeak || "Chưa rõ (quán chưa cập nhật)";
+  }
+
+  // 8. Bối cảnh tags (Xếp trên/dưới tự nhiên, KHÔNG ghi chữ Tier 1/2, KHÔNG làm nổi bật lệch màu)
+  const tagsContainer = document.getElementById("detailTagsList");
+  if (tagsContainer) {
+    tagsContainer.innerHTML = "";
+    const tagMap = {
+      di_1_minh: `<i class="fa-solid fa-user text-slate-500 mr-1.5 text-[11px]"></i>Đi 1 mình`,
+      hen_ho: `<i class="fa-solid fa-heart text-rose-500 mr-1.5 text-[11px]"></i>Hẹn hò cặp đôi`,
+      nhom_ban: `<i class="fa-solid fa-users text-sky-600 mr-1.5 text-[11px]"></i>Nhóm bạn`,
+      gia_dinh: `<i class="fa-solid fa-people-roof text-amber-600 mr-1.5 text-[11px]"></i>Gia đình`
+    };
+    const { tier1, tier2 } = parsePlaceTiers(p.tags || "");
+
+    let html = `<div class="w-full space-y-1.5 mt-1">`;
+    if (tier1.length > 0) {
+      html += `
+        <div class="flex items-center gap-1.5 flex-wrap">
