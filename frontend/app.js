@@ -2308,3 +2308,113 @@ function buildCatalogCardHTML(p) {
           <div class="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-2.5 mb-3 shadow-2xs">
             <!-- Hàng 1: Giá tiền nổi bật -->
             <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <i class="fa-solid fa-receipt text-rose-500 text-xs flex-shrink-0"></i>
+                <span class="text-xs sm:text-[13px] font-black text-slate-900 tracking-tight truncate">${cleanPrice}</span>
+                ${priceUnit ? `<span class="text-[11px] text-slate-400 font-medium whitespace-nowrap">${priceUnit}</span>` : ''}
+              </div>
+              ${distanceHTML}
+            </div>
+
+            <!-- Vạch phân cách siêu mỏng -->
+            <div class="border-t border-slate-200/60 my-1.5"></div>
+
+            <!-- Hàng 2: Giờ mở cửa / Giờ cao điểm & Quận -->
+            <div class="flex items-center justify-between text-[11px] text-slate-600 font-semibold gap-1.5 truncate">
+              <span class="flex items-center gap-1.5 truncate">
+                <i class="fa-regular fa-clock text-amber-500 text-[11px] flex-shrink-0"></i>
+                <span class="truncate">${displayHours}</span>
+              </span>
+              <span class="text-slate-400 font-medium flex items-center gap-1 whitespace-nowrap flex-shrink-0">
+                <i class="fa-solid fa-location-dot text-rose-500/70 text-[9px]"></i>
+                <span>${p.district || 'TP.HCM'}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Chân thẻ hành động -->
+        <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1.5">
+          <div class="flex items-center gap-1.5">
+            <button onclick="openPlaceDetailById(${p.id})" title="Xem chi tiết" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+              <i class="fa-solid fa-circle-info text-[10px]"></i> <span>Chi tiết</span>
+            </button>
+            ${(currentUser && currentUser.role === 'admin') ? `
+              <button onclick="openEditPlaceModalById(${p.id})" title="Sửa quán" class="px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+                <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+              </button>
+            ` : ''}
+          </div>
+
+          <a href="${gmapsUrl}" target="_blank" title="Xem thông tin & đánh giá trên Google Maps" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 whitespace-nowrap shadow-xs">
+            <i class="fa-brands fa-google text-xs"></i> <span>Google Maps</span> <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAllPlaces(places) {
+  const container = document.getElementById("allPlacesGrid");
+  container.innerHTML = "";
+
+  // Bảo vệ đa tầng: loại trừ triệt để địa điểm bị ẩn khỏi Tab Khám Phá (Business Rule 2)
+  const visiblePlaces = (places || []).filter(p => !p.is_hidden || p.is_hidden === 0);
+
+  if (!visiblePlaces || visiblePlaces.length === 0) {
+    container.innerHTML = `<div class="col-span-full p-10 text-center text-xs text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">Không tìm thấy địa điểm nào khớp với bộ lọc & bán kính đã chọn.<br><button onclick="clearExploreLocation()" class="mt-2 text-[#E11D48] font-bold underline cursor-pointer">Xóa bộ lọc bán kính để xem tất cả</button></div>`;
+    return;
+  }
+
+  visiblePlaces.forEach(p => {
+    container.innerHTML += buildCatalogCardHTML(p);
+  });
+}
+
+function removeVietnameseTones(str) {
+  if (!str) return "";
+  str = str.toLowerCase();
+  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+  str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+  str = str.replace(/đ/g, "d");
+  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+  str = str.replace(/\u02C6|\u0306|\u031B/g, "");
+  return str.trim();
+}
+
+function checkPlacePriceMatch(p, price) {
+  if (price === "all") return true;
+  const minP = p.min_price || 0;
+  const maxP = p.max_price || 0;
+  const isFree = (minP === 0 && maxP === 0);
+
+  if (price === "free") {
+    return isFree;
+  }
+  if (price === "under_50k" || price === "50000") {
+    return isFree || (maxP > 0 && maxP <= 65000) || (minP > 0 && minP <= 50000 && maxP <= 75000);
+  }
+  if (price === "50k_100k") {
+    if (isFree) return false;
+    return (minP >= 40000 && minP <= 100000) || (maxP >= 50000 && maxP <= 120000) || (minP < 50000 && maxP >= 60000 && maxP <= 120000);
+  }
+  if (price === "100k_250k") {
+    if (isFree) return false;
+    return (minP >= 90000 && minP <= 250000) || (maxP >= 100000 && maxP <= 280000) || (minP <= 100000 && maxP >= 150000 && maxP <= 300000);
+  }
+  if (price === "above_250k") {
+    if (isFree) return false;
+    return (maxP >= 250000 || minP >= 200000);
+  }
+  if (price === "100000") {
+    return isFree || minP <= 100000;
+  }
+  if (price === "250000") {
+    return isFree || minP <= 250000;
+  }
+  return true;
