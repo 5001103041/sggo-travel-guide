@@ -45,3 +45,5 @@ class TestRouting(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+<!-- ref: test(routing): write test_tsp_3_stops_optimal_sequence -->
