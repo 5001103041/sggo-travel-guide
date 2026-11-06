@@ -3628,3 +3628,113 @@ function handleCSVFileSelected(e) {
       csvToUploadText = evt.target.result;
       fileToUploadBase64 = "";
       document.getElementById("btnUploadCSV").disabled = false;
+    };
+    reader.readAsText(file, "UTF-8");
+  }
+}
+
+async function submitCSVImport() {
+  if (!csvToUploadText && !fileToUploadBase64) return;
+  const btn = document.getElementById("btnUploadCSV");
+  const reportBox = document.getElementById("csvValidationReport");
+  const errorListEl = document.getElementById("csvErrorList");
+  const titleEl = document.getElementById("csvValidationTitle");
+
+  btn.innerText = "Đang kiểm tra & nạp CSDL...";
+  btn.disabled = true;
+
+  try {
+    const payload = {
+      filename: uploadedFileName || "places_import.csv"
+    };
+    if (fileToUploadBase64) {
+      payload.file_base64 = fileToUploadBase64;
+    } else {
+      payload.csv_content = csvToUploadText;
+    }
+
+    const res = await fetch(`${API_BASE}/admin/import-csv`, {
+      method: "POST",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.error_count > 0) {
+      if (reportBox) reportBox.classList.remove("hidden");
+      if (titleEl) titleEl.innerText = `Đã nạp ${data.imported_count}/${data.total_rows} dòng. Phát hiện ${data.error_count} dòng lỗi:`;
+      if (errorListEl) {
+        errorListEl.innerHTML = "";
+        data.errors.forEach(err => {
+          errorListEl.innerHTML += `<li><strong>Dòng ${err.row}</strong> (Cột <code class="font-bold text-rose-700 bg-rose-100 px-1 py-0.5 rounded">${err.field}</code>): ${err.reason}</li>`;
+        });
+      }
+      if (data.imported_count > 0) {
+        preloadPlaces();
+        loadAdminDashboard();
+      }
+    } else {
+      if (reportBox) reportBox.classList.add("hidden");
+      alert(`Toàn bộ ${data.imported_count} địa điểm hợp lệ và đã nạp thành công!`);
+      closeImportModal();
+      preloadPlaces();
+      loadAdminDashboard();
+    }
+  } catch (e) {
+    alert("Lỗi khi nạp file CSV: " + (e.message || "Không thể kết nối máy chủ."));
+  } finally {
+    btn.innerText = "Tiến Hành Nạp Dữ Liệu";
+    btn.disabled = false;
+  }
+}
+
+// ==============================================================================
+// 8. XEM CHI TIẾT ĐỊA ĐIỂM CHUẨN GOOGLE MAPS (ẢNH, THÔNG TIN, COMMENT, BẢN ĐỒ)
+// ==============================================================================
+
+let currentDetailPlace = null;
+
+function openPlaceDetailById(id) {
+  let p = allPlacesCache.find(x => Number(x.id) === Number(id));
+  if (!p) return;
+
+  currentDetailPlace = p;
+
+  // 1. Phân loại & Huy hiệu Admin Pick
+  const isEat = p.category === "an_uong";
+  const catLabel = document.getElementById("detailCategoryLabel");
+  if (catLabel) catLabel.innerText = isEat ? "Ẩm thực Sài Gòn" : "Vui chơi & Di tích";
+
+  const adminBadge = document.getElementById("detailAdminChoiceBadge");
+  if (adminBadge) {
+    if (p.is_admin_choice === 1) {
+      adminBadge.classList.remove("hidden");
+      adminBadge.classList.add("inline-flex");
+    } else {
+      adminBadge.classList.add("hidden");
+      adminBadge.classList.remove("inline-flex");
+    }
+  }
+
+  // 2. Banner Ảnh thực tế / Placeholder chuẩn
+  const imgWrapper = document.getElementById("detailImageWrapper");
+  if (imgWrapper) {
+    if (p.image_url && p.image_url.trim()) {
+      imgWrapper.innerHTML = `
+        <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400 font-bold text-xs gap-1.5\\'><i class=\\'fa-solid fa-camera text-2xl text-slate-300\\'></i> Chưa có ảnh thực tế</div>'" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+        <div class="absolute bottom-3 left-4 right-4 flex justify-between items-center text-white text-xs font-bold drop-shadow">
+          <span>#${p.id} • ${p.district || 'TP.HCM'}</span>
+          <span class="bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-md text-[10px]"><i class="fa-solid fa-camera mr-1"></i> Ảnh thực tế</span>
+        </div>
+      `;
+    } else {
+      imgWrapper.innerHTML = `
+        <div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-orange-50/40 text-slate-400 font-bold text-xs gap-1.5 p-4 text-center">
+          <div class="w-12 h-12 rounded-2xl bg-white shadow-xs border border-slate-200 flex items-center justify-center text-slate-300 text-xl">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+          <span class="text-slate-600 font-extrabold text-sm">Chưa có ảnh thực tế</span>
+          <span class="text-[11px] text-slate-400 font-normal">Hình ảnh đang được cập nhật</span>
+        </div>
+      `;
