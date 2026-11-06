@@ -3188,3 +3188,113 @@ async function handleExtractGmaps() {
       document.getElementById("formLon").value = p.lon;
       extractedCount++;
     }
+
+    // Điền Số sao, Lượt review, Giờ hoạt động CHỈ KHI Google Maps CÓ THẬT (Tuyệt đối không điền số ảo)
+    if (p.rating && p.rating > 0) {
+      document.getElementById("formRating").value = p.rating;
+    }
+    if (p.reviews_count && p.reviews_count > 0) {
+      document.getElementById("formReviewsCount").value = p.reviews_count;
+    }
+    if (p.open_time && p.open_time.includes(":")) {
+      document.getElementById("formOpenTime").value = p.open_time;
+    }
+    if (p.close_time && p.close_time.includes(":")) {
+      document.getElementById("formCloseTime").value = p.close_time;
+    }
+
+    // TUYỆT ĐỐI ĐỂ TRỐNG: Giá tối thiểu/tối đa, Giờ cao điểm
+    // vì Google Maps không có tiền VNĐ, Admin tự nhập thực tế từ menu để đảm bảo 100% liêm chính dữ liệu
+    const formGmapsUrl = document.getElementById("formGoogleMapsUrl");
+    if (formGmapsUrl) {
+      formGmapsUrl.value = raw.startsWith("http") ? raw : (p.google_maps_url || "");
+    }
+    const btnGmaps = document.getElementById("btnAdminOpenGmaps");
+    if (btnGmaps) {
+      btnGmaps.href = raw.startsWith("http") ? raw : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((p.name || '') + ' ' + (p.address || ''))}`;
+      btnGmaps.classList.remove("hidden");
+    }
+
+    // Đổ dữ liệu phân tầng 2-Tier vào checkbox nếu có
+    if (p.tags) {
+      const { tier1: curT1, tier2: curT2 } = parsePlaceTiers(p.tags || "");
+      ['di_1_minh', 'hen_ho', 'nhom_ban', 'gia_dinh'].forEach(t => {
+        const c1 = document.getElementById(`chk_t1_${t}`);
+        const c2 = document.getElementById(`chk_t2_${t}`);
+        if (c1) c1.checked = curT1.includes(t);
+        if (c2) c2.checked = curT2.includes(t);
+      });
+      syncAdminTagsInput();
+    }
+
+    if (p.best_review) document.getElementById("formBestReview").value = p.best_review;
+    if (p.worst_review) document.getElementById("formWorstReview").value = p.worst_review;
+    
+    const imgEl = document.getElementById("formImageUrl");
+    if (imgEl && p.image_url) {
+      imgEl.value = p.image_url;
+      updateImagePreview(p.image_url);
+    }
+
+    const chk = document.getElementById("formIsVerifiedReview");
+    if (chk) chk.checked = true;
+
+    // Kích hoạt kiểm tra trùng lặp ngay sau khi trích xuất
+    updateDuplicateWarningUI();
+
+    let extraRealInfo = [];
+    if (p.rating) extraRealInfo.push(`⭐ Số sao thật trên Maps: ${p.rating} / 5.0`);
+    if (p.open_time && p.close_time) extraRealInfo.push(`⏰ Giờ hoạt động thật trên Maps: ${p.open_time} - ${p.close_time}`);
+    if (p.reviews_count) extraRealInfo.push(`📝 Lượt review thật: ${p.reviews_count}`);
+    const realInfoText = extraRealInfo.length > 0 ? ("\n" + extraRealInfo.join("\n") + "\n") : "\n";
+
+    alert(`✔ Đã bóc tách dữ liệu thật từ Google Maps cho "${p.name || 'địa điểm'}"!\n${realInfoText}\n📍 Địa chỉ số nhà & Tọa độ GPS: Đã trích xuất chính xác 100% từ Google Maps.\n\n⚠️ LƯU Ý LIÊM CHÍNH DỮ LIỆU (KHÔNG DÙNG SỐ LIỆU ẢO):\n- Khoảng giá tiền (VNĐ) và Giờ cao điểm được chủ động để trống vì Google Maps không cung cấp số tiền VNĐ. Admin vui lòng tự nhập theo menu thực tế!`);
+  } catch (err) {
+    if (err.message.includes("Failed to fetch") || err.message.includes("NetworkError")) {
+      alert("Không thể kết nối tới Backend! Vui lòng kiểm tra xem bạn đã chạy file MO_WEB_SGGO.bat chưa.");
+    } else {
+      alert("Lỗi bóc tách: " + err.message);
+    }
+  } finally {
+    btn.innerHTML = `<i class="fa-solid fa-bolt"></i> Tự Động Điền`;
+    btn.disabled = false;
+  }
+}
+
+function updateImagePreview(url) {
+  const img = document.getElementById("formImagePreview");
+  const noImg = document.getElementById("formImageNoPreview");
+  if (img && noImg) {
+    if (url && url.trim()) {
+      img.src = url;
+      img.classList.remove("hidden");
+      noImg.classList.add("hidden");
+      img.onerror = () => {
+        img.classList.add("hidden");
+        noImg.classList.remove("hidden");
+      };
+    } else {
+      img.src = "";
+      img.classList.add("hidden");
+      noImg.classList.remove("hidden");
+    }
+  }
+}
+
+function openAddPlaceModal() {
+  document.getElementById("placeFormTitle").innerText = "Thêm Địa Điểm Mới";
+  document.getElementById("placeFormSubtitle").innerText = "Nhập dữ liệu địa điểm tại Sài Gòn";
+  document.getElementById("btnSubmitPlaceForm").innerText = "Lưu Địa Điểm Mới";
+  const btnGmaps = document.getElementById("btnAdminOpenGmaps");
+  if (btnGmaps) btnGmaps.classList.add("hidden");
+  document.getElementById("gmapsExtractorBox").classList.remove("hidden");
+  document.getElementById("gmapsExtractInput").value = "";
+  document.getElementById("placeAdminForm").reset();
+  document.getElementById("formPlaceId").value = "";
+  document.getElementById("formName").value = "";
+  document.getElementById("formCategory").value = "an_uong";
+  document.getElementById("formDistrict").value = "";
+  document.getElementById("formAddress").value = "";
+  const formGmapsUrl = document.getElementById("formGoogleMapsUrl");
+  if (formGmapsUrl) formGmapsUrl.value = "";
+  document.getElementById("formLat").value = "";
