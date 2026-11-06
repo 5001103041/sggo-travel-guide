@@ -29,3 +29,5 @@ class TestAPIEndpoints(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+<!-- ref: test(api): write test_get_all_places and category filter assertion -->
