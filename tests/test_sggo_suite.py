@@ -598,3 +598,103 @@ Quán Thiếu Loại,,789 Trần Hưng Đạo,Quận 5,10.755,106.665
 Quán Sai Tọa Độ,an_uong,111 Hải Thượng Lãn Ông,Quận 5,abc_not_float,106.65,30000
 Quán Sai Mức Giá,di_choi,222 Lương Nhữ Học,Quận 5,10.75,106.66,khong_phai_so
 """
+        res = self.client.post("/api/admin/import-csv", json={"csv_content": bad_csv, "filename": "test_types.csv"})
+        data = res.json()
+        self.assertEqual(data.get("imported_count"), 0)
+        self.assertEqual(data.get("error_count"), 2)
+        fields = [e["field"] for e in data.get("errors", [])]
+        self.assertIn("lat", fields)
+        self.assertIn("min_price", fields)
+
+    def test_rtm_fr09_03_import_csv_detects_duplicates_and_logs_audit(self):
+        """[TEST-FR09-03] Import CSV phát hiện trùng lặp địa điểm và ghi log kiểm toán vào bảng import_logs."""
+        # Lấy tên của 1 quán đã có sẵn trong DB
+        existing_places = db.get_all_places()
+        self.assertGreater(len(existing_places), 0)
+        existing_name = existing_places[0]["name"]
+
+        dup_csv = f"""name,category,address,district,lat,lon
+{existing_name},an_uong,123 Trùng Lặp,Quận 5,10.75,106.66
+"""
+        res = self.client.post("/api/admin/import-csv", json={"csv_content": dup_csv, "filename": "test_duplicate.csv"})
+        data = res.json()
+        self.assertEqual(data.get("error_count"), 1)
+        self.assertEqual(data.get("errors")[0]["field"], "name")
+        self.assertIn("đã tồn tại", data.get("errors")[0]["reason"])
+
+        # Kiểm tra bảng import_logs đã được ghi nhận vào CSDL
+        logs_res = self.client.get("/api/admin/import-logs?limit=5")
+        self.assertEqual(logs_res.status_code, 200)
+        logs = logs_res.json()
+        self.assertGreater(len(logs), 0)
+        self.assertEqual(logs[0]["filename"], "test_duplicate.csv")
+        self.assertEqual(logs[0]["error_count"], 1)
+
+
+
+    def test_rtm_fr08_01_admin_tag_management_crud(self):
+        """[TEST-FR08-01] Admin quản lý danh mục tag/tiêu chí: xem, thêm, bật/tắt và xóa tag (G6-FR08)."""
+        # 1. Xem danh sách tags
+        get_res = self.client.get("/api/admin/tags")
+        self.assertEqual(get_res.status_code, 200)
+        tags = get_res.json().get("tags", [])
+        self.assertGreaterEqual(len(tags), 4)
+
+        # 2. Thêm tag mới
+        new_tag = {"tag_key": "test_tag_moi", "name": "Tag Thử Nghiệm", "tier_type": "feature"}
+        post_res = self.client.post("/api/admin/tags", json=new_tag)
+        self.assertEqual(post_res.status_code, 200)
+        tag_id = post_res.json().get("id")
+        self.assertIsNotNone(tag_id)
+
+        # 3. Bật/tắt trạng thái tag
+        toggle_res = self.client.post(f"/api/admin/tags/{tag_id}/toggle", json={"is_active": 0})
+        self.assertEqual(toggle_res.status_code, 200)
+        self.assertEqual(toggle_res.json().get("is_active"), 0)
+
+        # 4. Xóa tag vừa tạo
+        del_res = self.client.delete(f"/api/admin/tags/{tag_id}")
+        self.assertEqual(del_res.status_code, 200)
+        self.assertEqual(del_res.json().get("status"), "success")
+
+    def test_rtm_br02_03_closed_place_excluded_from_itinerary(self):
+        """[TEST-BR02-03] Business Rule 2: Địa điểm đóng cửa không được đưa vào lịch trình."""
+        # Yêu cầu lịch trình vào lúc nửa đêm (00:00 - 02:00)
+        # Các bảo tàng/di tích chỉ mở cửa 07:30 - 17:00 tuyệt đối không được xuất hiện
+        payload = {
+            "start_location": "Chợ Bến Thành, Quận 1",
+            "free_time": "00:00 - 02:00",
+            "companion": "ban_be",
+            "purpose": "di_choi",
+            "budget": "tuy_duyen",
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        if data.get("feasible") is not False:
+            steps = data.get("steps", [])
+            for s in steps:
+                hours = s.get("open_hours", "")
+                # Không được là điểm đóng cửa lúc 17:00
+                self.assertNotIn("07:30 - 17:00", hours)
+
+    def test_rtm_fr10_01_itinerary_stop_has_rule_explanation(self):
+        """[TEST-FR10-01] G6-FR10 SHOULD: Từng trạm dừng có giải thích rule/tiêu chí gợi ý rõ ràng."""
+        payload = {
+            "start_location": "280 An Dương Vương, TP.HCM",
+            "free_time": "14:00 - 18:30",
+            "companion": "nhom_ban",
+            "purpose": "an_uong",
+            "budget": "100k_250k",
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        if data.get("feasible") is not False:
+            steps = data.get("steps", [])
+            self.assertGreaterEqual(len(steps), 3)
+            for s in steps:
+                self.assertIn("rule_explanation", s)
+                self.assertTrue(len(s["rule_explanation"]) > 5)
