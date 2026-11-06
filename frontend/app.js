@@ -3958,3 +3958,93 @@ function copyDetailAddress() {
   navigator.clipboard.writeText(text).then(() => {
     alert(`Đã sao chép địa chỉ:\n"${text}"\nBạn có thể dán vào Grab, Be hoặc ứng dụng bản đồ!`);
   }).catch(() => {
+    prompt("Sao chép địa chỉ:", text);
+  });
+}
+
+
+
+// Giữ lại alias để tương thích các link cũ
+function openSideMapById(id) {
+  openPlaceDetailById(id);
+}
+
+function closeSideMap() {
+  closePlaceDetail();
+}
+
+function copySideMapAddress() {
+  copyDetailAddress();
+}
+
+
+// ==============================================================================
+// CUSTOM LUXURY DROPDOWN SYSTEM (THAY THẾ HOÀN TOÀN DROPDOWN MẶC ĐỊNH CỦA WINDOWS)
+// ==============================================================================
+function initCustomSelects() {
+  const targetIds = ["allCategoryFilter", "allTagFilter", "allPriceFilter", "allSortFilter", "allRadiusFilter"];
+  
+  targetIds.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    
+    // Tránh khởi tạo trùng lặp
+    if (sel.nextElementSibling && sel.nextElementSibling.classList.contains("custom-dropdown-container")) {
+      return;
+    }
+    
+    // Ẩn select gốc (giữ nguyên DOM để kích hoạt event change và query value)
+    sel.style.display = "none";
+    
+    // Tạo container bao ngoài
+    const container = document.createElement("div");
+    container.className = "custom-dropdown-container";
+    container.dataset.forSelect = id;
+    
+    // Nút trigger
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "custom-dropdown-trigger";
+    
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "truncate pr-2 custom-dropdown-label";
+    const selectedOpt = sel.options[sel.selectedIndex] || sel.options[0];
+    labelSpan.textContent = selectedOpt ? selectedOpt.text : "";
+    
+    const arrowIcon = document.createElement("i");
+    arrowIcon.className = "fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200 custom-dropdown-arrow";
+    
+    trigger.appendChild(labelSpan);
+    trigger.appendChild(arrowIcon);
+    
+    // Menu thả xuống sang trọng (Render vào trong DOM web, hoàn toàn không dính UI Windows)
+    const menu = document.createElement("div");
+    menu.className = "custom-dropdown-menu hidden";
+    
+    function renderItems() {
+      menu.innerHTML = "";
+      Array.from(sel.options).forEach(opt => {
+        const item = document.createElement("div");
+        const isSelected = opt.value === sel.value;
+        item.className = `custom-dropdown-item ${isSelected ? 'is-selected' : ''}`;
+        item.dataset.val = opt.value;
+        item.innerHTML = `
+          <span class="truncate">${opt.text}</span>
+          ${isSelected ? '<i class="fa-solid fa-check text-[10px] text-[#E11D48]"></i>' : ''}
+        `;
+        
+        item.addEventListener("click", (e) => {
+          e.stopPropagation();
+          sel.value = opt.value;
+          labelSpan.textContent = opt.text;
+          
+          menu.classList.add("hidden");
+          trigger.classList.remove("is-active");
+          arrowIcon.classList.remove("rotate-180");
+          
+          renderItems();
+          sel.dispatchEvent(new Event("change"));
+        });
+        
+        menu.appendChild(item);
+      });
