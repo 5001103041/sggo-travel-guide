@@ -2528,3 +2528,113 @@ function filterAllPlaces() {
       if (pB !== pA) return pB - pA;
       return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
     });
+  } else {
+    // Mặc định: Quán Admin tuyển chọn (is_admin_choice) lên đầu, sau đó theo Rating cao nhất
+    filtered.sort((a, b) => {
+      if ((b.is_admin_choice || 0) !== (a.is_admin_choice || 0)) {
+        return (b.is_admin_choice || 0) - (a.is_admin_choice || 0);
+      }
+      return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
+    });
+  }
+
+  // Cập nhật thanh đếm kết quả
+  const countEl = document.getElementById("filteredPlacesCount");
+  if (countEl) countEl.innerText = filtered.length;
+
+  const radiusNotice = document.getElementById("activeRadiusNotice");
+  if (radiusNotice) {
+    if (radiusNum !== null && exploreUserCoords) {
+      const radiusLabel = radiusNum < 1000 ? `${radiusNum} mét` : `${(radiusNum / 1000).toFixed(0)} km`;
+      radiusNotice.innerHTML = `<i class="fa-solid fa-location-crosshairs text-emerald-600 mr-1.5"></i>Đang lọc trong bán kính <strong>${radiusLabel}</strong> (${filtered.length} quán)`;
+      radiusNotice.classList.remove("hidden");
+    } else {
+      radiusNotice.classList.add("hidden");
+    }
+  }
+
+  renderAllPlaces(filtered);
+}
+
+// Chức năng lưu quán yêu thích đã được xóa theo yêu cầu
+
+// ==============================================================================
+// 6. TRANG QUẢN TRỊ ADMIN (BỘ LỌC A-Z, TRÍCH XUẤT GOOGLE MAPS & CHỈNH ẢNH)
+// ==============================================================================
+
+let currentAdminSubTab = "places";
+
+function switchAdminSubTab(subTab) {
+  currentAdminSubTab = subTab;
+  const btnPlaces = document.getElementById("adminSubTabPlaces");
+  const btnUsers = document.getElementById("adminSubTabUsers");
+  const secPlaces = document.getElementById("adminSectionPlaces");
+  const secUsers = document.getElementById("adminSectionUsers");
+
+  [btnPlaces, btnUsers].forEach(b => { if (b) b.className = "admin-subtab-btn"; });
+  [secPlaces, secUsers].forEach(s => { if (s) s.classList.add("hidden"); });
+
+  if (subTab === "places") {
+    if (btnPlaces) btnPlaces.className = "admin-subtab-btn active";
+    if (secPlaces) secPlaces.classList.remove("hidden");
+  } else if (subTab === "users") {
+    if (btnUsers) btnUsers.className = "admin-subtab-btn active";
+    if (secUsers) secUsers.classList.remove("hidden");
+    loadAdminUsers();
+  }
+}
+
+async function loadAdminUsers() {
+  try {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      headers: getAuthHeaders()
+    });
+    const users = await res.json();
+    const countBadge = document.getElementById("adminUserCountBadge");
+    const statUsers = document.getElementById("statTotalUsers");
+    if (countBadge) countBadge.innerText = users.length;
+    if (statUsers) statUsers.innerText = users.length;
+
+    renderAdminUsersTable(users);
+  } catch (e) {
+    console.error("Lỗi tải danh sách người dùng:", e);
+  }
+}
+
+function renderAdminUsersTable(users) {
+  const tbody = document.getElementById("adminUsersTable");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  if (!users || users.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-stone-400">Không có tài khoản người dùng nào.</td></tr>`;
+    return;
+  }
+
+  users.forEach(u => {
+    const isAdmin = u.role === "admin";
+    const isSelf = currentUser && currentUser.id === u.id;
+
+    tbody.innerHTML += `
+      <tr class="hover:bg-stone-50/70 transition border-b border-stone-100">
+        <td class="p-3.5 font-mono font-bold text-stone-400 whitespace-nowrap">#${u.id}</td>
+        <td class="p-3.5 font-extrabold text-stone-900 whitespace-nowrap">${u.full_name} ${isSelf ? '<span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 ml-1">Bạn</span>' : ''}</td>
+        <td class="p-3.5 font-mono text-stone-600 whitespace-nowrap">@${u.username}</td>
+        <td class="p-3.5 whitespace-nowrap">
+          <span class="px-2.5 py-1 rounded-md text-[10px] font-black uppercase ${isAdmin ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-stone-100 text-stone-700 border border-stone-200'}">
+            <i class="fa-solid ${isAdmin ? 'fa-user-gear' : 'fa-user'} mr-1"></i>
+            ${isAdmin ? 'Quản Trị Viên' : 'Thành Viên'}
+          </span>
+        </td>
+        <td class="p-3.5 text-stone-400 text-xs whitespace-nowrap">${u.created_at ? u.created_at.split('T')[0] : 'Ban đầu'}</td>
+        <td class="p-3.5 text-center whitespace-nowrap bg-stone-50/50 border-l border-stone-100">
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="toggleUserRole(${u.id}, '${u.role}')" class="px-3 py-1.5 ${isAdmin ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'} rounded-xl font-bold text-xs flex items-center gap-1 transition cursor-pointer" title="Đổi quyền hạn">
+              <i class="fa-solid ${isAdmin ? 'fa-arrow-down' : 'fa-arrow-up'} text-[10px]"></i>
+              <span>${isAdmin ? 'Hạ quyền User' : 'Nâng quyền Admin'}</span>
+            </button>
+            <button onclick="handleDeleteUser(${u.id}, '${u.username}')" ${isSelf ? 'disabled' : ''} class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 disabled:opacity-30 rounded-xl font-bold text-xs flex items-center gap-1 transition cursor-pointer" title="${isSelf ? 'Không thể tự xóa tài khoản đang đăng nhập' : 'Xóa tài khoản này'}">
+              <i class="fa-solid fa-trash text-[11px]"></i>
+            </button>
+          </div>
+        </td>
