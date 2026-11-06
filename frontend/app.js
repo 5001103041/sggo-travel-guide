@@ -2968,3 +2968,113 @@ function extractClientFloorNumber(text) {
 function checkClientAddressesMatch(addr1, addr2) {
   const c1 = normalizeClientText(addr1).replace(/[\s,]/g, "");
   const c2 = normalizeClientText(addr2).replace(/[\s,]/g, "");
+  if (!c1 || !c2) return false;
+  if (c1 === c2) return true;
+
+  const { num: num1, street: street1 } = splitClientHouseNumberAndStreet(addr1);
+  const { num: num2, street: street2 } = splitClientHouseNumberAndStreet(addr2);
+
+  if (num1 && num2 && street1 && street2) {
+    if (num1 === num2) {
+      const st1 = street1.replace(/^(duong|d)\s+/, "").trim();
+      const st2 = street2.replace(/^(duong|d)\s+/, "").trim();
+      if (st1 === st2 || (st1.length >= 6 && st2.length >= 6 && (st1.includes(st2) || st2.includes(st1)))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  if (c1.length >= 12 && c2.length >= 12) {
+    if (c1.includes(c2) || c2.includes(c1)) return true;
+    if (c1.length >= 16 && c2.length >= 16 && c1.slice(0, 16) === c2.slice(0, 16)) return true;
+  }
+  return false;
+}
+
+function checkClientBrandOverlap(name1, name2) {
+  const c1 = normalizeClientText(name1).replace(/[\s,]/g, "");
+  const c2 = normalizeClientText(name2).replace(/[\s,]/g, "");
+  if (!c1 || !c2) return false;
+  if (c1 === c2) return true;
+  if (c1.length >= 4 && c2.length >= 4 && (c1.includes(c2) || c2.includes(c1))) return true;
+
+  const t1 = c1.split(" ").filter(w => w.length >= 3 && !CLIENT_BRAND_STOPWORDS.has(w));
+  const t2 = c2.split(" ").filter(w => w.length >= 3 && !CLIENT_BRAND_STOPWORDS.has(w));
+  const set2 = new Set(t2);
+  return t1.some(w => set2.has(w));
+}
+
+function findClientDuplicate(nameInput, addrInput, latInput, lonInput, mapsInput, catInput, currentId) {
+  if (!Array.isArray(allPlacesCache) || allPlacesCache.length === 0) return null;
+
+  const cleanName = normalizeClientText(nameInput).replace(/[\s,]/g, "");
+  const cleanAddr = normalizeClientText(addrInput).replace(/[\s,]/g, "");
+  const cleanMaps = (mapsInput || "").trim().toLowerCase();
+  const newIsComplex = isClientCommercialComplex(addrInput, nameInput);
+  const newFloor = extractClientFloorNumber(addrInput);
+
+  for (const p of allPlacesCache) {
+    if (currentId && String(p.id) === String(currentId)) continue;
+
+    const pName = normalizeClientText(p.name).replace(/[\s,]/g, "");
+    const pAddr = normalizeClientText(p.address).replace(/[\s,]/g, "");
+    const pCat = p.category || "";
+    const pMaps = (p.google_maps_url || "").trim().toLowerCase();
+    const pLat = parseFloat(p.lat);
+    const pLon = parseFloat(p.lon);
+    const pIsComplex = isClientCommercialComplex(p.address, p.name);
+    const pFloor = extractClientFloorNumber(p.address);
+
+    // Lớp 1: Khớp tên chuẩn hóa 100%
+    if (cleanName && pName && cleanName === pName) {
+      return { place: p, reason: `Trùng tên 100% với quán <strong>"${p.name}"</strong> (ID: #${p.id})` };
+    }
+
+    // Lớp 2: Trùng link Google Maps
+    if (cleanMaps && pMaps && cleanMaps === pMaps && !cleanMaps.includes("search/?api=1")) {
+      return { place: p, reason: `Trùng liên kết Google Maps với quán <strong>"${p.name}"</strong> (ID: #${p.id})` };
+    }
+
+    // Lớp 3: Trùng địa chỉ (KỂ CẢ TÊN KHÁC NHAU HOẶC CHƯA NHẬP TÊN!)
+    if (cleanAddr && pAddr) {
+      // 3A. Khớp 100% chuỗi địa chỉ
+      if (cleanAddr === pAddr) {
+        return { place: p, reason: `Trùng 100% địa chỉ ("${p.address}") với quán <strong>"${p.name}"</strong> (ID: #${p.id})` };
+      }
+
+      // 3B. Khớp số nhà / tên đường qua checkClientAddressesMatch
+      if (checkClientAddressesMatch(addrInput, p.address)) {
+        if (!newIsComplex && !pIsComplex) {
+          return { place: p, reason: `Trùng hoàn toàn địa chỉ ("${p.address}") với quán <strong>"${p.name}"</strong> (ID: #${p.id})` };
+        } else {
+          // Nếu trong TTTM/Phức hợp mà trùng cả số tầng
+          if (newFloor && pFloor && newFloor === pFloor) {
+            return { place: p, reason: `Trùng địa chỉ và cùng số tầng (${newFloor}) với quán <strong>"${p.name}"</strong> (ID: #${p.id})` };
+          }
+          // Nếu có thương hiệu tương đồng
+          if (checkClientBrandOverlap(nameInput, p.name)) {
+            return { place: p, reason: `Trùng địa chỉ và tên thương hiệu tương đồng với quán <strong>"${p.name}"</strong> (ID: #${p.id})` };
+          }
+        }
+      }
+    }
+
+    // Phân biệt TTTM (di_choi) và quán ăn (an_uong) bên trong TTTM
+    if ((newIsComplex || pIsComplex) && catInput && pCat && ((catInput === "di_choi" && pCat === "an_uong") || (catInput === "an_uong" && pCat === "di_choi"))) {
+      continue;
+    }
+
+    // Lớp 4: Tọa độ GPS trùng sát (< 15m)
+    if (!isNaN(latInput) && !isNaN(lonInput) && !isNaN(pLat) && !isNaN(pLon)) {
+      const dLat = (latInput - pLat) * 111320;
+      const dLon = (lonInput - pLon) * 111320 * Math.cos(latInput * (Math.PI / 180));
+      const distM = Math.sqrt(dLat * dLat + dLon * dLon);
+      if (distM < 15.0) {
+        if (checkClientBrandOverlap(nameInput, p.name)) {
+          return { place: p, reason: `Tọa độ GPS trùng sát (~${Math.round(distM)}m) và cùng thương hiệu với quán <strong>"${p.name}"</strong> (ID: #${p.id})` };
+        }
+        if (checkClientAddressesMatch(addrInput, p.address)) {
+          return { place: p, reason: `Tọa độ GPS trùng sát (~${Math.round(distM)}m) và cùng địa chỉ với quán <strong>"${p.name}"</strong> (ID: #${p.id})` };
+        }
+        if (distM < 5.0 && !newIsComplex && !pIsComplex) {
