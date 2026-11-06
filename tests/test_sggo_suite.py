@@ -998,3 +998,83 @@ Quán Sai Mức Giá,di_choi,222 Lương Nhữ Học,Quận 5,10.75,106.66,khong
         conn.commit()
 
         # Kiểm tra tồn tại trong place_tags
+        count_before = conn.execute("SELECT COUNT(*) FROM place_tags WHERE place_id = ?", (p_id,)).fetchone()[0]
+        self.assertEqual(count_before, 1)
+
+        # Xóa địa điểm
+        db.delete_place(p_id)
+
+        # Kiểm tra tự động xóa lan truyền khỏi place_tags
+        count_after = conn.execute("SELECT COUNT(*) FROM place_tags WHERE place_id = ?", (p_id,)).fetchone()[0]
+        conn.close()
+        self.assertEqual(count_after, 0)
+
+    def test_rtm_admin_stats_and_accuracy(self):
+        """[TEST-STAT-01] Kiểm tra độ chính xác của API số liệu thống kê Admin Dashboard (total_places, verified_places, total_users)."""
+        stat = self.client.get("/api/admin/stats").json()
+        self.assertIn("total_places", stat)
+        self.assertIn("verified_places", stat)
+        self.assertIn("total_users", stat)
+        self.assertGreaterEqual(stat["total_places"], 40)
+        self.assertGreaterEqual(stat["total_users"], 1)
+
+    def test_rtm_address_abbreviation_expansion_duplicate_detection(self):
+        """[TEST-BR-04] Mở rộng từ viết tắt địa chỉ tiếng Việt (đ., p., q., tp., tttm) để chống trùng lặp triệt để."""
+        text = "85 đ. Trần Bình Trọng, p.1, q.5, tphcm"
+        expanded = db.expand_address_abbreviations(text)
+        self.assertIn("đường", expanded.lower())
+        self.assertIn("phường", expanded.lower())
+        self.assertIn("quận", expanded.lower())
+        self.assertIn("thành phố hồ chí minh", expanded.lower())
+
+        # Thử thêm địa chỉ viết tắt của địa điểm có sẵn (135 Nam Kỳ Khởi Nghĩa, Phường Bến Thành, Quận 1)
+        dup_payload = {
+            "name": "Quán Trà Sữa Mới Toanh",
+            "category": "an_uong",
+            "address": "135 đ. Nam Kỳ Khởi Nghĩa, p. Bến Thành, q.1, tphcm",
+            "district": "Quận 1",
+            "lat": 10.7770,
+            "lon": 106.6950,
+            "min_price": 25000,
+            "max_price": 50000
+        }
+        res = self.client.post("/api/admin/places", json=dup_payload)
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("đã tồn tại trong CSDL", res.json().get("detail", ""))
+        self.assertIn("Dinh Độc Lập", res.json().get("detail", ""))
+
+    def test_rtm_district_and_time_format_validation(self):
+        """[TEST-BR-05] Ràng buộc 22 Quận/Huyện hợp lệ của TP.HCM, định dạng giờ chuẩn HH:MM và trần giá tiền."""
+        # 1. Quận ngoài TP.HCM
+        bad_dist = {
+            "name": "Quán Quận Lạ",
+            "category": "an_uong",
+            "address": "123 Đường Test, Hà Nội",
+            "district": "Ba Đình",
+            "lat": 10.7550,
+            "lon": 106.6650,
+            "min_price": 30000,
+            "max_price": 50000
+        }
+        res1 = self.client.post("/api/admin/places", json=bad_dist)
+        self.assertEqual(res1.status_code, 400)
+        self.assertIn("22 quận/huyện", res1.json().get("detail", ""))
+
+        # 2. Giờ mở cửa sai định dạng (ví dụ: '8h sáng' hoặc '25:70')
+        bad_time = {
+            "name": "Quán Giờ Sai",
+            "category": "an_uong",
+            "address": "123 Đường Test, Quận 5",
+            "district": "Quận 5",
+            "lat": 10.7550,
+            "lon": 106.6650,
+            "open_time": "25:70",
+            "close_time": "22:00",
+            "min_price": 30000,
+            "max_price": 50000
+        }
+        res2 = self.client.post("/api/admin/places", json=bad_time)
+        self.assertEqual(res2.status_code, 400)
+        self.assertIn("định dạng chuẩn (HH:MM", res2.json().get("detail", ""))
+
+        # 3. Giá tiền vượt trần 50,000,000 VNĐ
