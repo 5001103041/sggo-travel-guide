@@ -2638,3 +2638,113 @@ function renderAdminUsersTable(users) {
             </button>
           </div>
         </td>
+      </tr>
+    `;
+  });
+}
+
+async function toggleUserRole(userId, currentRole) {
+  const newRole = currentRole === "admin" ? "user" : "admin";
+  const label = newRole === "admin" ? "Quản trị viên (Admin)" : "Thành viên thông thường (User)";
+  if (!confirm(`Bạn có chắc muốn đổi vai trò của tài khoản này thành ${label}?`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}/role`, {
+      method: "PUT",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ role: newRole })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert("Lỗi: " + (data.detail || "Không thể cập nhật vai trò"));
+      return;
+    }
+    alert(data.message || "Cập nhật vai trò thành công!");
+    loadAdminUsers();
+    // Nếu đổi chính tài khoản đang đăng nhập
+    if (currentUser && currentUser.id === userId) {
+      currentUser.role = newRole;
+      localStorage.setItem("sggo_current_user", JSON.stringify(currentUser));
+      updateAuthUI();
+    }
+  } catch (e) {
+    alert("Lỗi kết nối máy chủ");
+  }
+}
+
+async function handleDeleteUser(userId, username) {
+  if (!confirm(`Cảnh báo: Bạn có chắc muốn xóa vĩnh viễn tài khoản @${username}? Thao tác này không thể hoàn tác.`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert("Lỗi: " + (data.detail || "Không thể xóa tài khoản"));
+      return;
+    }
+    alert(data.message || "Đã xóa tài khoản thành công!");
+    loadAdminUsers();
+  } catch (e) {
+    alert("Lỗi kết nối máy chủ");
+  }
+}
+
+async function loadAdminDashboard() {
+  if (!currentUser || currentUser.role !== "admin") {
+    alert("Chỉ Quản trị viên (Admin) mới có quyền truy cập khu vực này!");
+    switchMode("flow");
+    return;
+  }
+
+  try {
+    const statsRes = await fetch(`${API_BASE}/admin/stats`, {
+      headers: getAuthHeaders()
+    });
+    const stats = await statsRes.json();
+    if (document.getElementById("statTotalPlaces")) document.getElementById("statTotalPlaces").innerText = stats.total_places;
+    if (document.getElementById("statVerifiedPlaces")) document.getElementById("statVerifiedPlaces").innerText = stats.verified_places;
+    if (document.getElementById("statTotalUsers")) document.getElementById("statTotalUsers").innerText = stats.total_users;
+  } catch (e) {}
+
+  try {
+    const placesRes = await fetch(`${API_BASE}/places?include_hidden=true`);
+    allPlacesCache = await placesRes.json();
+    renderAdminPlacesTable(allPlacesCache);
+    populateQuickEditSelect(allPlacesCache);
+  } catch (e) {}
+
+  loadAdminUsers();
+}
+
+function populateQuickEditSelect(places) {
+  const sel = document.getElementById("quickEditPlaceSelect");
+  if (!sel) return;
+  const currentVal = sel.value;
+  sel.innerHTML = `<option value="">-- Chọn quán cần chỉnh sửa ngay (${places.length} quán) --</option>`;
+  places.forEach(p => {
+    const isEat = p.category === "an_uong";
+    sel.innerHTML += `<option value="${p.id}">#${p.id} - ${p.name} (${isEat ? 'Ẩm thực' : 'Đi chơi'})</option>`;
+  });
+  if (currentVal) sel.value = currentVal;
+}
+
+function handleQuickSelectEdit(placeId) {
+  if (!placeId) return;
+  openEditPlaceModalById(parseInt(placeId));
+  const sel = document.getElementById("quickEditPlaceSelect");
+  if (sel) sel.value = "";
+}
+
+function renderAdminPlacesTable(places) {
+  const tbody = document.getElementById("adminPlacesTable");
+  const countEl = document.getElementById("adminFilteredCount");
+  tbody.innerHTML = "";
+
+  if (countEl) countEl.innerText = `Hiển thị ${places.length} địa điểm`;
+
+  if (!places || places.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Không có địa điểm nào khớp với bộ lọc.</td></tr>`;
+    return;
