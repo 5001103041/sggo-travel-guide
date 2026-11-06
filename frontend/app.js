@@ -2198,3 +2198,113 @@ function showLocationRequiredNotice(actionType) {
     locCard.scrollIntoView({ behavior: "smooth", block: "center" });
     locCard.classList.add("ring-4", "ring-[#E11D48]/40", "transition-all", "duration-500");
     setTimeout(() => {
+      locCard.classList.remove("ring-4", "ring-[#E11D48]/40");
+    }, 2500);
+  }
+  if (locInput) {
+    locInput.focus();
+  }
+}
+
+// Xử lý khi người dùng đổi lựa chọn Sắp xếp
+function handleSortFilterChange() {
+  const sortSelect = document.getElementById("allSortFilter");
+  const sortVal = sortSelect?.value;
+  if (sortVal === "distance_asc" && !exploreUserCoords) {
+    showLocationRequiredNotice("sort");
+    sortSelect.value = "default";
+    return;
+  }
+  filterAllPlaces();
+}
+
+// 5. Khi người dùng thay đổi bộ lọc bán kính
+function onRadiusFilterChange() {
+  const radiusSelect = document.getElementById("allRadiusFilter");
+  const radius = radiusSelect?.value || "all";
+  if (radius !== "all" && !exploreUserCoords) {
+    showLocationRequiredNotice("radius");
+    radiusSelect.value = "all";
+    return;
+  }
+  filterAllPlaces();
+}
+
+// ==============================================================================
+// TAB 2: THẺ CATALOG DU LỊCH 2 CỘT CÂN ĐỐI (DÀNH CHO TAB TỰ CHỌN 40 QUÁN)
+// THIẾT KẾ DẠNG GRID THOÁNG ĐÃNG, KHÔNG BỊ TRÙNG LẶP KIỂU TAB 1
+// ==============================================================================
+function buildCatalogCardHTML(p) {
+  const isEat = p.category === "an_uong";
+  const isOpen = (typeof p.is_currently_open === "boolean")
+    ? p.is_currently_open
+    : isPlaceCurrentlyOpen(p.open_time, p.close_time);
+  const gmapsUrl = p.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + p.address)}`;
+
+  const rawPrice = p.price_display
+    ? p.price_display
+    : ((p.min_price === 0 && p.max_price === 0)
+      ? "Miễn phí vé"
+      : `${p.min_price ? p.min_price.toLocaleString() + 'đ' : ''} – ${p.max_price ? p.max_price.toLocaleString() + 'đ' : ''}`);
+
+  let cleanPrice = rawPrice;
+  let priceUnit = "";
+  if (cleanPrice.toLowerCase().includes("/người") || cleanPrice.toLowerCase().includes("/ người")) {
+    cleanPrice = cleanPrice.replace(/\/\s*người/gi, "").trim();
+    priceUnit = "/ người";
+  } else if (cleanPrice.toLowerCase().includes("/vé") || cleanPrice.toLowerCase().includes("/ vé")) {
+    cleanPrice = cleanPrice.replace(/\/\s*vé/gi, "").trim();
+    priceUnit = "/ vé";
+  }
+
+  const displayHours = (p.peak_hours && p.peak_hours !== 'Chưa rõ')
+    ? p.peak_hours.split('(')[0].trim()
+    : ((p.open_time && p.close_time) ? `${p.open_time} – ${p.close_time}` : '08:00 – 22:30');
+
+  let distanceHTML = "";
+  if (typeof p.distanceKm === "number" && !isNaN(p.distanceKm) && exploreUserCoords) {
+    const isWalk = p.distanceKm <= 0.6;
+    const distStr = p.distanceKm < 1 ? `${Math.round(p.distanceKm * 1000)}m` : `${p.distanceKm.toFixed(1)} km`;
+    distanceHTML = `
+      <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold ${isWalk ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-blue-50 text-blue-800 border border-blue-200'} whitespace-nowrap inline-flex items-center gap-1">
+        <i class="fa-solid ${isWalk ? 'fa-person-walking' : 'fa-motorcycle'} text-[10px]"></i>
+        <span>${distStr}</span>
+      </span>
+    `;
+  }
+
+  const imageHtml = renderPlaceImage(p, "w-full", "h-full");
+
+  return `
+    <div class="catalog-card-v3">
+      <!-- 1. Header ảnh quán tỷ lệ vàng chuẩn (KHÔNG CLICK VÀO ẢNH) -->
+      <div class="card-image-box select-none">
+        ${imageHtml}
+        <!-- Badge thể loại -->
+        <span class="absolute top-2.5 left-2.5 text-[10px] font-black uppercase text-[#E11D48] bg-white/95 backdrop-blur-xs px-2.5 py-0.5 rounded-lg shadow-sm">
+          ${isEat ? 'Ẩm Thực' : 'Đi Chơi'}
+        </span>
+        <!-- Badge mở cửa -->
+        <span class="absolute top-2.5 right-2.5 text-[10px] font-black uppercase ${isOpen ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'} px-2.5 py-0.5 rounded-lg shadow-sm">
+          ${isOpen ? '🟢 Mở cửa' : '🔴 Đóng cửa'}
+        </span>
+      </div>
+
+      <!-- 2. Thân thẻ thông tin (Unified Highlight Box: 1 ô viền bao quát nổi bật Giá & Giờ) -->
+      <div class="p-4 flex-1 flex flex-col justify-between">
+        <div>
+          <!-- Tên quán + Badge Số sao nổi bật -->
+          <div class="flex items-start justify-between gap-2 mb-2.5">
+            <h4 onclick="openPlaceDetailById(${p.id})" class="font-black text-slate-900 text-sm sm:text-[15px] leading-snug line-clamp-1 hover:text-[#E11D48] transition cursor-pointer" title="${p.name}">
+              ${p.name}
+            </h4>
+            <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-400 text-white font-black text-xs shadow-2xs shrink-0">
+              <i class="fa-solid fa-star text-white text-[11px] drop-shadow-xs"></i>
+              <span class="font-black text-white">${p.rating}</span>
+            </div>
+          </div>
+
+          <!-- Ô VIỀN BAO QUÁT NỔI BẬT GIÁ TIỀN & GIỜ HOẠT ĐỘNG (1 KHỐI ĐỒNG NHẤT, SANG TRỌNG) -->
+          <div class="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-2.5 mb-3 shadow-2xs">
+            <!-- Hàng 1: Giá tiền nổi bật -->
+            <div class="flex items-center justify-between gap-2">
