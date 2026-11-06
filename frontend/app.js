@@ -3298,3 +3298,113 @@ function openAddPlaceModal() {
   const formGmapsUrl = document.getElementById("formGoogleMapsUrl");
   if (formGmapsUrl) formGmapsUrl.value = "";
   document.getElementById("formLat").value = "";
+  document.getElementById("formLon").value = "";
+  document.getElementById("formReviewsCount").value = "";
+  document.getElementById("formOpenTime").value = "";
+  document.getElementById("formCloseTime").value = "";
+  document.getElementById("formMinPrice").value = "";
+  document.getElementById("formMaxPrice").value = "";
+  const pDispEl = document.getElementById("formPriceDisplay");
+  if (pDispEl) pDispEl.value = "";
+  document.getElementById("formRating").value = "";
+  document.getElementById("formPeakHours").value = "";
+  ['di_1_minh', 'hen_ho', 'nhom_ban', 'gia_dinh'].forEach(t => {
+    const c1 = document.getElementById(`chk_t1_${t}`);
+    const c2 = document.getElementById(`chk_t2_${t}`);
+    if (c1) c1.checked = false;
+    if (c2) c2.checked = false;
+  });
+  syncAdminTagsInput();
+  document.getElementById("formBestReview").value = "";
+  document.getElementById("formWorstReview").value = "";
+  const chkRev = document.getElementById("formIsVerifiedReview");
+  if (chkRev) chkRev.checked = true;
+  const chkAdmin = document.getElementById("formIsAdminChoice");
+  if (chkAdmin) chkAdmin.checked = false;
+  const chkHidden = document.getElementById("formIsHidden");
+  if (chkHidden) chkHidden.checked = false;
+  document.getElementById("formImageUrl").value = "";
+  updateImagePreview("");
+  const warnBox = document.getElementById("formDuplicateWarning");
+  if (warnBox) warnBox.classList.add("hidden");
+  document.getElementById("modalPlaceForm").classList.remove("hidden");
+}
+
+async function openEditPlaceModalById(id) {
+  let p = allPlacesCache.find(x => Number(x.id) === Number(id));
+  if (!p) {
+    try {
+      const res = await fetch(`${API_BASE}/places/${id}`);
+      if (res.ok) p = await res.json();
+    } catch (e) {}
+  }
+  if (!p) {
+    alert("Không tìm thấy thông tin địa điểm #" + id);
+    return;
+  }
+  openEditPlaceModal(p);
+}
+
+function handleDeletePlaceById(id) {
+  const p = allPlacesCache.find(x => Number(x.id) === Number(id));
+  const name = p ? p.name : `#${id}`;
+  handleDeletePlace(id, name);
+}
+
+function openEditPlaceModal(p) {
+  document.getElementById("placeFormTitle").innerHTML = `<i class="fa-solid fa-pen-to-square text-blue-600 mr-1.5"></i> Chỉnh Sửa Quán #${p.id} — ${p.name}`;
+  document.getElementById("placeFormSubtitle").innerText = "Chỉnh sửa thông tin địa điểm";
+  document.getElementById("btnSubmitPlaceForm").innerText = `Lưu Cập Nhật Cho Quán #${p.id}`;
+  
+  // Đồng bộ liên kết Google Maps đối chiếu cho Admin
+  const formGmapsUrl = document.getElementById("formGoogleMapsUrl");
+  if (formGmapsUrl) formGmapsUrl.value = p.google_maps_url || "";
+
+  const btnGmaps = document.getElementById("btnAdminOpenGmaps");
+  if (btnGmaps) {
+    btnGmaps.href = p.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ', ' + (p.address || p.district || 'TP.HCM'))}`;
+    btnGmaps.classList.remove("hidden");
+  }
+
+  document.getElementById("gmapsExtractorBox").classList.add("hidden");
+  document.getElementById("formPlaceId").value = p.id;
+  document.getElementById("formName").value = p.name || "";
+  document.getElementById("formCategory").value = p.category || "an_uong";
+  document.getElementById("formDistrict").value = p.district || "";
+  document.getElementById("formAddress").value = p.address || "";
+  document.getElementById("formLat").value = (p.lat !== undefined && p.lat !== null && p.lat !== 0) ? p.lat : "";
+  document.getElementById("formLon").value = (p.lon !== undefined && p.lon !== null && p.lon !== 0) ? p.lon : "";
+  document.getElementById("formReviewsCount").value = (p.reviews_count !== undefined && p.reviews_count !== null && p.reviews_count > 0) ? p.reviews_count : "";
+  document.getElementById("formOpenTime").value = p.open_time || "";
+  document.getElementById("formCloseTime").value = p.close_time || "";
+  document.getElementById("formMinPrice").value = (p.min_price !== undefined && p.min_price !== null && p.min_price > 0) ? p.min_price : "";
+  document.getElementById("formMaxPrice").value = (p.max_price !== undefined && p.max_price !== null && p.max_price > 0) ? p.max_price : "";
+  document.getElementById("formRating").value = (p.rating !== undefined && p.rating !== null && p.rating > 0) ? p.rating : "";
+  document.getElementById("formPeakHours").value = p.peak_hours || "";
+  const pDispEl = document.getElementById("formPriceDisplay");
+  if (pDispEl) pDispEl.value = p.price_display || "";
+  document.getElementById("formTags").value = p.tags || "nhom_ban";
+  
+  // Đổ dữ liệu phân tầng 2-Tier vào checkbox trên giao diện
+  const { tier1: curT1, tier2: curT2 } = parsePlaceTiers(p.tags || "nhom_ban");
+  ['di_1_minh', 'hen_ho', 'nhom_ban', 'gia_dinh'].forEach(t => {
+    const c1 = document.getElementById(`chk_t1_${t}`);
+    const c2 = document.getElementById(`chk_t2_${t}`);
+    if (c1) c1.checked = curT1.includes(t);
+    if (c2) c2.checked = curT2.includes(t);
+  });
+  syncAdminTagsInput();
+
+  document.getElementById("formBestReview").value = p.best_review || "";
+  document.getElementById("formWorstReview").value = p.worst_review || "";
+  const chkRev = document.getElementById("formIsVerifiedReview");
+  if (chkRev) chkRev.checked = (p.is_verified_review === 1);
+  const chkAdmin = document.getElementById("formIsAdminChoice");
+  if (chkAdmin) chkAdmin.checked = (p.is_admin_choice === 1);
+  const chkHidden = document.getElementById("formIsHidden");
+  if (chkHidden) chkHidden.checked = (p.is_hidden === 1);
+  document.getElementById("formImageUrl").value = p.image_url || "";
+  updateImagePreview(p.image_url || "");
+  document.getElementById("modalPlaceForm").classList.remove("hidden");
+}
+
