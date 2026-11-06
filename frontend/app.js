@@ -2418,3 +2418,113 @@ function checkPlacePriceMatch(p, price) {
     return isFree || minP <= 250000;
   }
   return true;
+}
+
+function filterAllPlaces() {
+  const q = document.getElementById("allSearchInput")?.value.trim() || "";
+  const cat = document.getElementById("allCategoryFilter")?.value || "all";
+  const tag = document.getElementById("allTagFilter")?.value || "all";
+  const price = document.getElementById("allPriceFilter")?.value || "all";
+  const sort = document.getElementById("allSortFilter")?.value || "default";
+  const radius = document.getElementById("allRadiusFilter")?.value || "all";
+  const radiusNum = radius !== "all" ? parseInt(radius) : null;
+
+  // Cập nhật thông tin khoảng cách cho tất cả quán nếu đã có tọa độ
+  allPlacesCache.forEach(p => {
+    if (exploreUserCoords && p.lat && p.lon) {
+      p.distanceKm = calculateHaversineDistanceKm(
+        exploreUserCoords.lat,
+        exploreUserCoords.lon,
+        parseFloat(p.lat),
+        parseFloat(p.lon)
+      );
+    } else {
+      delete p.distanceKm;
+    }
+  });
+
+  const normQ = removeVietnameseTones(q);
+
+  let filtered = allPlacesCache.filter(p => {
+    // 0. Bắt buộc: Quán bị ẩn không bao giờ được xuất hiện ở Tab Khám Phá (Business Rule 2)
+    if (p.is_hidden === 1 || p.is_hidden === true) return false;
+
+    // 1. Tìm kiếm thông minh (có dấu và không dấu tiếng Việt)
+    let matchQ = true;
+    if (normQ) {
+      const normName = removeVietnameseTones(p.name || "");
+      const normAddr = removeVietnameseTones(p.address || "");
+      matchQ = normName.includes(normQ) || normAddr.includes(normQ);
+    }
+
+    // 2. Thể loại (Chỉ có 2 thể loại cốt lõi: Ẩm thực hoặc Đi chơi)
+    const matchCat = (cat === "all") || (p.category === cat);
+
+    // 3. Bối cảnh 2-Tier
+    const pTiers = parsePlaceTiers(p.tags);
+    const matchTag = (tag === "all") || pTiers.tier1.includes(tag) || pTiers.tier2.includes(tag);
+
+    // 4. Mức giá chuẩn xác
+    const matchPrice = checkPlacePriceMatch(p, price);
+
+    // 5. Admin pick
+    const matchAdminPick = (sort !== "admin_pick") || (p.is_admin_choice === 1);
+
+    // 6. Lọc theo bán kính mét (nếu có vị trí)
+    let matchRadius = true;
+    if (radiusNum !== null) {
+      if (typeof p.distanceKm === "number") {
+        matchRadius = (p.distanceKm * 1000) <= radiusNum;
+      } else {
+        matchRadius = false;
+      }
+    }
+
+    return matchQ && matchCat && matchTag && matchPrice && matchAdminPick && matchRadius;
+  });
+
+  // Sắp xếp
+  if (sort === "distance_asc") {
+    filtered.sort((a, b) => {
+      const distA = typeof a.distanceKm === "number" ? a.distanceKm : 9999;
+      const distB = typeof b.distanceKm === "number" ? b.distanceKm : 9999;
+      return distA - distB;
+    });
+  } else if (sort === "rating_desc") {
+    filtered.sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+  } else if (sort === "rating_asc") {
+    filtered.sort((a, b) => (parseFloat(a.rating) || 0) - (parseFloat(b.rating) || 0));
+  } else if (sort === "price_desc") {
+    // Sắp xếp mức giá từ lớn tới bé (Cao đến thấp)
+    filtered.sort((a, b) => {
+      const pA = a.max_price || a.min_price || 0;
+      const pB = b.max_price || b.min_price || 0;
+      if (pB !== pA) return pB - pA;
+      return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
+    });
+  } else if (sort === "price_asc") {
+    // Sắp xếp mức giá từ bé tới lớn (Thấp đến cao)
+    filtered.sort((a, b) => {
+      const pA = a.min_price || a.max_price || 0;
+      const pB = b.min_price || b.max_price || 0;
+      if (pA !== pB) return pA - pB;
+      return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
+    });
+  } else if (tag !== "all") {
+    // Sắp xếp ưu tiên chuẩn 2-Tier: Quán có tag ở Tier 1 lên đầu, Tier 2 xếp sau, trong cùng Tier xếp theo rating cao
+    filtered.sort((a, b) => {
+      const tA = parsePlaceTiers(a.tags);
+      const tB = parsePlaceTiers(b.tags);
+      const rankA = tA.tier1.includes(tag) ? 1 : (tA.tier2.includes(tag) ? 2 : 3);
+      const rankB = tB.tier1.includes(tag) ? 1 : (tB.tier2.includes(tag) ? 2 : 3);
+      if (rankA !== rankB) return rankA - rankB;
+      return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
+    });
+  } else if (price !== "all") {
+    // Khi đang lọc theo mức giá (ví dụ Dưới 50k) và sắp xếp là Mặc định: Tự động sắp xếp từ lớn tới bé
+    filtered.sort((a, b) => {
+      const pA = a.max_price || a.min_price || 0;
+      const pB = b.max_price || b.min_price || 0;
+      if (pB !== pA) return pB - pA;
+      return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
+    });
