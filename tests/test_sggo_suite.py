@@ -98,3 +98,103 @@ class TestSGGoTestSuite(unittest.TestCase):
             "address": "999 Nguyễn Trãi, Quận 5",
             "district": "Quận 5",
             "lat": 10.7520,
+            "lon": 106.6620,
+            "min_price": 20000,
+            "max_price": 50000
+        })
+        p_id = p["id"]
+
+        update_payload = dict(p)
+        update_payload["min_price"] = 35000
+        update_payload["max_price"] = 75000
+        update_payload["open_time"] = "09:00"
+
+        res = self.client.put(f"/api/admin/places/{p_id}", json=update_payload)
+        self.assertEqual(res.status_code, 200)
+        updated_data = res.json()["place"]
+        self.assertEqual(updated_data["min_price"], 35000)
+        self.assertEqual(updated_data["max_price"], 75000)
+
+        # Dọn dẹp
+        db.delete_place(p_id)
+
+    def test_rtm_fr01_03_delete_place(self):
+        """[TEST-FR01-03] Admin xóa địa điểm và kiểm tra xóa vĩnh viễn khỏi SQLite."""
+        p = db.add_place({
+            "name": "[TEST] Quán Sắp Xóa",
+            "category": "di_choi",
+            "address": "456 Trần Hưng Đạo",
+            "lat": 10.751,
+            "lon": 106.661
+        })
+        p_id = p["id"]
+
+        del_res = self.client.delete(f"/api/admin/places/{p_id}")
+        self.assertEqual(del_res.status_code, 200)
+
+        # Kiểm tra quán không còn tồn tại
+        check_p = db.get_place_by_id(p_id)
+        self.assertIsNone(check_p)
+
+    def test_rtm_fr01_04_toggle_hide_place(self):
+        """[TEST-FR01-04] Admin ẩn quán (is_hidden = 1) và bật lại (is_hidden = 0)."""
+        p = db.add_place({
+            "name": "[TEST] Quán Ẩn Hiện",
+            "category": "an_uong",
+            "address": "12 Đỗ Ngọc Thạnh",
+            "is_hidden": 0
+        })
+        p_id = p["id"]
+
+        # Toggle ẩn lần 1 -> is_hidden = 1
+        res1 = self.client.post(f"/api/admin/places/{p_id}/toggle-hide")
+        self.assertEqual(res1.status_code, 200)
+        self.assertEqual(res1.json()["place"]["is_hidden"], 1)
+
+        # Toggle ẩn lần 2 -> is_hidden = 0
+        res2 = self.client.post(f"/api/admin/places/{p_id}/toggle-hide")
+        self.assertEqual(res2.status_code, 200)
+        self.assertEqual(res2.json()["place"]["is_hidden"], 0)
+
+        db.delete_place(p_id)
+
+    # ==========================================================================
+    # NHÓM 2: G6-FR02 - TÌM KIẾM & BỘ LỌC ĐA CHIỀU (RIÊNG LẺ & KẾT HỢP)
+    # ==========================================================================
+
+    def test_rtm_fr02_01_filter_category_an_uong(self):
+        """[TEST-FR02-01] Lọc theo thể loại 'an_uong': 100% kết quả trả về phải là ẩm thực."""
+        res = self.client.get("/api/places?category=an_uong")
+        self.assertEqual(res.status_code, 200)
+        places = res.json() if isinstance(res.json(), list) else res.json().get("places", [])
+        self.assertGreater(len(places), 0)
+        for p in places:
+            self.assertEqual(p["category"], "an_uong")
+
+    def test_rtm_fr02_02_filter_category_di_choi(self):
+        """[TEST-FR02-02] Lọc theo thể loại 'di_choi': 100% kết quả là điểm đến tham quan."""
+        res = self.client.get("/api/places?category=di_choi")
+        self.assertEqual(res.status_code, 200)
+        places = res.json() if isinstance(res.json(), list) else res.json().get("places", [])
+        self.assertGreater(len(places), 0)
+        for p in places:
+            self.assertEqual(p["category"], "di_choi")
+
+    def test_rtm_fr02_03_filter_context_tag(self):
+        """[TEST-FR02-03] Lọc theo ngữ cảnh tag 'di_1_minh'."""
+        res = self.client.get("/api/places?tag=di_1_minh")
+        self.assertEqual(res.status_code, 200)
+        places = res.json() if isinstance(res.json(), list) else res.json().get("places", [])
+        self.assertGreater(len(places), 0)
+        for p in places:
+            self.assertIn("di_1_minh", p.get("tags", ""))
+
+    def test_rtm_fr02_04_filter_price_range(self):
+        """[TEST-FR02-04] Lọc theo khoảng giá từ 50.000đ đến 100.000đ."""
+        res = self.client.get("/api/places?min_price=50000&max_price=100000")
+        self.assertEqual(res.status_code, 200)
+        places = res.json() if isinstance(res.json(), list) else res.json().get("places", [])
+        self.assertGreater(len(places), 0)
+        for p in places:
+            self.assertTrue(p["min_price"] <= 100000 and p["max_price"] >= 50000)
+
