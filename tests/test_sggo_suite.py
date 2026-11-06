@@ -298,3 +298,103 @@ class TestSGGoTestSuite(unittest.TestCase):
             "ai_model": "rule_based"
         }
         res = self.client.post("/api/ai-itinerary", json=payload)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        gmaps_url = data.get("gmaps_multi_url", "")
+        self.assertIn("https://www.google.com/maps/dir/?api=1", gmaps_url)
+        self.assertIn("waypoints=", gmaps_url)
+        self.assertIn("travelmode=two_wheeler", gmaps_url)
+
+    def test_rtm_fr07_02_timeline_steps_have_travel_distance_and_time(self):
+        """[TEST-FR07-02] Mỗi chặng trong Timeline có ước tính cự ly km và số phút di chuyển."""
+        payload = {
+            "start_location": "Chợ Bến Thành, Quận 1",
+            "free_time": "14:00 - 18:30",
+            "purpose": "an_uong",
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload)
+        self.assertEqual(res.status_code, 200)
+        steps = res.json().get("steps", [])
+        for s in steps:
+            self.assertIn("Di chuyển ~", s.get("travel_info", ""))
+            self.assertIn("phút xe máy", s.get("travel_info", ""))
+
+    # ==========================================================================
+    # NHÓM 5: G6-FR05 - KIỂM TRA TỔNG NGÂN SÁCH & KHOẢNG THỜI GIAN CHO PHÉP
+    # ==========================================================================
+
+    def test_rtm_fr05_01_budget_constraint_checked(self):
+        """[TEST-FR05-01] Lịch trình kiểm tra tổng chi phí ước tính nằm trong ràng buộc."""
+        payload = {
+            "start_location": "Chợ Bến Thành",
+            "free_time": "14:00 - 18:30",
+            "purpose": "an_uong",
+            "budget_level": "100k_250k",
+            "target_budget": 250000,
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload)
+        data = res.json()
+        self.assertTrue(data.get("feasible"))
+        kpi = data.get("kpi", {})
+        self.assertIn("total_min_cost", kpi)
+        self.assertIn("total_max_cost", kpi)
+        self.assertIn("is_within_budget", kpi)
+        self.assertGreater(kpi["total_max_cost"], 0)
+
+    def test_rtm_fr05_02_duration_constraint_checked(self):
+        """[TEST-FR05-02] Lịch trình kiểm tra tổng thời gian (di chuyển + trải nghiệm)."""
+        payload = {
+            "start_location": "Chợ Bến Thành",
+            "free_time": "14:00 - 18:30",
+            "purpose": "ca_hai",
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload)
+        data = res.json()
+        kpi = data.get("kpi", {})
+        self.assertIn("total_duration_minutes", kpi)
+        self.assertIn("free_duration_minutes", kpi)
+        self.assertIn("is_within_time", kpi)
+        self.assertEqual(kpi["free_duration_minutes"], 270)
+        self.assertTrue(kpi["is_within_time"])
+
+    # ==========================================================================
+    # NHÓM 6: BUSINESS RULE 3 - BÁO ĐIỀU KIỆN KHÔNG THỎA & ĐỀ XUẤT NỚI ĐIỀU KIỆN
+    # ==========================================================================
+
+    def test_rtm_br03_01_time_too_short_reported_with_relaxation_suggestion(self):
+        """[TEST-BR03-01] Thời gian rảnh quá ngắn (<60 phút) -> Báo lỗi TIME_TOO_SHORT kèm đề xuất nới."""
+        payload = {
+            "start_location": "Chợ Bến Thành",
+            "free_time": "18:00 - 18:30",  # Chỉ có 30 phút rảnh
+            "purpose": "ca_hai",
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload)
+        data = res.json()
+        self.assertFalse(data.get("feasible"))
+        self.assertEqual(data.get("error_code"), "TIME_TOO_SHORT")
+        self.assertIn("quá ngắn", data.get("message", ""))
+        self.assertIn("suggestion", data)
+        self.assertEqual(data.get("recommended_time"), "14:00 - 18:30")
+
+    def test_rtm_br03_02_budget_too_low_reported_with_relaxation_suggestion(self):
+        """[TEST-BR03-02] Ngân sách ăn uống quá thấp (<40.000đ) -> Báo lỗi BUDGET_TOO_LOW kèm đề xuất nới."""
+        payload = {
+            "start_location": "Chợ Bến Thành",
+            "free_time": "14:00 - 18:30",
+            "purpose": "an_uong",
+            "budget_level": "custom",
+            "target_budget": 15000,  # 15k không thể ăn 3 trạm
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload)
+        data = res.json()
+        self.assertFalse(data.get("feasible"))
+        self.assertEqual(data.get("error_code"), "BUDGET_TOO_LOW")
+        self.assertIn("quá thấp", data.get("message", ""))
+        self.assertIn("suggestion", data)
+        self.assertEqual(data.get("recommended_budget"), 100000)
+
