@@ -1868,3 +1868,113 @@ async function requestAIItinerary(isShuffle = false) {
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <span class="text-xs font-black uppercase text-white bg-[#E11D48] px-3.5 py-1.5 rounded-xl shadow-xs tracking-wider">
                 CHẶNG ${idx + 1}
+              </span>
+              <span class="text-xs font-extrabold uppercase text-slate-700 bg-white border border-slate-200/90 px-3 py-1.5 rounded-xl shadow-2xs">
+                ${isEat ? 'ẨM THỰC' : 'THAM QUAN & VUI CHƠI'} ${venueDistrict ? `• ${venueDistrict}` : ''}
+              </span>
+            </div>
+
+            <!-- DÒNG 2: CHI PHÍ DỰ KIẾN (MỘT DÒNG RIÊNG NỔI BẬT) -->
+            <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-950 font-bold text-xs sm:text-sm shadow-2xs">
+              <i class="fa-solid fa-receipt text-emerald-600 text-sm"></i>
+              <span class="text-emerald-800 font-bold">Chi phí dự kiến:</span>
+              <span class="font-black text-emerald-950">${s.price_range}</span>
+            </div>
+
+            <!-- DÒNG 3: DỪNG CHÂN & KHUNG GIỜ (MỘT DÒNG RIÊNG NỔI BẬT) -->
+            <div class="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-rose-50 border border-rose-200/80 text-rose-950 font-bold text-xs sm:text-sm shadow-2xs">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-clock text-[#E11D48] text-sm"></i>
+                <span class="text-rose-800 font-bold">Khung giờ:</span>
+                <span class="font-black text-rose-950">${s.time}</span>
+              </div>
+              <span class="text-xs font-black text-rose-700 bg-rose-200/80 px-2.5 py-0.5 rounded-md">Dừng ${dwellFormatted}</span>
+            </div>
+          </div>
+
+          <!-- NỘI DUNG THÂN THẺ (TẬP TRUNG VÀO TRẢI NGHIỆM CHÍNH & MÓN NÊN GỌI) -->
+          <div class="p-4 sm:p-6">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+              
+              <!-- Cột Trái (Ảnh Trạm: KHÔNG CLICK, KHÔNG OVERLAY NÚT ẢNH) -->
+              <div class="md:col-span-4 relative h-48 sm:h-44 md:h-full min-h-[160px] rounded-2xl overflow-hidden border border-slate-200 shadow-2xs select-none">
+                ${imgHtml}
+              </div>
+
+              <!-- Cột Phải (Thông Tin Quán) -->
+              <div class="md:col-span-8 flex flex-col justify-between">
+                <div>
+                  <!-- Tên Quán + Số Sao & Lượt Đánh Giá CỰC KỲ NHẤN MẠNH -->
+                  <div class="flex items-start justify-between gap-3 mb-3">
+                    <h3 onclick="openPlaceDetailById(${s.place_id})" class="text-base sm:text-lg font-black text-slate-900 leading-snug hover:text-[#E11D48] transition cursor-pointer" title="${venueName}">
+                      ${venueName}
+                    </h3>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-400 text-slate-950 font-black shadow-xs shrink-0 border border-amber-300">
+                      <div class="flex items-center gap-1">
+                        <i class="fa-solid fa-star text-white drop-shadow-xs text-sm"></i>
+                        <span class="text-sm font-black tracking-tight text-white">${venueRating}</span>
+                      </div>
+                      ${venueReviews ? `<span class="text-[11px] font-black text-amber-950 bg-amber-100/90 px-2 py-0.5 rounded-lg">${venueReviews}</span>` : ''}
+                    </div>
+                  </div>
+
+                  <!-- MÓN NÊN GỌI & TRẢI NGHIỆM CHÍNH (CỰC KỲ NỔI BẬT) -->
+                  ${s.must_try_tip ? `
+                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300/80 rounded-2xl p-3.5 sm:p-4 mb-3 text-xs sm:text-[13px] text-amber-950 shadow-2xs">
+                      <div class="font-black text-amber-900 flex items-center gap-2 uppercase text-xs tracking-wider mb-1.5">
+                        <span class="px-2 py-0.5 bg-amber-500 text-white rounded-md text-[10px] font-black uppercase tracking-wider">NÊN THỬ</span>
+                        <span class="font-black text-amber-950">${isEat ? 'Món ruột được khen nhiều nhất:' : 'Trải nghiệm nổi bật khi đến đây:'}</span>
+                      </div>
+                      <div class="font-extrabold text-slate-900 text-sm leading-relaxed">${escapeHtml(s.must_try_tip)}</div>
+                    </div>
+                  ` : ''}
+
+                  <!-- CẢNH BÁO HOẶC TRẤN AN GIỜ CAO ĐIỂM (LUÔN HIỂN THỊ ĐỂ NGƯỜI DÙNG YÊN TÂM) -->
+                  ${s.is_peak_hour ? `
+                    <div class="mb-3 p-3 bg-rose-50 border border-rose-200/90 rounded-2xl text-xs sm:text-[13px] text-rose-950 flex items-start gap-2.5 font-medium shadow-2xs">
+                      <div class="w-6 h-6 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0 mt-0.5 text-xs shadow-2xs">
+                        <i class="fa-solid fa-fire"></i>
+                      </div>
+                      <div class="leading-relaxed">
+                        <strong class="font-black text-rose-900 uppercase text-[11px] tracking-wide block mb-0.5">Trùng giờ cao điểm của quán</strong>
+                        <span>${escapeHtml(s.peak_warning || `Dự kiến quán rất đông khách vào khung giờ này (${s.peak_hours || ''}). Bạn nên chủ động đặt bàn trước hoặc ghé sớm!`)}</span>
+                      </div>
+                    </div>
+                  ` : `
+                    <div class="mb-3 p-3 bg-emerald-50/90 border border-emerald-200/90 rounded-2xl text-xs sm:text-[13px] text-emerald-950 flex items-start gap-2.5 font-medium shadow-2xs">
+                      <div class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 text-xs shadow-2xs">
+                        <i class="fa-solid fa-check"></i>
+                      </div>
+                      <div class="leading-relaxed">
+                        <strong class="font-black text-emerald-900 uppercase text-[11px] tracking-wide block mb-0.5">Không trùng giờ cao điểm</strong>
+                        <span>${escapeHtml(s.peak_warning || `Khung giờ bạn ghé (${s.time}) không trùng giờ cao điểm của quán${s.peak_hours ? ` (giờ cao điểm: ${s.peak_hours})` : ''}. Quán thoáng đãng, bạn hoàn toàn yên tâm trải nghiệm!`)}</span>
+                      </div>
+                    </div>
+                  `}
+
+                  <!-- Cảnh Báo Giao Thông Nặng (Nếu có tắc đường) -->
+                  ${s.traffic_warning && !s.traffic_warning.includes("bình thường") ? `
+                    <div class="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2 font-medium">
+                      <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm mt-0.5 flex-shrink-0"></i>
+                      <div>${escapeHtml(s.traffic_warning)}</div>
+                    </div>
+                  ` : ''}
+                </div>
+
+                <!-- CHÂN THẺ: ĐỒNG BỘ PHONG CÁCH VỚI TAB 1 -->
+                <div class="pt-3.5 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2.5">
+                  <div class="flex items-center gap-1.5 text-xs text-slate-500 font-semibold">
+                    <i class="fa-regular fa-clock text-slate-400"></i>
+                    <span>Mở cửa: ${s.open_hours}</span>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <button onclick="openPlaceDetailById(${s.place_id})" title="Xem đầy đủ thông tin quán" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+                      <i class="fa-solid fa-circle-info text-slate-600"></i>
+                      <span>Chi tiết quán</span>
+                    </button>
+                    <a href="${gmapsLink}" target="_blank" title="Mở trang Google Maps chính thức của quán" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm whitespace-nowrap">
+                      <i class="fa-brands fa-google text-sm"></i>
+                      <span>Google Maps</span>
+                      <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
