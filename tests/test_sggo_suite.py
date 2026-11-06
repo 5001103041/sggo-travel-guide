@@ -498,3 +498,103 @@ class TestSGGoTestSuite(unittest.TestCase):
             # Tất cả quán trả về phải đang mở cửa tại 03:00
             self.assertTrue(p.get("is_currently_open"),
                             f"Quán {p.get('name')} đóng cửa không được gợi ý tại mốc 03:00")
+            # Dim Tu Tac đóng cửa lúc 22:00 tuyệt đối không được xuất hiện
+            self.assertNotIn("Dim Tu Tac", p.get("name", ""), "Quán đóng cửa lúc 22:00 không được xuất hiện lúc 03:00")
+
+    def test_rtm_fr05_04_quick_recommend_custom_budget_too_low_redirects_to_free(self):
+        """[TEST-FR05-04] Ngân sách tự nhập quá thấp (< 20.000đ) cho ẩm thực: Tự động chuyển hướng điểm 0đ, không ra quán đắt tiền."""
+        payload = {
+            "category": "an_uong",
+            "context": "ban_be",
+            "price_level": "custom",
+            "custom_budget": 100,
+            "offset": 0
+        }
+        res = self.client.post("/api/quick-recommend", json=payload).json()
+        places = res if isinstance(res, list) else res.get("places", [])
+        self.assertGreater(len(places), 0, "Phải gợi ý được điểm tham quan 0đ thay thế")
+        for p in places:
+            # Tuyệt đối không được gợi ý quán ăn đắt tiền
+            self.assertEqual(p.get("min_price", 0), 0)
+            self.assertEqual(p.get("max_price", 0), 0)
+            self.assertIn("không đủ", p.get("free_fallback_notice", "").lower())
+
+    # ==========================================================================
+    # NHÓM 8: G6-FR06 - CHỨC NĂNG XÁO TRỘN / ĐỔI PHƯƠNG ÁN KHÁC (Ít nhất 2 phương án)
+    # ==========================================================================
+
+    def test_rtm_fr06_01_shuffle_generates_distinct_itinerary(self):
+        """[TEST-FR06-01] Xáo trộn (shuffle_seed=0 vs 1) sinh ra ít nhất 2 lịch trình KHÁC BIỆT từ cùng 1 input."""
+        payload_base = {
+            "start_location": "Chợ Bến Thành, Quận 1",
+            "free_time": "14:00 - 18:30",
+            "companion": "ban_be",
+            "purpose": "ca_hai",
+            "ai_model": "rule_based"
+        }
+
+        # Lần 1: seed = 0
+        p1 = dict(payload_base, shuffle_seed=0)
+        res1 = self.client.post("/api/ai-itinerary", json=p1).json()
+        stops1 = [s["place_id"] for s in res1.get("steps", [])]
+
+        # Lần 2: seed = 1 (Xáo trộn)
+        p2 = dict(payload_base, shuffle_seed=1)
+        res2 = self.client.post("/api/ai-itinerary", json=p2).json()
+        stops2 = [s["place_id"] for s in res2.get("steps", [])]
+
+        self.assertNotEqual(stops1, stops2, f"Xáo trộn phải tạo ra phương án khác biệt: {stops1} vs {stops2}")
+
+    def test_rtm_fr06_02_shuffle_respects_constraints(self):
+        """[TEST-FR06-02] Phương án xáo trộn mới vẫn tôn trọng đầy đủ các ràng buộc ngân sách & thời gian."""
+        payload = {
+            "start_location": "Chợ Bến Thành, Quận 1",
+            "free_time": "14:00 - 18:30",
+            "companion": "ban_be",
+            "purpose": "ca_hai",
+            "shuffle_seed": 2,
+            "budget_level": "100k_250k",
+            "target_budget": 250000,
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload).json()
+        self.assertTrue(res.get("feasible"))
+        kpi = res.get("kpi", {})
+        self.assertTrue(kpi.get("is_within_time"))
+        self.assertEqual(len(res.get("steps", [])), 3)
+
+    # ==========================================================================
+    # NHÓM 9: G6-FR09 - IMPORT CSV HÀNG LOẠT, PHÁT HIỆN LỖI & GHI LOG KIỂM TOÁN
+    # ==========================================================================
+
+    def test_rtm_fr09_01_import_csv_detects_missing_required_fields(self):
+        """[TEST-FR09-01] Import CSV phát hiện dòng bị thiếu trường bắt buộc (name/category/address)."""
+        import uuid
+        test_uid = uuid.uuid4().hex[:6]
+        valid_name = f"Quán CSV Chuẩn {test_uid}"
+        bad_csv = f"""name,category,address,district,lat,lon
+{valid_name},an_uong,123 Nguyễn Trãi,Quận 5,10.75,106.66
+,an_uong,456 An Dương Vương,Quận 5,10.76,106.67
+Quán Thiếu Loại,,789 Trần Hưng Đạo,Quận 5,10.755,106.665
+"""
+        res = self.client.post("/api/admin/import-csv", json={"csv_content": bad_csv, "filename": "test_missing.csv"})
+        data = res.json()
+        self.assertEqual(data.get("imported_count"), 1)
+        self.assertEqual(data.get("error_count"), 2)
+        errors = data.get("errors", [])
+        fields_with_errors = [e["field"] for e in errors]
+        self.assertIn("name", fields_with_errors)
+        self.assertIn("category", fields_with_errors)
+
+        # Dọn dẹp bản ghi test vừa nạp
+        conn = db.get_connection()
+        conn.cursor().execute("DELETE FROM places WHERE name = ?", (valid_name,))
+        conn.commit()
+        conn.close()
+
+    def test_rtm_fr09_02_import_csv_detects_invalid_numeric_types(self):
+        """[TEST-FR09-02] Import CSV phát hiện dòng sai kiểu dữ liệu số (vĩ độ/kinh độ/giá)."""
+        bad_csv = """name,category,address,district,lat,lon,min_price
+Quán Sai Tọa Độ,an_uong,111 Hải Thượng Lãn Ông,Quận 5,abc_not_float,106.65,30000
+Quán Sai Mức Giá,di_choi,222 Lương Nhữ Học,Quận 5,10.75,106.66,khong_phai_so
+"""
