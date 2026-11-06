@@ -3518,3 +3518,113 @@ async function handleSavePlace(e) {
     worst_review: document.getElementById("formWorstReview").value.trim(),
     image_url: rawImg ? rawImg : null,
     is_verified: 1,
+    is_verified_review: isRealReview,
+    is_admin_choice: isAdminChoice,
+    is_hidden: isHidden
+  };
+
+  const url = isEdit ? `${API_BASE}/admin/places/${placeId}` : `${API_BASE}/admin/places`;
+  const method = isEdit ? "PUT" : "POST";
+
+  try {
+    const res = await fetch(url, {
+      method: method,
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || "Không thể lưu dữ liệu.");
+    }
+
+    alert(isEdit 
+      ? `Đã cập nhật thành công quán "${payload.name}" (#${placeId})!` 
+      : `Đã thêm địa điểm mới "${payload.name}"!`
+    );
+    closePlaceFormModal();
+    await preloadPlaces();
+    const viewAdmin = document.getElementById("viewAdmin");
+    if (viewAdmin && !viewAdmin.classList.contains("hidden")) {
+      loadAdminDashboard();
+    }
+    const viewAll = document.getElementById("viewAll");
+    if (viewAll && !viewAll.classList.contains("hidden")) {
+      filterAllPlaces();
+    }
+  } catch (err) {
+    alert("Lỗi: " + err.message);
+  }
+}
+
+async function handleDeletePlace(placeId, name) {
+  if (!confirm(`Bạn có chắc chắn muốn xóa địa điểm "${name}" không?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/places/${placeId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error("Không thể xóa địa điểm.");
+    alert("Đã xóa địa điểm thành công!");
+    preloadPlaces();
+    loadAdminDashboard();
+  } catch (err) {
+    alert("Lỗi: " + err.message);
+  }
+}
+
+// ==============================================================================
+// 7. TẢI VÀ NHẬP CSV (IMPORT / EXPORT)
+// ==============================================================================
+
+let fileToUploadBase64 = "";
+let uploadedFileName = "";
+
+function downloadCSVTemplate() {
+  window.location.href = `${API_BASE}/admin/sample-csv`;
+}
+
+function downloadExcelTemplate() {
+  window.location.href = `${API_BASE}/admin/sample-excel`;
+}
+
+function openImportModal() {
+  csvToUploadText = "";
+  fileToUploadBase64 = "";
+  uploadedFileName = "";
+  const inp = document.getElementById("csvFileInput");
+  if (inp) inp.value = "";
+  document.getElementById("csvFileName").innerText = "Hỗ trợ định dạng .csv, .xlsx, .xls";
+  document.getElementById("btnUploadCSV").disabled = true;
+  const reportBox = document.getElementById("csvValidationReport");
+  if (reportBox) reportBox.classList.add("hidden");
+  document.getElementById("modalImportCSV").classList.remove("hidden");
+}
+
+function closeImportModal() {
+  document.getElementById("modalImportCSV").classList.add("hidden");
+}
+
+function handleCSVFileSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  uploadedFileName = file.name;
+  document.getElementById("csvFileName").innerText = `Đã chọn: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+  const isExcel = file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
+  const reader = new FileReader();
+
+  if (isExcel) {
+    reader.onload = function(evt) {
+      fileToUploadBase64 = evt.target.result; // Data URL containing base64
+      csvToUploadText = "";
+      document.getElementById("btnUploadCSV").disabled = false;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    reader.onload = function(evt) {
+      csvToUploadText = evt.target.result;
+      fileToUploadBase64 = "";
+      document.getElementById("btnUploadCSV").disabled = false;
