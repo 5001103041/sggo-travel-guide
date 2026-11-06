@@ -898,3 +898,103 @@ Quán Sai Mức Giá,di_choi,222 Lương Nhữ Học,Quận 5,10.75,106.66,khong
         """[TEST-FR01-09] Chống trùng lặp địa chỉ trong TTTM: Nhập địa chỉ cụ thể của Haidilao ở Vạn Hạnh Mall với tên khác vẫn bị chặn."""
         mall_payload = {
             "name": "Quán Trà Sữa Thử Nghiệm Tầng 4",
+            "category": "an_uong",
+            "address": "Tầng4Vạn Hạnh Mall, 11 Sư Vạn Hạnh, Hòa Hưng, Hồ Chí Minh, Việt Nam",
+            "district": "Quận 10",
+            "lat": 10.7705,
+            "lon": 106.6696,
+            "open_time": "09:00",
+            "close_time": "22:00",
+            "min_price": 40000,
+            "max_price": 90000
+        }
+        res = self.client.post("/api/admin/places", json=mall_payload)
+        self.assertEqual(res.status_code, 400)
+        detail = res.json().get("detail", "")
+        self.assertIn("đã tồn tại trong CSDL", detail)
+        self.assertIn("Haidilao Hotpot Vạn Hạnh Mall", detail)
+
+    def test_rtm_sec_rbac_admin_forbidden_for_non_admin(self):
+        """[TEST-SEC-01] Bảo mật RBAC: Khách và User thông thường không được gọi API quản trị Admin (403 Forbidden)."""
+        non_admin_client = TestClient(app)
+        
+        # 1. POST /api/admin/places
+        res1 = non_admin_client.post("/api/admin/places", json={"name": "Fake Place", "category": "an_uong", "address": "123 Đường Test, Quận 5"})
+        self.assertEqual(res1.status_code, 403)
+        self.assertIn("Yêu cầu quyền Quản trị viên", res1.json().get("detail", ""))
+
+        # 2. GET /api/admin/users
+        res2 = non_admin_client.get("/api/admin/users")
+        self.assertEqual(res2.status_code, 403)
+
+        # 3. GET /api/admin/stats
+        res3 = non_admin_client.get("/api/admin/stats")
+        self.assertEqual(res3.status_code, 403)
+
+        # 4. DELETE /api/admin/places/1
+        res4 = non_admin_client.delete("/api/admin/places/1")
+        self.assertEqual(res4.status_code, 403)
+
+    def test_rtm_sec_password_hashing_and_auto_migration(self):
+        """[TEST-SEC-02] An toàn mật khẩu: Mật khẩu được mã hóa SHA-256 kèm salt, tự động nâng cấp mật khẩu cũ."""
+        pwd = "SecretPassword123!"
+        hashed = db.hash_password(pwd)
+        self.assertTrue(hashed.startswith("sha256:"))
+        self.assertEqual(len(hashed.split(":")), 3)
+
+        # Xác thực thành công với đúng mật khẩu
+        self.assertTrue(db.verify_password(hashed, pwd))
+        # Thất bại với mật khẩu sai
+        self.assertFalse(db.verify_password(hashed, "wrongPassword"))
+
+        # Đăng ký tài khoản mới được lưu dưới dạng băm
+        new_u = db.register_user("test_hash_user", "mySafePass123", "Test Hash")
+        self.assertIsNotNone(new_u)
+        conn = db.get_connection()
+        row = conn.execute("SELECT password FROM users WHERE id = ?", (new_u["id"],)).fetchone()
+        conn.close()
+        self.assertTrue(row[0].startswith("sha256:"))
+        db.delete_user(new_u["id"])
+
+    def test_rtm_sec_register_validation(self):
+        """[TEST-SEC-03] Kiểm tra ràng buộc đăng ký tài khoản (Username, Password, Full Name)."""
+        # 1. Username quá ngắn (< 3 ký tự)
+        res1 = self.client.post("/api/auth/register", json={"username": "ab", "password": "password123", "full_name": "Tên Hợp Lệ"})
+        self.assertEqual(res1.status_code, 400)
+        self.assertIn("từ 3 đến 30 ký tự", res1.json().get("detail", ""))
+
+        # 2. Username chứa khoảng trắng hoặc ký tự đặc biệt
+        res2 = self.client.post("/api/auth/register", json={"username": "user test!", "password": "password123", "full_name": "Tên Hợp Lệ"})
+        self.assertEqual(res2.status_code, 400)
+
+        # 3. Password quá ngắn (< 6 ký tự)
+        res3 = self.client.post("/api/auth/register", json={"username": "valid_user_1", "password": "123", "full_name": "Tên Hợp Lệ"})
+        self.assertEqual(res3.status_code, 400)
+        self.assertIn("tối thiểu 6 ký tự", res3.json().get("detail", ""))
+
+        # 4. Full name quá ngắn (< 2 ký tự)
+        res4 = self.client.post("/api/auth/register", json={"username": "valid_user_2", "password": "password123", "full_name": "A"})
+        self.assertEqual(res4.status_code, 400)
+        self.assertIn("tối thiểu 2 ký tự", res4.json().get("detail", ""))
+
+    def test_rtm_ddl_foreign_keys_and_cascade(self):
+        """[TEST-DDL-01] Ràng buộc khóa ngoại PRAGMA foreign_keys = ON & Cơ chế xóa lan truyền ON DELETE CASCADE trên place_tags."""
+        # Tạo địa điểm test
+        p = db.add_place({
+            "name": "[TEST_CASCADE] Quán Test Xóa Lan Truyền",
+            "category": "an_uong",
+            "address": "777 Đ. Hải Thượng Lãn Ông, Phường 10, Quận 5",
+            "district": "Quận 5",
+            "lat": 10.7510,
+            "lon": 106.6610,
+            "min_price": 20000,
+            "max_price": 50000
+        })
+        p_id = p["id"]
+
+        # Gán tag cho địa điểm test
+        conn = db.get_connection()
+        conn.execute("INSERT OR IGNORE INTO place_tags (place_id, tag_id) VALUES (?, 1)", (p_id,))
+        conn.commit()
+
+        # Kiểm tra tồn tại trong place_tags
