@@ -198,3 +198,103 @@ class TestSGGoTestSuite(unittest.TestCase):
         for p in places:
             self.assertTrue(p["min_price"] <= 100000 and p["max_price"] >= 50000)
 
+    def test_rtm_fr02_05_filter_combined_category_and_price(self):
+        """[TEST-FR02-05] Lọc kết hợp: Thể loại 'di_choi' + Miễn phí (max_price = 0)."""
+        res = self.client.get("/api/places?category=di_choi&max_price=0")
+        self.assertEqual(res.status_code, 200)
+        places = res.json() if isinstance(res.json(), list) else res.json().get("places", [])
+        self.assertGreater(len(places), 0)
+        for p in places:
+            self.assertEqual(p["category"], "di_choi")
+            self.assertEqual(p["max_price"], 0)
+
+    def test_rtm_fr02_06_search_by_keyword(self):
+        """[TEST-FR02-06] Tìm kiếm địa điểm theo từ khóa tên quán hoặc tên đường."""
+        res = self.client.get("/api/places?search=Thiên Hậu")
+        self.assertEqual(res.status_code, 200)
+        places = res.json() if isinstance(res.json(), list) else res.json().get("places", [])
+        self.assertGreater(len(places), 0)
+        self.assertTrue(any("Thiên Hậu" in p["name"] for p in places))
+
+    def test_rtm_fr02_07_search_by_id_pure_numeric(self):
+        """[TEST-FR02-07] Tìm kiếm thuần số ID (18 hoặc #18) chỉ khớp ID quán, không lẫn số nhà đường."""
+        # 1. Tìm thuần số '18': Chỉ trả về ID 18 hoặc bắt đầu bằng 18 (180..189), không lẫn quán có số nhà 18, 118...
+        res_numeric = self.client.get("/api/places?search=18")
+        self.assertEqual(res_numeric.status_code, 200)
+        places_18 = res_numeric.json() if isinstance(res_numeric.json(), list) else res_numeric.json().get("places", [])
+        ids_18 = [p["id"] for p in places_18]
+        self.assertIn(18, ids_18)
+        self.assertNotIn(126, ids_18, "Không được lẫn ID 126 (chỉ vì số nhà là 118 Hồ Tùng Mậu)")
+        self.assertNotIn(139, ids_18, "Không được lẫn ID 139 (chỉ vì số nhà là 18 Tú Xương)")
+        for pid in ids_18:
+            self.assertTrue(str(pid).startswith("18"), f"Tất cả kết quả phải có ID bắt đầu bằng 18, thực tế: {pid}")
+
+        # 2. Tìm chính xác '#18': Chỉ trả về duy nhất ID 18
+        res_hash = self.client.get("/api/places?search=%2318")
+        self.assertEqual(res_hash.status_code, 200)
+        places_hash = res_hash.json() if isinstance(res_hash.json(), list) else res_hash.json().get("places", [])
+        ids_hash = [p["id"] for p in places_hash]
+        self.assertEqual(ids_hash, [18], "Tìm kiếm '#18' phải khớp chính xác duy nhất quán có ID 18")
+
+    # ==========================================================================
+    # NHÓM 3: G6-FR03 - NGƯỜI DÙNG NHẬP VỊ TRÍ, THỜI GIAN, NGÂN SÁCH, SỞ THÍCH
+    # ==========================================================================
+
+    def test_rtm_fr03_01_start_location_and_free_time(self):
+        """[TEST-FR03-01] Nhập vị trí toạ độ GPS, giờ rảnh, ngân sách và sở thích."""
+        payload = {
+            "start_location": "Đại học Sư Phạm TP.HCM",
+            "start_lat": 10.7601,
+            "start_lon": 106.6823,
+            "free_time": "14:00 - 18:30",
+            "companion": "ban_be",
+            "purpose": "ca_hai",
+            "budget_level": "100k_250k",
+            "target_budget": 250000,
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get("feasible"))
+        self.assertEqual(len(data.get("steps", [])), 3)
+
+    def test_rtm_fr03_02_start_location_landmark_coordinates(self):
+        """[TEST-FR03-02] Hệ thống tự động phân giải toạ độ từ tên mốc địa danh chuẩn."""
+        lat, lon = resolve_start_coords("Chợ Bến Thành, Quận 1")
+        self.assertAlmostEqual(lat, 10.7725, places=2)
+        self.assertAlmostEqual(lon, 106.6980, places=2)
+
+    # ==========================================================================
+    # NHÓM 4: G6-FR04 & G6-FR07 - THUẬT TOÁN ĐỊNH TUYẾN HEURISTIC & BẢN ĐỒ
+    # ==========================================================================
+
+    def test_rtm_fr04_01_nearest_neighbor_ordering(self):
+        """[TEST-FR04-01] Thuật toán Nearest Neighbor TSP sắp xếp thứ tự các trạm tối ưu."""
+        start = (10.7500, 106.6500)
+        pool = [
+            {"id": 1, "name": "Điểm Xa", "lat": 10.7900, "lon": 106.7000},
+            {"id": 2, "name": "Điểm Rất Gần", "lat": 10.7505, "lon": 106.6505},
+            {"id": 3, "name": "Điểm Vừa", "lat": 10.7600, "lon": 106.6600}
+        ]
+        route = optimize_route_nearest_neighbor(start, pool, max_stops=3)
+        self.assertEqual(len(route), 3)
+        self.assertEqual(route[0]["id"], 2, "Trạm 1 phải là điểm gần xuất phát nhất")
+        self.assertEqual(route[1]["id"], 3, "Trạm 2 phải là điểm láng giềng kế tiếp")
+        self.assertEqual(route[2]["id"], 1, "Trạm 3 là điểm xa nhất")
+
+    def test_rtm_fr04_02_haversine_distance_accuracy(self):
+        """[TEST-FR04-02] Tính toán khoảng cách Haversine giữa 2 tọa độ GPS chuẩn xác."""
+        # Chợ Bến Thành (10.7725, 106.6980) đến Nhà Thờ Đức Bà (10.7798, 106.6990) ~ 0.82 km
+        d = calculate_haversine_distance(10.7725, 106.6980, 10.7798, 106.6990)
+        self.assertTrue(0.7 <= d <= 1.0, f"Khoảng cách tính toán ({d} km) nằm ngoài sai số cho phép")
+
+    def test_rtm_fr07_01_gmaps_multi_stop_url_generated(self):
+        """[TEST-FR07-01] Tạo link Google Maps Multi-stop hai bánh (travelmode=two_wheeler)."""
+        payload = {
+            "start_location": "280 An Dương Vương, TP.HCM",
+            "free_time": "14:00 - 18:30",
+            "purpose": "ca_hai",
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload)
