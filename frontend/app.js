@@ -3848,3 +3848,113 @@ function openPlaceDetailById(id) {
     if (tier1.length > 0) {
       html += `
         <div class="flex items-center gap-1.5 flex-wrap">
+          ${tier1.map(t => `<span class="px-3 py-1 bg-slate-50 text-slate-700 border border-slate-200/90 rounded-xl text-xs font-semibold inline-flex items-center shadow-2xs">${tagMap[t] || t}</span>`).join("")}
+        </div>
+      `;
+    }
+    if (tier2.length > 0) {
+      html += `
+        <div class="flex items-center gap-1.5 flex-wrap">
+          ${tier2.map(t => `<span class="px-3 py-1 bg-slate-50 text-slate-700 border border-slate-200/90 rounded-xl text-xs font-semibold inline-flex items-center shadow-2xs">${tagMap[t] || t}</span>`).join("")}
+        </div>
+      `;
+    }
+    html += `</div>`;
+    tagsContainer.innerHTML = html;
+  }
+
+  // 9. Bình luận khen & lưu ý thực tế
+  const bestRev = document.getElementById("detailBestReview");
+  if (bestRev) {
+    if (p.best_review && p.best_review.trim()) {
+      bestRev.innerText = p.best_review;
+    } else {
+      bestRev.innerHTML = `<span class="text-slate-400 font-normal italic">Chưa có đánh giá 5 sao nào được ghi nhận trên Google Maps.</span>`;
+    }
+  }
+
+  const worstRev = document.getElementById("detailWorstReview");
+  if (worstRev) {
+    if (p.worst_review && p.worst_review.trim()) {
+      worstRev.innerText = p.worst_review;
+    } else {
+      worstRev.innerHTML = `<span class="text-slate-400 font-normal italic">Chưa có phản ánh hoặc góp ý tiêu cực nào trên Google Maps.</span>`;
+    }
+  }
+
+  // 10. Bản đồ tương tác Leaflet (Không bị Google Maps chặn)
+  const drawerMapContainer = document.getElementById("drawerLeafletMap");
+  if (drawerMapContainer && typeof L !== "undefined") {
+    if (p.lat && p.lon && !isNaN(p.lat) && !isNaN(p.lon) && (parseFloat(p.lat) !== 0 || parseFloat(p.lon) !== 0)) {
+      drawerMapContainer.style.display = "block";
+      const lat = parseFloat(p.lat);
+      const lon = parseFloat(p.lon);
+      if (!drawerMap) {
+        drawerMap = L.map("drawerLeafletMap", {
+          zoomControl: true,
+          scrollWheelZoom: false
+        }).setView([lat, lon], 16);
+
+        initLeafletTileLayers(drawerMap);
+
+        const pinIcon = L.divIcon({
+          className: "custom-leaflet-marker",
+          html: `<div style="background-color: #E11D48; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 2.5px solid white;"><i class="fa-solid fa-location-dot"></i></div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32]
+        });
+
+        drawerMarker = L.marker([lat, lon], { icon: pinIcon }).addTo(drawerMap);
+        drawerMarker.bindPopup(`<strong>${p.name}</strong><br><span style="font-size:11px;">${p.address}</span>`);
+      } else {
+        drawerMap.setView([lat, lon], 16);
+        if (drawerMarker) {
+          drawerMarker.setLatLng([lat, lon]);
+          drawerMarker.bindPopup(`<strong>${p.name}</strong><br><span style="font-size:11px;">${p.address}</span>`);
+        }
+      }
+      setTimeout(() => {
+        if (drawerMap) drawerMap.invalidateSize();
+      }, 350);
+    } else {
+      drawerMapContainer.style.display = "none";
+    }
+  }
+
+  // 11. Nút sửa dành cho Admin
+  const footerAdminBtn = document.getElementById("detailFooterAdminEditBtn");
+  if (footerAdminBtn) {
+    if (currentUser && currentUser.role === "admin") {
+      footerAdminBtn.innerHTML = `
+        <button onclick="closePlaceDetail(); openEditPlaceModalById(${p.id});" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+          <i class="fa-solid fa-pen-to-square"></i> <span>Sửa quán này</span>
+        </button>
+      `;
+    } else {
+      footerAdminBtn.innerHTML = ``;
+    }
+  }
+
+  // Mở ngăn kéo
+  const backdrop = document.getElementById("placeDetailBackdrop");
+  const drawer = document.getElementById("placeDetailDrawer");
+  if (backdrop) backdrop.classList.remove("hidden");
+  if (drawer) drawer.classList.remove("translate-x-full");
+}
+
+function closePlaceDetail() {
+  const backdrop = document.getElementById("placeDetailBackdrop");
+  const drawer = document.getElementById("placeDetailDrawer");
+
+  if (drawer) drawer.classList.add("translate-x-full");
+  if (backdrop) backdrop.classList.add("hidden");
+  currentDetailPlace = null;
+}
+
+function copyDetailAddress() {
+  if (!currentDetailPlace) return;
+  const text = `${currentDetailPlace.name}, ${currentDetailPlace.address}`;
+  navigator.clipboard.writeText(text).then(() => {
+    alert(`Đã sao chép địa chỉ:\n"${text}"\nBạn có thể dán vào Grab, Be hoặc ứng dụng bản đồ!`);
+  }).catch(() => {
