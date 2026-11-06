@@ -398,3 +398,103 @@ class TestSGGoTestSuite(unittest.TestCase):
         self.assertIn("suggestion", data)
         self.assertEqual(data.get("recommended_budget"), 100000)
 
+    # ==========================================================================
+    # NHÓM 7: BUSINESS RULE 2 - ĐỊA ĐIỂM ẨN / ĐÓNG CỬA KHÔNG ĐƯA VÀO LỊCH TRÌNH
+    # ==========================================================================
+
+    def test_rtm_br02_01_hidden_place_excluded_from_itinerary(self):
+        """[TEST-BR02-01] Quán bị ẩn (is_hidden=1) TUYỆT ĐỐI KHÔNG xuất hiện trong lịch trình."""
+        # Thêm quán test bị ẩn ngay sát điểm xuất phát
+        p = db.add_place({
+            "name": "[TEST] Quán Rất Gần Nhưng Bị Ẩn",
+            "category": "an_uong",
+            "address": "1 An Dương Vương, Quận 5",
+            "lat": 10.7602,
+            "lon": 106.6824,
+            "is_hidden": 1
+        })
+        p_id = p["id"]
+
+        payload = {
+            "start_location": "280 An Dương Vương, TP.HCM",
+            "start_lat": 10.7601,
+            "start_lon": 106.6823,
+            "free_time": "14:00 - 18:30",
+            "purpose": "an_uong",
+            "ai_model": "rule_based"
+        }
+        res = self.client.post("/api/ai-itinerary", json=payload)
+        data = res.json()
+        steps = data.get("steps", [])
+        place_ids = [s.get("place_id") for s in steps]
+        self.assertNotIn(p_id, place_ids, "Địa điểm bị ẩn không được phép đưa vào lịch trình")
+
+        db.delete_place(p_id)
+
+    def test_rtm_br02_02_hidden_place_excluded_from_public_search(self):
+        """[TEST-BR02-02] Quán bị ẩn không xuất hiện trong API tìm kiếm công khai."""
+        p = db.add_place({
+            "name": "[TEST] Quán Bí Mật Bị Ẩn Khỏi Tìm Kiếm",
+            "category": "an_uong",
+            "address": "123 Quận 5",
+            "is_hidden": 1
+        })
+        p_id = p["id"]
+
+        res = self.client.get("/api/places?search=Quán Bí Mật Bị Ẩn")
+        places = res.json() if isinstance(res.json(), list) else res.json().get("places", [])
+        self.assertEqual(len(places), 0, "Quán bị ẩn không được lộ ra qua API người dùng thông thường")
+
+        db.delete_place(p_id)
+
+    def test_rtm_br02_03_closed_place_excluded_from_itinerary(self):
+        """[TEST-BR02-03] Business Rule 2 & 3: Quán đóng cửa tuyệt đối không đưa vào lịch trình, khung giờ đóng cửa báo ALL_PLACES_CLOSED."""
+        from backend.main import is_place_open_during_window
+
+        # 1. Khung giờ ban ngày bình thường: Sinh lịch trình khả thi, 100% trạm mở cửa
+        payload_day = {
+            "start_location": "Chợ Bến Thành, Quận 1",
+            "free_time": "14:00 - 18:30",
+            "purpose": "ca_hai",
+            "ai_model": "rule_based"
+        }
+        res_day = self.client.post("/api/ai-itinerary", json=payload_day).json()
+        self.assertTrue(res_day.get("feasible", False), "Khung giờ ban ngày phải sinh được lịch trình khả thi")
+        steps = res_day.get("steps", [])
+        self.assertGreaterEqual(len(steps), 3, "Phải có đủ 3 trạm")
+        for step in steps:
+            pid = step.get("place_id")
+            place = db.get_place_by_id(pid)
+            self.assertTrue(is_place_open_during_window(place, "14:00 - 18:30"),
+                            f"Trạm {place.get('name')} phải đang mở cửa trong khung giờ 14:00 - 18:30")
+
+        # 2. Khung giờ nửa đêm cho mục đích 'di_choi' (bảo tàng, di tích đóng cửa lúc 17h-18h):
+        # Hệ thống phải từ chối sinh lịch trình và trả về lỗi ALL_PLACES_CLOSED (Business Rule 3)
+        payload_midnight = {
+            "start_location": "Chợ Bến Thành, Quận 1",
+            "free_time": "02:00 - 04:00",
+            "purpose": "di_choi",
+            "ai_model": "rule_based"
+        }
+        res_mid = self.client.post("/api/ai-itinerary", json=payload_midnight).json()
+        self.assertFalse(res_mid.get("feasible", True), "Khung giờ 02:00 - 04:00 không có đủ điểm tham quan mở cửa")
+        self.assertEqual(res_mid.get("error_code"), "ALL_PLACES_CLOSED")
+        self.assertIn("đóng cửa", res_mid.get("message", "").lower())
+        self.assertIsNotNone(res_mid.get("recommended_time"), "Phải có đề xuất khung giờ thay thế")
+
+    def test_rtm_br02_04_quick_recommend_excludes_closed_places(self):
+        """[TEST-BR02-04] Tab 1 Khám phá nhanh: Quán đóng cửa bị loại bỏ 100% khi lọc theo giờ người dùng."""
+        # Yêu cầu gợi ý tại thời điểm 03:00 sáng
+        payload = {
+            "category": "an_uong",
+            "context": "ban_be",
+            "price_level": "above_250k",
+            "client_time": "03:00"
+        }
+        res = self.client.post("/api/quick-recommend", json=payload).json()
+        places = res if isinstance(res, list) else res.get("places", [])
+        self.assertGreater(len(places), 0, "Phải gợi ý được quán ăn đêm/24h (như Haidilao mở đến 04:00)")
+        for p in places:
+            # Tất cả quán trả về phải đang mở cửa tại 03:00
+            self.assertTrue(p.get("is_currently_open"),
+                            f"Quán {p.get('name')} đóng cửa không được gợi ý tại mốc 03:00")
