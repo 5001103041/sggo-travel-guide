@@ -358,3 +358,63 @@ Sở thích / Danh mục & Ăn uống no nê, Cà phê tâm sự, Trò chơi, Gi
 \end{table}
 
 \begin{table}[H]
+\centering
+\caption{Biểu mẫu Hồ sơ thông tin địa điểm (Dữ liệu Admin quản lý)}
+\label{tab:form_place}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{|L{4.0cm}|L{10.4cm}|}
+\hline
+\hd{Trường thông tin} & \hd{Mô tả nghiệp vụ} \\
+\hline
+Mã địa điểm (id) & Định danh duy nhất cho từng cơ sở (VD: SG-001) \\
+\hline
+Tên địa điểm (name) & Tên quán ăn, quán cà phê hoặc tụ điểm giải trí \\
+\hline
+Danh mục chính (category) & Phân loại hoạt động: Ăn uống (an\_uong) hoặc Đi chơi (di\_choi) \\
+\hline
+Ngữ cảnh phù hợp (context) & Thích hợp cho: Bạn bè, Người yêu, Gia đình, Đi một mình \\
+\hline
+Địa chỉ \& Quận (district) & Số nhà, tên đường và Quận/Huyện tại TP.HCM \\
+\hline
+Tọa độ GPS (lat, lng) & Vĩ độ và kinh độ phục vụ tính toán khoảng cách và tuyến đường \\
+\hline
+Mức giá quy chuẩn (price\_level) & Mức 1 (dưới 50k), Mức 2 (50--150k), Mức 3 (trên 150k) \\
+\hline
+Đánh giá (rating) & Điểm số đánh giá chất lượng (từ 4.0 đến 4.9 sao) \\
+\hline
+Khung giờ mở cửa (open\_time) & Giờ bắt đầu và kết thúc đón khách (VD: 08:00 -- 22:30) \\
+\hline
+Tag giải thích (tag) & Nhãn tóm tắt điểm đặc trưng phục vụ giải thích gợi ý \\
+\hline
+Trạng thái (status) & Hoạt động / Tạm ẩn / Đóng cửa (quán bị ẩn không được đưa vào lịch trình) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Đánh giá và cơ sở phân loại phạm vi}
+\begin{itemize}
+    \item Hạn chế lớn nhất được người dùng chỉ ra là Địa điểm quá xa hoặc ngược đường (78,3\%) và Khó thống nhất ý kiến do thiếu chính kiến (91,3\%). Do đó, chức năng cốt lõi bắt buộc (MUST) của hệ thống là tự động tính toán lộ trình không ngược đường và đưa ra kết quả nhanh dưới 1 phút.
+    \item Hai tính năng đạt tỷ lệ ủng hộ cao nhất là Xem lộ trình trực quan kèm cự ly (FE05 -- 95,7\%) và Giải thích lý do gợi ý (FE04 -- 91,3\%) được ưu tiên tích hợp ngay trên màn hình kết quả.
+    \item Tính năng Xáo trộn (FE03 -- 82,6\%) là yêu cầu bắt buộc (MUST) để giải tỏa bế tắc khi nhóm có thành viên không thích địa điểm đầu tiên.
+\end{itemize}
+
+\subsection{Mô tả quy trình nghiệp vụ hiện tại (As-Is)}
+Từ kết quả quan sát và phỏng vấn, quy trình chọn chỗ đi chơi hiện tại của các nhóm bạn được mô hình hóa theo các bước dưới đây và thể hiện chi tiết tại Hình~\ref{fig:asis}:
+\begin{enumerate}
+    \item Một thành viên khởi xướng ý định đi chơi trong nhóm chat.
+    \item Từng thành viên tự tìm kiếm địa điểm trên TikTok, Google Maps theo cảm tính và gửi link vào nhóm chat.
+    \item Cả nhóm thảo luận hoặc lập bình chọn; các yếu tố về ngân sách, cự ly và giờ rảnh không được chuẩn hóa ngay từ đầu.
+    \item Nếu thống nhất được: Một thành viên đại diện tự mở ứng dụng bản đồ kiểm tra đường đi, tự nhẩm tính thời gian và chốt điểm đến.
+    \item Nếu không thống nhất được: Tranh luận kéo dài nhiều giờ hoặc nhiều ngày; các thành viên mất hứng thú dẫn đến tình trạng ``bể kèo'' (hủy buổi đi chơi).
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=7mm]
+\node[flowterm] (s) {Bắt đầu: Có ý định đi chơi nhóm};
+\node[flowbox, below=of s] (a) {Một thành viên đề xuất đi chơi trong nhóm chat};
+\node[flowbox, below=of a] (b) {Các thành viên tự tìm trên TikTok/Maps, gửi link rải rác};
+\node[flowbox, below=of b] (c) {Thảo luận, bình chọn (ngân sách, vị trí ít được nói rõ)};
+\node[flowdec, below=of c] (d) {Đã thống nhất?};
+\node[flowbox, below=of d] (e) {Một người tự tra cứu đường đi, giá cả và sắp xếp};
+\node[flowterm, below=of e] (end1) {Chốt lịch và lên đường};
