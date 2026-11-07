@@ -58,3 +58,23 @@ Hệ thống tích hợp thuật toán tối ưu lộ trình nhiều điểm d�
 * **Quản trị người dùng & Phân quyền:** Quản lý danh sách tài khoản, chuyển đổi quyền Admin / User.
 
 ---
+
+## 3. Cấu Trúc Thư Mục Dự Án
+
+```text
+chonchodichoi11/
+├── backend/
+│   ├── main.py                 # FastAPI Application, REST Endpoints & Logic định tuyến AI
+│   ├── database.py             # SQLite Data Access Layer, Schema & Seed Data
+│   ├── enriched_places.json    # Kho dữ liệu gốc 200+ địa điểm đã chuẩn hóa
+│   ├── requirements.txt        # Thư viện phụ thuộc backend
+│   ├── sggo.db                 # CSDL SQLite lưu trữ dữ liệu thực tế
+│   ├── check_stats.py          # Script kiểm tra trạng thái CSDL & Fallback
+│   └── test_routing_math.py    # Kiểm thử độc lập công thức Haversine
+├── frontend/
+│   ├── index.html              # Giao diện chính người dùng (Responsive Web App)
+│   ├── app.js                  # Frontend State, Leaflet Map, Fetch API & DOM Rendering
+│   ├── style.css               # Tùy biến UI, Animations & Custom Scrollbar
+│   └── images/                 # Kho ảnh địa điểm đã được tối ưu
+│       ├── places/
+│       └── verified/
