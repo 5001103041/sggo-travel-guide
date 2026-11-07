@@ -598,3 +598,63 @@ Quy trình nghiệp vụ cải tiến (To-Be) của SGGo! khắc phục triệt 
 \end{figure}
 
 \subsection{Biểu đồ phân cấp chức năng (BFD -- Functional Decomposition Diagram)}
+Biểu đồ phân cấp chức năng phân rã hệ thống thành 04 phân hệ chính, bao quát đầy đủ 08 yêu cầu MUST, 02 yêu cầu SHOULD và 01 yêu cầu COULD theo đúng đề bài Nhóm 6 được thể hiện tại Hình~\ref{fig:bfd} dưới đây:
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.95,transform shape]
+
+% ====== NÚT GỐC ======
+\node[bfdroot] (root) at (7.6, 0) {HỆ THỐNG WEBSITE SGGO!};
+
+% ====== 4 PHÂN HỆ CHÍNH ======
+\node[bfdmain] (m1) at (1.3, -1.6) {1. Tìm kiếm \& Nhu cầu};
+\node[bfdmain] (m2) at (5.5, -1.6) {2. Xử lý lịch trình};
+\node[bfdmain] (m3) at (9.7, -1.6) {3. Trực quan hóa};
+\node[bfdmain,text width=3.8cm] (m4) at (13.8,-1.6) {4. Quản trị hệ thống};
+
+% ====== MŨI TÊN GỐC -> 4 PHÂN HỆ ======
+\draw[flowarr] (root.south) -- ++(0,-0.15) -| (m1.north);
+\draw[flowarr] (root.south) -- ++(0,-0.15) -| (m2.north);
+\draw[flowarr] (root.south) -- ++(0,-0.15) -| (m3.north);
+\draw[flowarr] (root.south) -- ++(0,-0.15) -| (m4.north);
+
+% ====== SUB-NODE 4 CỘT ======
+% Cột 1
+\node[bfdsub, text width=3.0cm] (f11) at (1.4,-2.9) {G6-FR02: Lọc đa tiêu chí};
+\node[bfdsub, text width=3.0cm] (f12) at (1.4,-3.8) {G6-FR03: Nhập nhu cầu nhóm};
+\node[bfdsub, text width=3.0cm] (f13) at (1.4,-4.7) {Quiz trắc nghiệm 3 bước};
+% Cột 2
+\node[bfdsub, text width=3.0cm] (f21) at (5.55,-2.9) {G6-FR04: Sinh lịch trình rule};
+\node[bfdsub, text width=3.0cm] (f22) at (5.55,-3.8) {G6-FR05: Kiểm tra ngân sách};
+\node[bfdsub, text width=3.0cm] (f23) at (5.55,-4.7) {G6-FR06: Xáo trộn phương án};
+% Cột 3
+\node[bfdsub, text width=3.0cm] (f31) at (9.7,-2.9) {G6-FR07: Hiển thị \& cự ly};
+\node[bfdsub, text width=3.0cm] (f32) at (9.7,-3.8) {G6-FR10: Giải thích gợi ý};
+\node[bfdsub, text width=3.0cm] (f33) at (9.7,-4.7) {G6-FR11: AI \& Giờ cao điểm};
+% Cột 4
+\node[bfdsub, text width=3.0cm] (f41) at (13.9,-2.9) {G6-FR01: Quản lý hồ sơ quán};
+\node[bfdsub, text width=3.0cm] (f42) at (13.9,-3.8) {G6-FR08: Thêm/Sửa/Ẩn quán};
+\node[bfdsub, text width=3.0cm] (f43) at (13.9,-4.7) {G6-FR09: Import từ CSV};
+
+% ====== TRUNK TRÁI + TICK NGANG cho từng cột ======
+% Cột 1
+\draw[semithick,draw=borderblack] (m1.south) -- (1.3,-2.3) -- (-0.7,-2.3) -- (-0.7,-4.7);
+\draw[flowarr] (-0.7,-2.9) -- (f11.west);
+\draw[flowarr] (-0.7,-3.8) -- (f12.west);
+\draw[flowarr] (-0.7,-4.7) -- (f13.west);
+
+% Cột 2
+\draw[semithick,draw=borderblack] (m2.south) -- (5.5,-2.3) -- (3.5,-2.3) -- (3.5,-4.7);
+\draw[flowarr] (3.5,-2.9) -- (f21.west);
+\draw[flowarr] (3.5,-3.8) -- (f22.west);
+\draw[flowarr] (3.5,-4.7) -- (f23.west);
+
+% Cột 3
+\draw[semithick,draw=borderblack] (m3.south) -- (9.7,-2.3) -- (7.7,-2.3) -- (7.7,-4.7);
+\draw[flowarr] (7.7,-2.9) -- (f31.west);
+\draw[flowarr] (7.7,-3.8) -- (f32.west);
+\draw[flowarr] (7.7,-4.7) -- (f33.west);
+
+% Cột 4
+\draw[semithick,draw=borderblack] (m4.south) -- (13.8,-2.3) -- (11.9,-2.3) -- (11.9,-4.7);
+\draw[flowarr] (11.9,-2.9) -- (f41.west);
