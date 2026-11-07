@@ -538,3 +538,63 @@ Quy trình nghiệp vụ cải tiến (To-Be) của SGGo! khắc phục triệt 
     \item Luồng Khám phá nhanh (Flow trắc nghiệm 3 bước): Người dùng bấm chọn 3 bước trực quan (Mục đích -- Đồng hành -- Ngân sách). Hệ thống lọc tự động trong bộ nhớ tạm; nếu kết quả ít hơn 3 quán, hệ thống tự động nới lỏng điều kiện (Fallback theo ngữ cảnh) để luôn đảm bảo có kết quả hiển thị cho người dùng trong vòng dưới 1 giây.
     \item Luồng Lập lịch trình thông minh (AI Itinerary): Người dùng nhập điểm xuất phát, thời gian rảnh và ngữ cảnh (G6-FR03). Hệ thống lọc danh sách ứng viên (G6-FR02), tạo lịch trình theo rule/scoring (G6-FR04), kiểm tra tổng ngân sách và thời gian (G6-FR05), tối ưu cung đường không ngược hướng và cảnh báo giờ cao điểm (G6-FR07, G6-FR11).
     \item Xử lý linh hoạt khi nhóm chưa ưng ý: Người dùng bấm nút Xáo trộn (G6-FR06) để nhận phương án thay thế ngay lập tức mà vẫn giữ nguyên các tiêu chí cốt lõi ban đầu.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.85,transform shape,
+  ub/.style={flowbox,text width=4.5cm,fill=bgwhite,draw=borderblack,font=\small},
+  sb/.style={flowbox,text width=4.9cm,fill=bgwhite,draw=borderblack,font=\small}
+]
+
+% ====== LÀN NGƯỜI DÙNG (Chuẩn Trắng & Xám nhạt #F1F5F9) ======
+\draw[fill=hlgray1,draw=borderblack,semithick,rounded corners=4pt] (-0.5,1.5) rectangle (6.75,-13.0);
+\node[font=\bfseries,text=borderblack] at (3.1,1.0) {NGƯỜI DÙNG / KHÁCH TRUY CẬP};
+
+% ====== LÀN HỆ THỐNG (Chuẩn Trắng & Xám nhạt #E2E8F0) ======
+\draw[fill=hlgray2,draw=borderblack,semithick,rounded corners=4pt] (7.0,1.5) rectangle (14.5,-13.0);
+\node[font=\bfseries,text=borderblack] at (10.75,1.0) {HỆ THỐNG SGGO!};
+
+% --- Node làn Người dùng ---
+\node[flowterm] (u1) at (3.0, 0.0) {Truy cập Website SGGo!};
+\node[ub] (u2) at (3.0, -1.8) {Chọn: Khám phá nhanh / Lập lộ trình AI};
+\node[ub] (u3) at (3.0, -3.6) {Nhập: Điểm xuất phát, giờ rảnh, ngân sách (FR03)};
+\node[ub] (u4) at (3.0, -8.2) {Xem lịch trình theo thứ tự \& cự ly (FR07)};
+\node[flowdec] (u5) at (3.0, -10.0) {Cả nhóm đồng ý?};
+\node[flowterm] (uend) at (3.0, -11.8) {Chốt lịch \& Lên đường};
+
+% --- Node làn Hệ thống ---
+\node[sb] (s1) at (10.75, -3.6) {Lọc 15 địa điểm khả dụng (FR02)};
+\node[sb] (s2) at (10.75, -5.7) {Sinh lịch trình rule/scoring (FR04)};
+\node[flowdec] (s3) at (10.75, -8.25) {Ngân sách \& giờ đạt?};
+\node[sb] (s4) at (10.75, -10.8) {Đóng gói Timeline + cảnh báo (FR07, FR11)};
+
+% --- Mũi tên nội làn Người dùng ---
+\draw[flowarr] (u1) -- (u2);
+\draw[flowarr] (u2) -- (u3);
+\draw[flowarr] (u4) -- (u5);
+\draw[flowarr] (u5) -- node[left,font=\scriptsize\bfseries]{Có} (uend);
+
+% --- Mũi tên liên làn (ngang) ---
+\draw[flowarr] (u3) -- node[above,font=\scriptsize\bfseries]{Gửi yêu cầu} (s1);
+\draw[flowarr] (s4) -- node[below,font=\scriptsize\bfseries]{Kết quả} (u4);
+
+% --- Mũi tên nội làn Hệ thống ---
+\draw[flowarr] (s1) -- (s2);
+\draw[flowarr] (s2) -- (s3);
+\draw[flowarr] (s3) -- node[left,font=\scriptsize\bfseries]{Đạt} (s4);
+
+% --- Feedback 1: s3 "Không đạt" quay lại s2 ---
+\draw[flowarr] (s3.east) -- ++(0.955,0) |- (s2.east);
+\node[font=\scriptsize\bfseries,anchor=west] at (12.25,-6.8) {Không đạt};
+
+% --- Feedback 2: u5 "Chưa đồng ý" -> Xáo trộn -> quay lại s2 ---
+\draw[flowarr] (u5.west) -- (-0.2,-10.0) |- (s2.west);
+\node[font=\scriptsize\bfseries,align=center,anchor=east] at (4.5,-5.25) {Chưa, bấm\\Xáo trộn (FR06)};
+
+\end{tikzpicture}
+\caption{Biểu đồ quy trình nghiệp vụ cải tiến (To-Be) của Hệ thống SGGo!}
+\label{fig:tobe_swimlane}
+\end{figure}
+
+\subsection{Biểu đồ phân cấp chức năng (BFD -- Functional Decomposition Diagram)}
