@@ -1078,3 +1078,60 @@ Quán Sai Mức Giá,di_choi,222 Lương Nhữ Học,Quận 5,10.75,106.66,khong
         self.assertIn("định dạng chuẩn (HH:MM", res2.json().get("detail", ""))
 
         # 3. Giá tiền vượt trần 50,000,000 VNĐ
+        bad_price = {
+            "name": "Quán Giá Quá Cao",
+            "category": "an_uong",
+            "address": "123 Đường Test, Quận 5",
+            "district": "Quận 5",
+            "lat": 10.7550,
+            "lon": 106.6650,
+            "min_price": 60000000,
+            "max_price": 100000000
+        }
+        res3 = self.client.post("/api/admin/places", json=bad_price)
+        self.assertEqual(res3.status_code, 400)
+        self.assertIn("50,000,000", res3.json().get("detail", ""))
+
+    def test_quick_recommend_with_gps_and_distance_priority(self):
+        """[TEST-FR-GPS] Kiểm tra tính năng đồng bộ GPS và ưu tiên khoảng cách ở Quick Recommend."""
+        # Tọa độ kiểm tra: Nhà Thờ Đức Bà, Quận 1 (10.7798, 106.6990)
+        user_lat = 10.7798
+        user_lon = 106.6990
+
+        # 1. Gọi khi có GPS nhưng chưa bật prioritize_distance
+        res_no_prio = self.client.post("/api/quick-recommend", json={
+            "category": "all",
+            "context": "all",
+            "price_level": "all",
+            "user_lat": user_lat,
+            "user_lon": user_lon,
+            "prioritize_distance": False,
+            "client_time": "10:00"
+        })
+        self.assertEqual(res_no_prio.status_code, 200)
+        data_no_prio = res_no_prio.json()
+        self.assertTrue(len(data_no_prio) > 0)
+        # Kiểm tra trường distance_km được tính toán
+        self.assertIn("distance_km", data_no_prio[0])
+        self.assertIsInstance(data_no_prio[0]["distance_km"], (int, float))
+
+        # 2. Gọi khi có GPS VÀ BẬT prioritize_distance = True
+        res_with_prio = self.client.post("/api/quick-recommend", json={
+            "category": "all",
+            "context": "all",
+            "price_level": "all",
+            "user_lat": user_lat,
+            "user_lon": user_lon,
+            "prioritize_distance": True,
+            "client_time": "10:00"
+        })
+        self.assertEqual(res_with_prio.status_code, 200)
+        data_with_prio = res_with_prio.json()
+        self.assertTrue(len(data_with_prio) > 0)
+        # Các quán trong top 3 khi bật ưu tiên khoảng cách phải có khoảng cách gần hơn đáng kể
+        avg_dist_prio = sum(p.get("distance_km", 99) for p in data_with_prio[:3]) / 3
+        self.assertLessEqual(avg_dist_prio, 8.0, f"Khoảng cách trung bình top 3 phải <= 8km nhưng là {avg_dist_prio}")
+
+if __name__ == "__main__":
+    unittest.main()
+
