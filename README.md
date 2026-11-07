@@ -158,3 +158,13 @@ python backend/test_routing_math.py
 *Tất cả 56 test cases đều vượt qua 100% (Status: OK).*
 
 ---
+
+## 6. Công Nghệ & Kỹ Thuật Sử Dụng
+
+* **Backend:** Python 3.11+, FastAPI (RESTful API), Uvicorn (ASGI Server), SQLite3, Pydantic v2, Google GenAI SDK (`google-genai`).
+* **Frontend:** Vanilla JavaScript (ES6+ Clean Architecture), HTML5 Semantic, Tailwind CSS (CDN), Font Awesome 6, Leaflet.js (OpenStreetMap engine).
+* **Định tuyến & Không gian:** OpenStreetMap OSRM Routing Engine, Haversine Spherical Distance, Nearest Neighbor TSP.
+* **Testing:** Python `unittest`, FastAPI `TestClient`, Coverage & RTM Mapping.
+
+---
+© 2026 SGGo! Team — Đồ án Công nghệ Phần mềm (COMP1044).
