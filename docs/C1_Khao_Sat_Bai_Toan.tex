@@ -418,3 +418,63 @@ Từ kết quả quan sát và phỏng vấn, quy trình chọn chỗ đi chơi 
 \node[flowdec, below=of c] (d) {Đã thống nhất?};
 \node[flowbox, below=of d] (e) {Một người tự tra cứu đường đi, giá cả và sắp xếp};
 \node[flowterm, below=of e] (end1) {Chốt lịch và lên đường};
+\node[flowbad, right=12mm of d] (bad) {Bất đồng ý kiến, kéo dài nhiều ngày -- HỦY KÈO (BỂ KÈO)};
+
+\draw[flowarr] (s) -- (a);
+\draw[flowarr] (a) -- (b);
+\draw[flowarr] (b) -- (c);
+\draw[flowarr] (c) -- (d);
+\draw[flowarr] (d) -- node[left,font=\footnotesize] {Có} (e);
+\draw[flowarr] (e) -- (end1);
+\draw[flowarr] (d) -- node[above,font=\footnotesize] {Không} (bad);
+\end{tikzpicture}
+\caption{Biểu đồ quy trình nghiệp vụ chọn chỗ đi chơi hiện tại của nhóm bạn (As-Is)}
+\label{fig:asis}
+\end{figure}
+
+\subsection{Phân tích các nguyên nhân khiến nhóm không chốt được kế hoạch}
+Đối chiếu với thực tế khảo sát, Nhóm 6 đã phân tích và xác định 05 nguyên nhân cốt lõi dẫn đến sự bế tắc trong quy trình hiện tại:
+\begin{enumerate}
+    \item Tuyến đường di chuyển bị ngược hướng hoặc quá xa (78,3\%): Các thành viên trong nhóm thường ở rải rác các quận khác nhau. Khi một người đề xuất quán theo sở thích cá nhân mà không tính đến cự ly tổng thể, các thành viên ở xa sẽ cảm thấy bất tiện, ngại đi lại và từ chối tham gia.
+    \item Sở thích đối nghịch và thiếu công cụ dung hòa (56,5\%): Người thích ăn món nước, người thích ăn nướng, người chỉ muốn đi cà phê chụp ảnh. Do không có công cụ gợi ý lịch trình liên hoàn (kết hợp hợp lý giữa ăn uống và cà phê thư giãn), nhóm khó tìm được tiếng nói chung.
+    \item Nhiễu loạn thông tin và review quảng cáo (47,8\%): Mạng xã hội tràn ngập video quảng cáo phóng đại, khi đến nơi thực tế chất lượng món ăn hoặc mức giá không đúng như kỳ vọng, gây tâm lý hoài nghi khi chọn quán mới.
+    \item Tâm lý ``ngại chốt hạ'' -- Hội chứng thiếu chính kiến (34,8\%): Các thành viên có tâm lý dĩ hòa vi quý, sợ chọn phải quán dở sẽ bị bạn bè phàn nàn, dẫn đến việc đùn đẩy trách nhiệm và câu trả lời luôn là ``sao cũng được''.
+    \item Khó khăn trong việc kiểm soát ngân sách và thời gian (82,6\%): Không biết trước tổng chi phí ước tính cho cả buổi và thời gian di chuyển thực tế trên đường, dễ phát sinh chi phí ngoài dự kiến hoặc rơi vào khung giờ kẹt xe.
+\end{enumerate}
+
+\section{Xác định thông tin cơ bản cho nghiệp vụ của bài toán}
+
+Dựa trên yêu cầu của đề tài và kết quả phân tích nghiệp vụ, toàn bộ hệ thống SGGo! được phân rã thành 06 nhóm nghiệp vụ cơ bản, bao quát đầy đủ quyền hạn và tương tác giữa 02 tác nhân: Người dùng / Khách truy cập và Quản trị viên (Admin) được tổng hợp tại Bảng~\ref{tab:ipo} dưới đây:
+
+\setlength{\tabcolsep}{3.5pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}c|L{2.2cm}|L{1.6cm}|L{3.1cm}|L{3.8cm}|L{2.4cm}|}
+\caption{Phân tích Đầu vào (Input) -- Xử lý (Process) -- Đầu ra (Output) cho các nghiệp vụ}\label{tab:ipo}\\
+\hline
+\hd{STT} & \hd{Nghiệp vụ con} & \hd{Tác nhân} & \hd{Đầu vào (Input)} & \hd{Xử lý (Process)} & \hd{Đầu ra (Output)} \\
+\hline
+\endfirsthead
+\multicolumn{6}{l}{\itshape Bảng~\thetable{} (tiếp theo)}\\
+\hline
+\hd{STT} & \hd{Nghiệp vụ con} & \hd{Tác nhân} & \hd{Đầu vào (Input)} & \hd{Xử lý (Process)} & \hd{Đầu ra (Output)} \\
+\hline
+\endhead
+\hline
+\endfoot
+\hline
+\endlastfoot
+
+1 & Gợi ý nhanh qua Quiz 3 bước & Người dùng &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Bước 1: Mục đích (Ăn uống / Đi chơi).
+    \item Bước 2: Đồng hành (Bạn bè, Người yêu...).
+    \item Bước 3: Mức giá (1, 2, 3).
+\end{itemize} &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Lọc địa điểm khớp đồng thời 3 tiêu chí.
+    \item Nếu kết quả ít hơn 3, kích hoạt Fallback nới lỏng theo ngữ cảnh.
+    \item Lấy Top 3 địa điểm tối ưu.
+\end{itemize} &
+Thẻ hiển thị Top 3 quán chuẩn gu kèm tag giải thích, địa chỉ, mức giá, nút làm lại. \\
+\hline
+2 & Lập lịch trình thông minh AI & Người dùng &
+\begin{itemize}[leftmargin=0.4cm,nosep]
