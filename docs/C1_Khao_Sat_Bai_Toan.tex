@@ -298,3 +298,63 @@ PB05 & Không biết trước mức giá và cự ly các điểm & 2 & 0 & 2 & 
 \end{table}
 
 \begin{enumerate}[resume]
+    \item Thống kê mức chi tiêu và mức độ quan trọng của các tiêu chí lựa chọn:
+    \begin{itemize}
+        \item Phân khúc chi tiêu trung bình/người cho một buổi đi chơi (1 bữa ăn + 1 cafe/vui chơi): Dưới 100.000\,đ có 5 người (21,7\%); từ 100.000--200.000\,đ có 9 người (39,1\%); từ 200.000--350.000\,đ có 7 người (30,4\%); trên 350.000\,đ có 2 người (8,7\%).
+        \item Mức độ quan trọng của các tiêu chí (tỷ lệ đánh giá Quan trọng và Cực kì quan trọng):
+        \begin{itemize}
+            \item CR03 (Quỹ thời gian rảnh): 91,3\% (21/23).
+            \item CR01 (Ngân sách dự kiến phù hợp): 87,0\% (20/23).
+            \item CR02 (Khoảng cách \& tuyến đường thuận tiện): 87,0\% (20/23).
+            \item CR04 (Ngữ cảnh \& Mood buổi gặp): 87,0\% (20/23).
+            \item CR05 (Tính logic của lịch trình -- ăn trước chơi sau): 78,3\% (18/23).
+        \end{itemize}
+    \end{itemize}
+
+    \item Thống kê mức độ cần thiết của các tính năng dự kiến trên website SGGo!: Khảo sát sự ủng hộ của người dùng đối với các tính năng dự kiến phát triển trên website được tổng hợp tại Bảng~\ref{tab:fe} dưới đây:
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{Mức độ cần thiết của các tính năng mới trên hệ thống}
+\label{tab:fe}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{|>{\raggedright\arraybackslash}c|L{6.2cm}|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|}
+\hline
+\hd{Mã} & \hd{Tính năng dự kiến} & \hd{Trung lập} & \hd{Cần thiết} & \hd{Rất cần thiết} & \hd{Tỷ lệ ủng hộ} \\
+\hline
+FE05 & Xem trực quan trên bản đồ kèm cự ly ước tính & 1 & 14 & 8 & 22 (95,7\%) \\
+FE04 & Dòng giải thích ngắn gọn lý do vì sao gợi ý điểm này & 2 & 14 & 7 & 21 (91,3\%) \\
+FE01 & Tự động tạo lịch trình kết hợp 2--3 điểm hợp lý & 3 & 14 & 6 & 20 (87,0\%) \\
+FE02 & Bộ lọc theo ngữ cảnh / Mood cụ thể & 4 & 14 & 5 & 19 (82,6\%) \\
+FE03 & Nút Xáo trộn để đổi phương án giữ nguyên tiêu chí & 4 & 12 & 7 & 19 (82,6\%) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Phương pháp 3 -- Khảo sát chứng từ và biểu mẫu nghiệp vụ}
+Trong thực tế chọn chỗ đi chơi của các nhóm bạn trẻ hiện nay chưa có biểu mẫu hành chính cố định. Nhóm 6 đã tiến hành khảo sát các cấu trúc dữ liệu trao đổi trong nhóm chat và chuẩn hóa thành 02 biểu mẫu nghiệp vụ phục vụ cho thiết kế phần mềm tại Bảng~\ref{tab:form_input} và Bảng~\ref{tab:form_place} dưới đây:
+
+\begin{table}[H]
+\centering
+\caption{Biểu mẫu Phiếu nhu cầu đi chơi của nhóm (Đầu vào)}
+\label{tab:form_input}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{|L{3.2cm}|L{6.0cm}|L{5.2cm}|}
+\hline
+\hd{Trường thông tin} & \hd{Mô tả nghiệp vụ} & \hd{Căn cứ từ khảo sát} \\
+\hline
+Vị trí xuất phát & Quận hoặc địa danh xuất phát chung (chọn từ danh sách hoặc bản đồ demo) & Nguyên nhân ``quá xa/ngược đường'': 78,3\% \\
+\hline
+Quỹ thời gian rảnh & Khung giờ bắt đầu và kết thúc (ví dụ: 16:00 -- 21:30) & CR03: 91,3\% đánh giá quan trọng trở lên \\
+\hline
+Mức ngân sách & Mức chi dự kiến/người (Bình dân dưới 50k, Vừa vặn 50--150k, Chỉn chu trên 150k) & CR01: 87,0\%; mức chi phổ biến nhất 100k--200k (39,1\%) \\
+\hline
+Ngữ cảnh / Mood & Không gian buổi hẹn (Hội bạn thân, Người yêu, Gia đình, Đi 1 mình) & CR04: 87,0\% \\
+\hline
+Sở thích / Danh mục & Ăn uống no nê, Cà phê tâm sự, Trò chơi, Giải trí & Hoạt động thường làm của nhóm (Ăn uống 91,3\%, Cafe 65,2\%) \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
