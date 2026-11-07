@@ -138,3 +138,23 @@ Xem tài liệu OpenAPI tương tác (Swagger UI) tại: **`http://localhost:800
 ---
 
 ## 5. Hướng Dẫn Chạy Toàn Bộ Bộ Kiểm Thử (Unit Tests)
+
+Hệ thống được trang bị bộ kiểm thử tự động đạt chuẩn Công nghệ Phần mềm:
+
+```bash
+# Chạy toàn bộ 56 test cases trong thư mục tests/:
+python -m unittest discover tests
+
+# Hoặc chạy kiểm thử cụ thể từng bộ:
+python -m unittest tests/test_routing.py tests/test_sggo_suite.py tests/test_api.py
+
+# Kiểm tra dữ liệu CSDL & Lộ trình dự phòng:
+python backend/check_stats.py
+
+# Kiểm tra toán học định tuyến khoảng cách:
+python backend/test_routing_math.py
+```
+
+*Tất cả 56 test cases đều vượt qua 100% (Status: OK).*
+
+---
