@@ -118,3 +118,23 @@ pip install -r requirements.txt
 ```
 
 **Bước 3 (Tùy chọn):** Cấu hình Google Gemini API Key:
+Sao chép file mẫu và cấu hình API Key:
+```bash
+cp backend/.env.example backend/.env
+```
+Mở file `backend/.env` và điền key của bạn:
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+*(Lưu ý: Nếu không cấu hình Gemini API Key, hệ thống vẫn hoạt động bình thường 100% nhờ Động cơ Định tuyến Heuristic Rule-based dự phòng tích hợp sẵn).*
+
+**Bước 4:** Khởi chạy máy chủ:
+```bash
+uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+```
+Truy cập giao diện web tại: **`http://localhost:8000`**  
+Xem tài liệu OpenAPI tương tác (Swagger UI) tại: **`http://localhost:8000/docs`**
+
+---
+
+## 5. Hướng Dẫn Chạy Toàn Bộ Bộ Kiểm Thử (Unit Tests)
