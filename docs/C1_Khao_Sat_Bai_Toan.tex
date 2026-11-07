@@ -658,3 +658,63 @@ Biểu đồ phân cấp chức năng phân rã hệ thống thành 04 phân h�
 % Cột 4
 \draw[semithick,draw=borderblack] (m4.south) -- (13.8,-2.3) -- (11.9,-2.3) -- (11.9,-4.7);
 \draw[flowarr] (11.9,-2.9) -- (f41.west);
+\draw[flowarr] (11.9,-3.8) -- (f42.west);
+\draw[flowarr] (11.9,-4.7) -- (f43.west);
+
+\end{tikzpicture}
+\caption{Biểu đồ phân cấp chức năng của Hệ thống SGGo!}
+\label{fig:bfd}
+\end{figure}
+
+\subsection{Mô tả các chức năng trong biểu đồ và đánh giá tính khả thi}
+
+Hệ thống SGGo! tuân thủ nghiêm ngặt khung yêu cầu chức năng (Functional requirement) của đề tài Nhóm 6 gồm đúng \textbf{8 yêu cầu MUST, 2 yêu cầu SHOULD và 1 yêu cầu COULD} được tổng hợp tại Bảng~\ref{tab:mo_ta_chuc_nang} dưới đây:
+
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|L{1.3cm}|L{2.3cm}|L{4.7cm}|L{1.8cm}|L{4.3cm}|}
+\caption{Mô tả chức năng và đánh giá tính khả thi theo chuẩn khung yêu cầu đề tài}\label{tab:mo_ta_chuc_nang}\\
+\hline
+\hd{Mã YC} & \hd{Tên chức năng} & \hd{Mô tả chi tiết theo đề tài} & \hd{Ưu tiên} & \hd{Đánh giá tính khả thi} \\
+\hline
+\endfirsthead
+\multicolumn{5}{l}{\itshape Bảng~\thetable{} (tiếp theo)}\\
+\hline
+\hd{Mã YC} & \hd{Tên chức năng} & \hd{Mô tả chi tiết theo đề tài} & \hd{Ưu tiên} & \hd{Đánh giá tính khả thi} \\
+\hline
+\endhead
+\hline
+\endfoot
+\hline
+\endlastfoot
+
+G6-FR01 & Quản lý địa điểm cơ bản & Admin quản lý thông tin địa điểm: tên, loại, khu vực/tọa độ, giá tham khảo, giờ mở cửa, tag, trạng thái. & MUST & Khả thi rất cao. CSDL chuẩn hóa trên FastAPI, đã có 100 địa điểm mock. \\
+\hline
+G6-FR02 & Tìm kiếm và lọc đa tiêu chí & Người dùng tìm kiếm/lọc quán theo mục đích, ngữ cảnh, ngân sách, khoảng cách, mức giá/đánh giá. & MUST & Khả thi rất cao. Đã cài đặt endpoint GET /api/places và flow trắc nghiệm 3 bước. \\
+\hline
+G6-FR03 & Nhập nhu cầu lịch trình & Người dùng nhập vị trí xuất phát (chọn từ danh sách/tọa độ demo), thời gian rảnh, ngân sách và sở thích. & MUST & Khả thi cao. Form nhập liệu trực quan, kiểm tra tính hợp lệ dữ liệu đầu vào. \\
+\hline
+G6-FR04 & Sinh lịch trình nhiều điểm & Hệ thống tạo lịch trình gồm 2--3 điểm đến liên tiếp theo rule/scoring được tài liệu hóa rõ ràng. & MUST & Khả thi cao. Thuật toán lọc ứng viên theo context kết hợp sắp xếp logic ăn uống -- vui chơi. \\
+\hline
+G6-FR05 & Kiểm tra ngân sách và thời gian & Lịch trình phải kiểm tra tổng chi phí ước tính và khoảng thời gian cho phép; báo lỗi nếu không thỏa. & MUST & Khả thi cao. Phép cộng dồn và so sánh điều kiện biên; gợi ý nới lỏng khi không có kết quả. \\
+\hline
+G6-FR06 & Xáo trộn phương án gợi ý & Chức năng ``xáo trộn / gợi ý lại'' sinh phương án khác nhưng vẫn tôn trọng các ràng buộc chính ban đầu. & MUST & Khả thi rất cao. Hoán đổi tập quán ứng viên hoặc tái tạo lộ trình mới với cùng tham số. \\
+\hline
+G6-FR07 & Hiển thị thứ tự \& bản đồ/cự ly & Hiển thị lịch trình theo thứ tự và biểu diễn vị trí/bản đồ; ước lượng khoảng cách/thời gian di chuyển mức demo. & MUST & Khả thi cao. Giao diện Timeline trực quan, ước tính thời gian xe máy theo tọa độ GPS. \\
+\hline
+G6-FR08 & Quản trị danh mục và tag & Admin thêm, sửa, xóa, ẩn địa điểm và quản lý danh mục tag/bộ lọc; quán bị ẩn không được gợi ý. & MUST & Khả thi cao. Hoàn thiện các RESTful API quản trị và lọc bỏ quán có trạng thái ẩn. \\
+\hline
+G6-FR09 & Import dữ liệu hàng loạt & Import danh sách địa điểm hàng loạt từ tệp CSV/Excel, có kiểm tra lỗi dữ liệu từng dòng. & SHOULD & Khả thi cao. Sử dụng thư viện pandas/csv của Python để kiểm tra cấu trúc file. \\
+\hline
+G6-FR10 & Giải thích lý do gợi ý & Hiển thị dòng giải thích ngắn ``vì sao hệ thống gợi ý'' từng điểm dựa trên rule/tiêu chí. & SHOULD & Khả thi cao. Nhãn tag đặc trưng và lý do gợi ý đã được cấu trúc hóa trong CSDL. \\
+\hline
+G6-FR11 & AI \& Cảnh báo giờ cao điểm & Tích hợp API bản đồ/route thực; cảnh báo kẹt xe giờ cao điểm (17:00--19:00) hoặc trợ lý AI diễn giải lịch trình. & COULD & Khả thi. Đã tích hợp thành công Google Gemini 2.5 Flash kèm chế độ Fallback offline. \\
+\end{longtable}
+
+\subsection{Danh sách thay đổi, giả định và cập nhật phạm vi MoSCoW}
+
+\subsubsection{Danh sách thay đổi đề xuất (Change Requests)}
+\begin{itemize}
+    \item CR-01 (Bổ sung cơ chế Fallback tĩnh cho AI Itinerary): Do đề bài yêu cầu thuật toán gợi ý phải kiểm thử được và tránh rủi ro mất mạng khi nghiệm thu demo, back-end được bổ sung khối sinh lộ trình dự phòng offline cho G6-FR11.
+    \item CR-02 (Bổ sung ngữ cảnh ``Đi một mình -- Solo Healing''): Kết quả khảo sát cho thấy nhu cầu học nhóm, đọc sách hoặc thư giãn cá nhân khi không tụ tập được nhóm bạn. Thuộc tính (Attribute) context được bổ sung thêm giá trị di\_1\_minh cho G6-FR02.
+    \item CR-03 (Chuẩn hóa quy đổi ngân sách): Khảo sát phân loại ngân sách thành 4 mức chi tiêu; dữ liệu địa điểm được quy chuẩn thành 3 mức giá (Mức 1: dưới 50k, Mức 2: 50--150k, Mức 3: trên 150k) để tương thích với G6-FR05.
+\end{itemize}
