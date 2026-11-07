@@ -788,3 +788,79 @@ Kế hoạch triển khai được phân rã theo 8 công đoạn chuẩn của 
 \multicolumn{4}{l}{\itshape Bảng~\thetable{} (tiếp theo)}\\
 \hline
 \hd{STT} & \hd{Công đoạn / Hạng mục công việc chi tiết} & \hd{Thời gian (Giờ)} & \hd{Người thực hiện} \\
+\hline
+\endhead
+\hline
+\endfoot
+\hline
+\endlastfoot
+
+1 & Khảo sát \& Xác định bài toán & 18 giờ & Cả nhóm (5 SV) \\
+1.1 & Thiết kế kịch bản phỏng vấn role-play và biểu mẫu Google Forms & 4 giờ & Thành viên 1, 2 \\
+1.2 & Thực hiện phỏng vấn sâu 2 đối tượng \& thu thập 23 mẫu khảo sát & 6 giờ & Cả nhóm (5 SV) \\
+1.3 & Tổng hợp số liệu định lượng, mô hình hóa As-Is và To-Be & 8 giờ & Thành viên 3, 4, 5 \\
+\hline
+2 & Phân tích yêu cầu \& Viết đặc tả SRS & 22 giờ & Cả nhóm (5 SV) \\
+2.1 & Lập phạm vi In/Out-of-scope; phân loại theo mô hình MoSCoW & 4 giờ & Thành viên 1, 5 \\
+2.2 & Viết đặc tả ca sử dụng, User Stories và Acceptance Criteria & 10 giờ & Thành viên 2, 3 \\
+2.3 & Định nghĩa Business Rules (lộ trình không ngược đường, kiểm soát giá) & 4 giờ & Thành viên 4 \\
+2.4 & Xác định các yêu cầu phi chức năng (Non-functional requirement: hiệu năng, tính sẵn sàng) & 4 giờ & Thành viên 5 \\
+\hline
+3 & Mô hình hóa \& Thiết kế hệ thống & 24 giờ & Cả nhóm (5 SV) \\
+3.1 & Thiết kế Biểu đồ use case (Use case diagram) tổng quan và phân rã mức 2 & 4 giờ & Thành viên 1 \\
+3.2 & Thiết kế Biểu đồ hoạt động (Activity diagram) và Sơ đồ trình tự (Sequence diagram) cho luồng tạo lịch trình & 6 giờ & Thành viên 2 \\
+3.3 & Thiết kế Data Dictionary và biểu đồ ERD (Thực thể Place, Context, Itinerary) & 8 giờ & Thành viên 3 \\
+3.4 & Thiết kế Wireframe/Prototype giao diện chuẩn Pop-Chill & 6 giờ & Thành viên 4, 5 \\
+\hline
+4 & Lập kế hoạch \& Quản trị dự án & 8 giờ & Trưởng nhóm \\
+4.1 & Khởi tạo Git repository, cấu hình nhánh và quy ước commit & 3 giờ & Trưởng nhóm \\
+4.2 & Quản lý Task Board và lập tài liệu Change Request (CR-01, CR-02) & 5 giờ & Trưởng nhóm, TV5 \\
+\hline
+5 & Xây dựng chương trình MVP (Cài đặt mã nguồn) & 42 giờ & Cả nhóm (5 SV) \\
+5.1 & Chuẩn hóa tọa độ GPS và khởi tạo 100 địa điểm (data\_places.py) & 8 giờ & Thành viên 3 \\
+5.2 & Lập trình back-end FastAPI: API lọc đa tiêu chí, kết nối Gemini AI & 14 giờ & Thành viên 1, 2 \\
+5.3 & Lập trình front-end Tailwind CSS: hiệu ứng chuyển bước, Timeline AI & 12 giờ & Thành viên 2, 4 \\
+5.4 & Tích hợp front-end -- back-end, cấu hình CORS, deploy lên Render & 8 giờ & Thành viên 4, 5 \\
+\hline
+6 & Kiểm thử chương trình & 18 giờ & Cả nhóm (5 SV) \\
+6.1 & Lập Test Plan và thiết kế tối thiểu 20 kịch bản kiểm thử (Test case) & 8 giờ & Thành viên 3, 5 \\
+6.2 & Thực thi kiểm thử, ghi nhận nhật ký lỗi (Defect), sửa lỗi và thực hiện Re-test & 10 giờ & Cả nhóm (5 SV) \\
+\hline
+7 & Xây dựng Bảng truy vết yêu cầu (RTM -- Requirement Traceability Matrix) & 6 giờ & Thành viên 1, 4 \\
+7.1 & Lập Bảng truy vết yêu cầu: Yêu cầu -- Ca sử dụng -- Module -- Kịch bản kiểm thử & 6 giờ & Thành viên 1, 4 \\
+\hline
+8 & Triển khai, nghiệm thu và Báo cáo tổng kết & 12 giờ & Cả nhóm (5 SV) \\
+8.1 & Chuẩn bị kịch bản nghiệm thu, tài khoản demo và viết tài liệu README & 4 giờ & Thành viên 2, 5 \\
+8.2 & Họp Retrospective tổng kết dự án và hoàn thiện báo cáo tiểu luận & 8 giờ & Cả nhóm (5 SV) \\
+\hline
+\multicolumn{2}{|l|}{\textbf{TỔNG CỘNG THỜI GIAN THỰC HIỆN}} & \textbf{150 giờ} & \textbf{Nhóm 6 (05 SV)} \\
+\hline
+\end{longtable}
+
+\subsection{Bảng quản lý rủi ro dự án}
+
+Phân tích và kiểm soát các rủi ro phát sinh trong quá trình thực hiện dự án SGGo! được tổng hợp tại Bảng~\ref{tab:quan_ly_rui_ro} dưới đây:
+
+\begin{table}[H]
+\centering
+\caption{Phân tích và kiểm soát rủi ro dự án SGGo!}
+\label{tab:quan_ly_rui_ro}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{|>{\raggedright\arraybackslash}c|L{2.0cm}|L{2.4cm}|L{2.4cm}|>{\raggedright\arraybackslash}c|L{1.5cm}|L{3.8cm}|}
+\hline
+\hd{STT} & \hd{Hoạt động} & \hd{Mối nguy} & \hd{Rủi ro phát sinh} & \hd{Mức độ} & \hd{Chiến lược} & \hd{Biện pháp kiểm soát} \\
+\hline
+1 & Tích hợp AI sinh lịch trình & API Gemini bị quá hạn mức hoặc mất kết nối mạng khi chấm thi. & Hệ thống báo lỗi, treo màn hình, không tạo được lịch trình trước hội đồng. & Cao & Giảm thiểu & Cài đặt sẵn cơ chế Fallback ngoại tuyến trong main.py: tự động trả về lịch trình mẫu hợp lệ khi API lỗi, đảm bảo demo 100\% thành công. \\
+\hline
+2 & Quản lý phạm vi dự án & Mải mê làm chức năng phức tạp (GPS real-time, phòng chat thời gian thực). & Không kịp hoàn thành các chức năng cốt lõi bắt buộc (MUST) trước hạn nộp. & Cao & Loại bỏ rủi ro & Áp dụng nghiêm ngặt nguyên tắc MoSCoW: Đóng băng yêu cầu COULD; tập trung hoàn thiện Quiz 3 bước, Lộ trình AI và Quản trị địa điểm. \\
+\hline
+3 & Dữ liệu địa điểm & Tọa độ GPS bị sai lệch hoặc không phù hợp ngữ cảnh buổi hẹn. & Thuật toán sắp xếp bị ngược đường, người dùng đánh giá thấp hệ thống. & Trung bình & Giảm thiểu & Chuẩn hóa sẵn 100 địa điểm với tọa độ thực tế tại 6 quận trung tâm TP.HCM; kiểm duyệt chặt chẽ thuộc tính context và price\_level. \\
+\hline
+4 & Kết nối FE \& BE & Lỗi chặn chia sẻ tài nguyên nguồn gốc chéo (CORS Error) khi deploy. & Trình duyệt chặn request, dữ liệu địa điểm không tải được về máy người dùng. & Trung bình & Giảm thiểu & Cấu hình CORSMiddleware cho phép tất cả các nguồn truy cập (allow\_origins=[``*'']) trong FastAPI; kiểm thử kỹ trên staging. \\
+\hline
+5 & Dữ liệu demo khi chấm thi & Nhập tay dữ liệu không chuẩn hoặc phát sinh lỗi cú pháp khi phản biện. & Mất nhiều thời gian thao tác, dễ phát sinh ngoại lệ không mong muốn trước giảng viên. & Trung bình & Giảm thiểu & Điền sẵn các giá trị mẫu mặc định (Default Value) trên form nhập liệu và chuẩn bị kịch bản nghiệm thu theo từng bước rõ ràng. \\
+\hline
+\end{tabular}
+\end{table}
+
+\end{document}
