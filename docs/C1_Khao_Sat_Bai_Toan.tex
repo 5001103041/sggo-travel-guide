@@ -1,0 +1,60 @@
+% =====================================================================
+% TRƯỜNG ĐẠI HỌC SƯ PHẠM TP. HỒ CHÍ MINH - KHOA CÔNG NGHỆ THÔNG TIN
+% HỌC PHẦN: NHẬP MÔN CÔNG NGHỆ PHẦN MỀM
+% CHƯƠNG 1. KHẢO SÁT BÀI TOÁN (BẢN HOÀN CHỈNH - CHUẨN QUY TẮC 100%)
+% ĐỀ TÀI: WEBSITE HỖ TRỢ TÌM CHỖ VUI CHƠI CHO NHÓM "THIẾU CHÍNH KIẾN" - SGGO
+% KHUNG YÊU CẦU ĐỀ BÀI: 8 MUST / 2 SHOULD / 1 COULD
+% Biên dịch chuẩn bằng XeLaTeX: xelatex main.tex
+% =====================================================================
+\documentclass[13pt,a4paper]{extreport}
+
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\usepackage{polyglossia}
+\setmainlanguage{vietnamese}
+
+% Khổ giấy và lề trang: A4; lề trái 3cm, phải 2cm, trên 2cm, dưới 2cm
+\usepackage[left=3.0cm,right=2.0cm,top=2.0cm,bottom=2.0cm]{geometry}
+
+% Giãn dòng 1.5 lines
+\usepackage{setspace}
+\onehalfspacing
+
+% Thụt đầu dòng 1.0cm cho TẤT CẢ các đoạn văn xuôi (kể cả đoạn đầu sau tiêu đề)
+\usepackage{indentfirst}
+\setlength{\parindent}{1.0cm}
+% Khoảng cách giữa các đoạn: Before 0pt - After 6pt
+\setlength{\parskip}{6pt}
+
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{array,booktabs,longtable,tabularx,multirow}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{etoolbox}
+
+% Quy tắc phân cấp nội dung:
+% Trường hợp A (itemize): Mức 1 chấm tròn (0.63cm), Mức 2 gạch ngang (1.25cm), Mức 3 dấu cộng (1.85cm)
+\setlist[itemize,1]{label=\textbullet, leftmargin=0.63cm, nosep}
+\setlist[itemize,2]{label=--, leftmargin=1.25cm, nosep}
+\setlist[itemize,3]{label=+, leftmargin=1.85cm, nosep}
+
+% Trường hợp B (enumerate): Mức 1 (1., 2., 3.), Mức 2 (a., b., c.), Mức 3 (--)
+\setlist[enumerate,1]{label=\arabic*., leftmargin=1.0cm, nosep}
+\setlist[enumerate,2]{label=\alph*., leftmargin=1.25cm, nosep}
+\setlist[enumerate,3]{label=--, leftmargin=1.85cm, nosep}
+
+\usepackage{titlesec}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,fit,backgrounds}
+\usepackage{float}
+\usepackage[hidelinks]{hyperref}
+\pagestyle{plain}
+
+% Bật đánh số tự động đến cấp 4 (\subsubsection)
+\setcounter{secnumdepth}{3}
+
+% Cấu hình Caption chuẩn: 12pt, nhãn "Bảng/Hình..." in đậm, tên không đậm/không nghiêng, phân cách bằng dấu chấm
+\DeclareCaptionFont{twelvept}{\fontsize{12pt}{14.4pt}\selectfont}
+\captionsetup{font=twelvept, labelfont=bf, textfont=normalfont, labelsep=period}
