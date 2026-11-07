@@ -38,3 +38,23 @@ Hệ thống tích hợp thuật toán tối ưu lộ trình nhiều điểm d�
   2. *Lớp 2 (Google Gemini AI):* Thấu hiểu ngữ nghĩa sâu của ghi chú riêng (**Take note**), đối chiếu với bình luận thực tế để loại trừ món kiêng cữ/dị ứng và chọn không gian chuẩn gu.
 * **Mô hình Dừng Chân Lai 7 Nhóm Học Thuật (Hybrid Dwell Allocation):**
   * Tự động phân bổ thời lượng lưu lại phù hợp cho từng loại hình quán (cà phê: 45-60p, quán lẩu/nướng: 70-90p, workshop: 75-105p, di tích: 45-60p).
+  * **Bộ co giãn tự động theo giờ rảnh:** Điều chỉnh thời gian dừng chân để tổng thời gian (di chuyển + dừng chân) luôn vừa vặn trong khung giờ rảnh của người dùng.
+* **Kiểm soát ràng buộc chặt chẽ (Business Rule 3):**
+  * Tự động phát hiện và cảnh báo khi khung giờ rảnh quá ngắn hoặc ngân sách không đủ cho số trạm mong muốn (`TIME_TOO_SHORT`, `BUDGET_TOO_LOW`).
+  * Nút hỗ trợ *"Tự động áp dụng điều chỉnh gợi ý"* với 1 chạm.
+* **Báo cáo phân tích lộ trình chuyên sâu:**
+  * Tiếp nhận và trích dẫn nổi bật yêu cầu trong Take note.
+  * Tách bạch rõ ràng: *Vì sao chọn Trạm 1*, *Vì sao chọn Trạm 2*, *Vì sao chọn Trạm 3*.
+  * Giải thích *Logic kết hợp lộ trình* (dòng chảy trải nghiệm xuyên suốt chuyến đi).
+* **Cảnh báo giờ cao điểm theo thời gian thực ghé quán:**
+  * Trùng giờ cao điểm $\rightarrow$ Cảnh báo màu đỏ nổi bật kèm lời khuyên đặt bàn.
+  * Không trùng giờ cao điểm $\rightarrow$ Thông báo màu xanh trấn an người dùng yên tâm trải nghiệm.
+* **Điều hướng liên hoàn Google Maps Multi-stop:** Xuất đường dẫn chỉ đường xe máy liên hoàn qua tất cả các trạm dừng (`travelmode=two_wheeler`).
+
+### ⚙️ Tab 4: Bảng Điều Khiển Quản Trị (Admin Dashboard)
+* **Quản trị địa điểm toàn diện (CRUD):** Thêm mới, chỉnh sửa thông tin, xóa quán, gán nhãn quán đề cử, ẩn/hiện quán (`is_hidden`).
+* **Trích xuất thông minh từ Google Maps URL:** Tự động giải mã kinh độ, vĩ độ GPS, tên quán và địa chỉ từ link Google Maps.
+* **Nhập / Xuất dữ liệu đa năng:** Hỗ trợ Import file CSV dữ liệu hàng loạt và tải file CSV mẫu chuẩn.
+* **Quản trị người dùng & Phân quyền:** Quản lý danh sách tài khoản, chuyển đổi quyền Admin / User.
+
+---
