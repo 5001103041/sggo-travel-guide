@@ -478,3 +478,63 @@ Thẻ hiển thị Top 3 quán chuẩn gu kèm tag giải thích, địa chỉ, 
 \hline
 2 & Lập lịch trình thông minh AI & Người dùng &
 \begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Điểm xuất phát (Quận/địa chỉ).
+    \item Khung giờ rảnh (VD: 16:00--21:30).
+    \item Ngữ cảnh buổi đi.
+    \item Ngân sách buổi đi.
+\end{itemize} &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Lọc 15 địa điểm khả dụng phù hợp ngữ cảnh.
+    \item AI phân tích tọa độ, sắp xếp lộ trình không bị ngược đường giữa các quận.
+    \item Ước lượng cự ly di chuyển và phát hiện khung giờ cao điểm (17:00--19:00).
+    \item Kích hoạt Fallback offline nếu mất kết nối AI.
+\end{itemize} &
+Lịch trình Timeline chi tiết 2--3 điểm: thời gian, hành động, thông tin di chuyển và cảnh báo kẹt xe. \\
+\hline
+3 & Xáo trộn phương án gợi ý & Người dùng &
+Yêu cầu đổi phương án (click nút Xáo trộn). &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Giữ nguyên các ràng buộc đã chọn (ngân sách, thời gian, ngữ cảnh).
+    \item Hoán đổi danh sách ứng viên hoặc kích hoạt sinh lại phương án mới.
+\end{itemize} &
+Lịch trình hoặc bộ gợi ý mới hoàn toàn nhưng vẫn bảo toàn các tiêu chí ban đầu. \\
+\hline
+4 & Tra cứu \& Lọc kho địa điểm & Người dùng &
+Tiêu chí lọc: Loại hình, Ngữ cảnh, Quận/Huyện, Khoảng giá, Điểm đánh giá. &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Truy vấn danh sách địa điểm theo các tham số gửi lên.
+    \item Chỉ lấy các quán có trạng thái hoạt động (bỏ qua quán ẩn).
+\end{itemize} &
+Danh sách địa điểm trực quan dạng lưới (Grid) với đầy đủ thông số chi tiết. \\
+\hline
+5 & Quản lý danh mục địa điểm & Admin &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Thông tin địa điểm: Tên, loại, địa chỉ, quận, tọa độ GPS, giá, giờ mở, tag.
+    \item Thao tác: Thêm, sửa, xóa, ẩn địa điểm.
+\end{itemize} &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Kiểm tra tính hợp lệ dữ liệu (tọa độ trong TP.HCM, giá từ 1--3).
+    \item Kiểm tra tính duy nhất của Mã địa điểm.
+    \item Cập nhật trạng thái CSDL.
+\end{itemize} &
+Dữ liệu địa điểm được cập nhật; quán bị ẩn sẽ không bao giờ xuất hiện trong gợi ý của người dùng. \\
+\hline
+6 & Import dữ liệu hàng loạt & Admin &
+Tệp danh sách địa điểm (.csv, .xlsx). &
+\begin{itemize}[leftmargin=0.4cm,nosep]
+    \item Đọc tệp và kiểm tra định dạng.
+    \item Xác thực từng dòng dữ liệu: phát hiện trường bắt buộc bị thiếu, sai kiểu hoặc trùng lặp.
+    \item Ghi log dòng lỗi.
+\end{itemize} &
+Thông báo số bản ghi import thành công và danh sách chi tiết các dòng bị lỗi. \\
+\end{longtable}
+
+\section{Xây dựng biểu đồ mô tả nghiệp vụ và phân cấp chức năng}
+
+\subsection{Biểu đồ mô tả quy trình nghiệp vụ cải tiến (To-Be)}
+Quy trình nghiệp vụ cải tiến (To-Be) của SGGo! khắc phục triệt để các nhược điểm của quy trình As-Is bằng cách số hóa tập trung, phân định rõ ràng giữa Người dùng và Hệ thống SGGo! như thể hiện tại Hình~\ref{fig:tobe_swimlane} dưới đây:
+
+\begin{enumerate}
+    \item Luồng Khám phá nhanh (Flow trắc nghiệm 3 bước): Người dùng bấm chọn 3 bước trực quan (Mục đích -- Đồng hành -- Ngân sách). Hệ thống lọc tự động trong bộ nhớ tạm; nếu kết quả ít hơn 3 quán, hệ thống tự động nới lỏng điều kiện (Fallback theo ngữ cảnh) để luôn đảm bảo có kết quả hiển thị cho người dùng trong vòng dưới 1 giây.
+    \item Luồng Lập lịch trình thông minh (AI Itinerary): Người dùng nhập điểm xuất phát, thời gian rảnh và ngữ cảnh (G6-FR03). Hệ thống lọc danh sách ứng viên (G6-FR02), tạo lịch trình theo rule/scoring (G6-FR04), kiểm tra tổng ngân sách và thời gian (G6-FR05), tối ưu cung đường không ngược hướng và cảnh báo giờ cao điểm (G6-FR07, G6-FR11).
+    \item Xử lý linh hoạt khi nhóm chưa ưng ý: Người dùng bấm nút Xáo trộn (G6-FR06) để nhận phương án thay thế ngay lập tức mà vẫn giữ nguyên các tiêu chí cốt lõi ban đầu.
