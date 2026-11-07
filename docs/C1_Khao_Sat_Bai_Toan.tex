@@ -58,3 +58,63 @@
 % Cấu hình Caption chuẩn: 12pt, nhãn "Bảng/Hình..." in đậm, tên không đậm/không nghiêng, phân cách bằng dấu chấm
 \DeclareCaptionFont{twelvept}{\fontsize{12pt}{14.4pt}\selectfont}
 \captionsetup{font=twelvept, labelfont=bf, textfont=normalfont, labelsep=period}
+\captionsetup[table]{position=top, skip=6pt, justification=raggedright, singlelinecheck=false}
+\captionsetup[figure]{position=bottom, skip=6pt, justification=centering}
+% Đảm bảo caption của longtable cũng căn trái toàn trang như table thường
+\setlength{\LTcapwidth}{\textwidth}
+
+% Định dạng dữ liệu trong bảng: Times New Roman, 11pt, giãn dòng 1.15, tắt parskip trong bảng
+\AtBeginEnvironment{tabular}{\fontsize{11pt}{13.2pt}\selectfont\setstretch{1.15}\setlength{\parskip}{0pt}}
+\AtBeginEnvironment{tabularx}{\fontsize{11pt}{13.2pt}\selectfont\setstretch{1.15}\setlength{\parskip}{0pt}}
+\AtBeginEnvironment{longtable}{\fontsize{11pt}{13.2pt}\selectfont\setstretch{1.15}\setlength{\parskip}{0pt}}
+
+% Định dạng phân cấp tiêu đề (Có dấu chấm sau số thứ tự theo đúng Bảng 2: "CHƯƠNG 1.", "1.1.", "1.1.1.", "1.1.1.1.")
+% Heading 1 (Chương): IN HOA, đậm, 15pt, căn giữa
+\titleformat{\chapter}[block]
+  {\fontsize{15pt}{18pt}\selectfont\bfseries\centering}
+  {\MakeUppercase{\chaptertitlename}\ \thechapter.}
+  {0.5em}
+  {\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{-10pt}{18pt}
+
+% Heading 2 (Mục cấp 1): Đậm, 14pt, đánh số 2 chữ số kèm dấu chấm, căn trái
+\titleformat{\section}
+  {\fontsize{14pt}{17pt}\selectfont\bfseries\raggedright}
+  {\thesection.}
+  {0.5em}{}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+
+% Heading 3 (Mục cấp 2): Đậm, 14pt, đánh số 3 chữ số kèm dấu chấm, căn trái
+\titleformat{\subsection}
+  {\fontsize{14pt}{17pt}\selectfont\bfseries\raggedright}
+  {\thesubsection.}
+  {0.5em}{}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+
+% Heading 4 (Mục cấp 3): Đậm, 14pt, đánh số 4 chữ số kèm dấu chấm, căn trái
+\titleformat{\subsubsection}
+  {\fontsize{14pt}{17pt}\selectfont\bfseries\raggedright}
+  {\thesubsubsection.}
+  {0.5em}{}
+\titlespacing*{\subsubsection}{0pt}{12pt}{6pt}
+
+% Định dạng bảng biểu
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\hd}[1]{\centering\arraybackslash\textbf{#1}}
+\renewcommand{\arraystretch}{1.2}
+
+% Định nghĩa màu chuẩn Black & White Theme theo đúng Mục 4 của Quy tắc:
+% Nền trắng (#FFFFFF), Viền & chữ đen (#000000) dày 1px-1.5px (semithick), Vùng nhấn xám nhạt (#F1F5F9 / #E2E8F0)
+\definecolor{bgwhite}{HTML}{FFFFFF}
+\definecolor{borderblack}{HTML}{000000}
+\definecolor{hlgray1}{HTML}{F1F5F9}
+\definecolor{hlgray2}{HTML}{E2E8F0}
+
+\tikzset{
+  flowbox/.style={draw=borderblack,semithick,rounded corners=2pt,fill=bgwhite,text=borderblack,align=center,minimum height=7.5mm,text width=4.8cm,font=\small,inner sep=3pt},
+  flowdec/.style={draw=borderblack,semithick,diamond,aspect=2.2,fill=hlgray1,text=borderblack,align=center,font=\footnotesize,inner sep=2pt,text width=2.8cm},
+  flowterm/.style={draw=borderblack,semithick,rounded corners=7pt,fill=hlgray2,text=borderblack,minimum height=7mm,font=\small\bfseries,align=center,inner sep=3pt},
+  flowbad/.style={draw=borderblack,semithick,rounded corners=2pt,fill=hlgray1,text=borderblack,align=center,font=\small,text width=3.4cm,inner sep=3pt},
+  flowarr/.style={-{Stealth[length=2.5mm]},semithick,draw=borderblack},
+  bfdroot/.style={draw=borderblack,semithick,fill=hlgray2,text=borderblack,align=center,font=\small\bfseries,inner sep=5pt,rounded corners=2pt,text width=4.8cm},
+  bfdmain/.style={draw=borderblack,semithick,fill=hlgray1,text=borderblack,align=center,font=\footnotesize\bfseries,inner sep=2.5pt,rounded corners=2pt,text width=3.8cm,minimum height=8mm},
