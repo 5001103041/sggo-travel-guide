@@ -178,3 +178,63 @@ Dữ liệu địa điểm chính xác, chuẩn hóa tọa độ và phân loạ
 \end{tabular}
 \end{table}
 
+\subsection{Phân bổ trọng tâm khảo sát}
+\begin{itemize}
+    \item Người dùng / Khách truy cập là stakeholder trọng tâm của quá trình khảo sát thực tế nhằm thấu hiểu thói quen, tâm lý e ngại đưa ra quyết định và các tiêu chí đánh đổi (khoảng cách và mức giá).
+    \item Quản trị viên (Admin) được phân tích yêu cầu từ góc độ quản lý dữ liệu, kiểm soát tính đúng đắn của kho địa điểm và đảm bảo tính kiểm thử được của thuật toán theo yêu cầu môn học.
+\end{itemize}
+
+\subsection{Phương pháp và kết quả khảo sát thu thập yêu cầu}
+
+Nhóm 6 đã triển khai kết hợp 02 phương pháp khảo sát bổ trợ theo đúng hướng dẫn của học phần được trình bày tại Bảng~\ref{tab:methods} dưới đây:
+
+\begin{table}[H]
+\centering
+\caption{Các phương pháp khảo sát thu thập yêu cầu đã thực hiện}
+\label{tab:methods}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{|L{3.8cm}|L{4.5cm}|L{6.3cm}|}
+\hline
+\hd{Phương pháp} & \hd{Đối tượng và quy mô} & \hd{Mục đích thu thập} \\
+\hline
+Phỏng vấn mô phỏng (Role-play) &
+02 đối tượng đóng vai đại diện cho sinh viên và người trẻ đi làm tại TP.HCM (kịch bản 9 câu hỏi chuyên sâu). &
+Hiểu rõ quy trình lên lịch trình hiện tại, phân biệt ràng buộc cứng và tiêu chí mềm, ghi nhận hành vi khi từ chối gợi ý và nhu cầu về lịch trình nhiều điểm. \\
+\hline
+Bảng hỏi trực tuyến (Google Forms) &
+23 phản hồi hợp lệ từ người trẻ sinh sống, học tập tại TP.HCM (thu thập từ 01/10/2026 đến 03/10/2026). &
+Lượng hóa thói quen, mức độ nghiêm trọng của khó khăn (thang Likert), xác định các khoảng ngân sách phổ biến và đo lường nhu cầu chức năng mới. \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Phương pháp 1 -- Phỏng vấn mô phỏng (Role-play)}
+Nhóm 6 đã triển khai hoạt động phỏng vấn đóng vai theo kịch bản với 02 đối tượng:
+\begin{itemize}
+    \item Đối tượng phỏng vấn 1 (Sinh viên đại học): Thường đi chơi theo nhóm bạn thân; hay tìm quán qua TikTok và Google Maps; thời gian thảo luận thông thường mất 15--20 phút nhưng khi bất đồng ý kiến có thể kéo dài cả tiếng. Đã từng nhiều lần hủy hẹn vì người muốn đi ăn, người muốn xem phim, người muốn đi cà phê. Khẳng định ngân sách là giới hạn quan trọng nhất (ràng buộc cứng). Mong muốn công cụ có thể tổng hợp tiêu chí và đưa ra vài phương án cụ thể, có nút đổi gợi ý nếu không thích, và các điểm đến phải nằm trên tuyến đường thuận tiện.
+    \item Đối tượng phỏng vấn 2 (Người trẻ đi làm): Thường tụ tập cuối tuần theo nhóm 4--6 người; mất gần 1 tiếng nếu phải lên lịch trình đi nhiều nơi. Từng hoãn đi chơi do các thành viên ở xa ngại di chuyển nhiều. Tiêu chí lựa chọn ưu tiên trải nghiệm, không gian đẹp nhưng phải cân đối khoảng cách hợp lý. Mong muốn hệ thống gợi ý lịch trình có thứ tự logic (ăn uống trước rồi mới đi cà phê hoặc vui chơi), hiển thị thời gian dự kiến ở mỗi nơi và tổng chi phí.
+\end{itemize}
+
+\subsubsection{Phương pháp 2 -- Khảo sát diện rộng qua Bảng hỏi trực tuyến (Google Forms)}
+Bảng hỏi thu về 23 phản hồi hợp lệ. Nhóm 6 tiến hành tổng hợp và phân tích các chỉ số định lượng theo 6 nội dung dưới đây:
+
+\begin{enumerate}
+    \item Đặc điểm mẫu khảo sát:
+    \begin{itemize}
+        \item Độ tuổi: 18--22 tuổi chiếm 87,0\% (20/23); 23--26 tuổi chiếm 13,0\% (3/23).
+        \item Khu vực xuất phát phổ biến nhất: Khu vực trung tâm (Quận 1, 3, 5, 10) chiếm 52,2\% (12/23); Phía Đông (TP. Thủ Đức, Bình Thạnh) chiếm 26,1\% (6/23); Phía Nam (Quận 4, 7, 8) chiếm 17,4\% (4/23); Phía Tây/Tây Bắc chiếm 4,3\% (1/23).
+        \item Quy mô nhóm thông thường: Nhóm 4--6 người chiếm đa số với 56,5\% (13/23); nhóm 2--3 người chiếm 30,4\% (7/23); nhóm trên 6 người chiếm 13,1\%.
+        \item Hoạt động nhóm yêu thích: Ăn uống chiếm 91,3\% (21/23); Cà phê/ngồi trò chuyện chiếm 65,2\% (15/23); Karaoke chiếm 52,2\% (12/23); Xem phim chiếm 47,8\% (11/23); Dạo phố/chụp ảnh chiếm 39,1\% (9/23); Trò chơi/Boardgame chiếm 30,4\% (7/23).
+    \end{itemize}
+
+    \item Thời gian chốt kế hoạch của nhóm bạn trẻ: Thống kê thời gian từ lúc có ý tưởng đến khi cả nhóm chốt được địa điểm và thời gian cụ thể được tổng hợp tại Bảng~\ref{tab:time} dưới đây:
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{Thời gian trung bình từ lúc có ý tưởng đến khi chốt được kế hoạch}
+\label{tab:time}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{|L{7.0cm}|>{\raggedright\arraybackslash}c|>{\raggedright\arraybackslash}c|}
+\hline
+\hd{Khoảng thời gian} & \hd{Số lượng (người)} & \hd{Tỷ lệ (\%)} \\
