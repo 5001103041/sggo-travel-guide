@@ -98,3 +98,23 @@ Chỉ cần nhấp đúp vào file **`run_app.bat`** tại thư mục gốc. H�
 1. Mở sẵn trình duyệt tại địa chỉ `http://127.0.0.1:8000`.
 2. Khởi động máy chủ backend FastAPI với chế độ tự động reload.
 
+### Cách 2: Khởi chạy thủ công qua Terminal / Command Prompt
+
+**Bước 1:** Khởi tạo môi trường ảo Python (khuyên dùng Python 3.11+):
+```bash
+# Tạo môi trường ảo
+python -m venv venv
+
+# Kích hoạt trên Windows:
+venv\Scripts\activate
+
+# Hoặc trên macOS / Linux:
+source venv/bin/activate
+```
+
+**Bước 2:** Cài đặt các thư viện cần thiết:
+```bash
+pip install -r requirements.txt
+```
+
+**Bước 3 (Tùy chọn):** Cấu hình Google Gemini API Key:
