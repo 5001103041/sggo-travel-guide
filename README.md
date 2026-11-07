@@ -78,3 +78,23 @@ chonchodichoi11/
 │   └── images/                 # Kho ảnh địa điểm đã được tối ưu
 │       ├── places/
 │       └── verified/
+├── tests/
+│   ├── test_api.py             # Kiểm thử REST API Endpoints (Health check, Places, 404)
+│   ├── test_routing.py         # Kiểm thử thuật toán Haversine, Nearest Neighbor TSP, Dwell
+│   └── test_sggo_suite.py      # Bộ 53 test cases kiểm thử tự động RTM & Business Rules
+├── main.py                     # Entrypoint phục vụ Cloud Deployment (Render / Railway)
+├── render.yaml                 # Cấu hình triển khai tự động lên nền tảng Render
+├── requirements.txt            # Thư viện phụ thuộc cấp root
+├── run_app.bat                 # Script chạy nhanh 1 chạm trên Windows
+└── README.md                   # Tài liệu hướng dẫn dự án
+```
+
+---
+
+## 4. Hướng Dẫn Cài Đặt & Khởi Chạy
+
+### Cách 1: Khởi chạy nhanh bằng File Script (Dành cho Windows)
+Chỉ cần nhấp đúp vào file **`run_app.bat`** tại thư mục gốc. Hệ thống sẽ tự động:
+1. Mở sẵn trình duyệt tại địa chỉ `http://127.0.0.1:8000`.
+2. Khởi động máy chủ backend FastAPI với chế độ tự động reload.
+
