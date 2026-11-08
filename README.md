@@ -2,7 +2,6 @@
 
 > **Đồ án môn học:** Công nghệ Phần mềm (COMP1044)  
 > **Nhóm sinh viên thực hiện:** SGGo Team  
-> **Trưởng nhóm:** Quách Gia Huy  
 
 ---
 
