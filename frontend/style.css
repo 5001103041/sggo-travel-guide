@@ -631,3 +631,8 @@ select option {
     height: 100vh !important;
   }
 }
+
+/* Đảm bảo class hidden của Tailwind luôn ẩn triệt để */
+.hidden {
+  display: none !important;
+}

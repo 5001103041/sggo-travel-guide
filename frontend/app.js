@@ -2367,9 +2367,7 @@ function renderAllPlaces(places) {
     return;
   }
 
-  visiblePlaces.forEach(p => {
-    container.innerHTML += buildCatalogCardHTML(p);
-  });
+  container.innerHTML = visiblePlaces.map(p => buildCatalogCardHTML(p)).join("");
 }
 
 function removeVietnameseTones(str) {
